@@ -1,0 +1,11 @@
+#voltage_thresholds, #switch_channel {
+    font-size: 1em;
+    width:20px;
+    height: 20px;
+}
+
+label {
+    font-size: 1.2em;
+    width:20px;
+    height: 20px;
+}

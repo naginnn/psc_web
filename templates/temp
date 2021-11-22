@@ -1,0 +1,56 @@
+
+<!--                        {%for i in lala%}-->
+<!--                        <a href="{{ url_for('directory', filename = 'test_prot.xlsx') }}">Filke</a>-->
+<!--                        {%endfor%}-->
+
+ <a href="{{ url_for('download', filename="downloadFile.txt") }}">File</a>
+
+            <form id="form" class="check-form" action="/configuration" method="post">
+                        <h4>Конфигурация</h4>
+
+                        <div class="room-selector">
+                            <p>Тип устройства:</p>
+                            <select id="device_type"  class="form-control">
+                                <option value="psc24-10">PSC 24V-10A</option>
+                                <option value="psc24-40">PSC 24V-40A</option>
+                                <option value="psc48-10">PSC 48V-10A</option>
+                                <option value="psc48-40">PSC 48V-40A</option>
+                            </select>
+                        </div>
+
+                        <div class="room-selector">
+                            <p>Тип блоков питания</p>
+                            <select id="power_supply_type" class="form-control"></select>
+                        </div>
+                        <script>
+                            var syncList1 = new syncList;
+                            syncList1.dataList = {
+                              'psc24-10':{
+                                  'wm24-10':'WeidMuller 24V 10A',
+                                  'pw24-5':'Topaz PW 24V 5A'
+                              },
+                              'psc24-40':{
+                                  'wm24-40':'WeidMuller 24V 40A',
+                                  'mw24-67':'MeanWell 24V 67A'
+                              },
+                              'psc48-10':{
+                                  'wm48-20':'WeidMuller 48V 20A'
+                              },
+
+                              'psc48-40':{
+                                  'mw48-67':'MeanWell 48V 67A'
+                              }
+                            };
+                            syncList1.sync("device_type","power_supply_type");
+                        </script>
+                        <div class="room-selector">
+                            <input class="form-check-input" type="checkbox" id="voltage_thresholds" name="power_supply">
+                            <label for="voltage_thresholds">Проверка порогов по напряжению (Подключить ЛБП)</label>
+                        </div>
+
+                        <div class="room-selector">
+                            <input class="form-check-input" type="checkbox" id="switch_channel" name="switch_channel"checked>
+                            <label for="switch_channel">Переключение каналов (Проверка провалов по напряжению)</label>
+                        </div>
+            </form>
+

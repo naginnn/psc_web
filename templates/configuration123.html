@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+  <title>Configuration</title>
+      <link rel="stylesheet" href="{{ url_for('static', filename='css/configuration.css') }}">
+      <script src = "{{ url_for('static', filename = 'js/configuration.js') }}"></script>
+  <!-- Подключаем javascript-библиотеку функций -->
+    <script src = "{{ url_for('static', filename = 'js/linkedselect.js') }}"></script>
+
+</head>
+
+<body>
+
+ <form id="form" action="/configuration" method="post">
+<!-- Первый (главный) список (изначально заполнен вручную) -->
+    <label>Выберите тип устройства:</label>
+    <br>
+    <select id="device_type" class="select-css" >
+        <option value="psc24">PSC 24V</option>
+        <option value="psc48">PSC 48V</option>
+    </select>
+    <br>
+<!-- Подчиненный список 1 (изначально пуст) -->
+   <select id="device_name" class="select-css"></select>
+   <br>
+<!-- Подчиненный список 2 (изначально пуст) -->
+     <label>Выберите тип блоков питания:</label>
+    <br>
+    <select id="power_supply_type" class="select-css"></select>
+    <script type="text/javascript">
+        // Создаем новый объект связанных списков
+        var syncList1 = new syncList();
+
+        // Определяем значения подчиненных списков (2 и 3 селектов)
+        syncList1.dataList = {
+
+        /* Определяем элементы второго списка в зависимости
+        от выбранного значения в первом списке */
+
+          'psc24':{
+              'psc24v10a':'PSC 24V 10A',
+              'psc24v40a':'PSC 24V 40A'
+          },
+
+          'psc48':{
+              'psc48v10a':'PSC 48V 10A',
+              'psc48v40a':'PSC 48V 40A'
+          },
+
+        /* Определяем элементы третьего списка в зависимости
+        от выбранного значения во втором списке */
+
+          'psc24v10a':{
+              'wm24v10a':'WeidMuller 24V 7,5A',
+              'pw24v5a':'PW 24V 5A'
+          },
+
+          'psc24v40a':{
+              'wm24v40a':'WeidMuller 24V 40A',
+              'mw24v67a':'MeanWell 24V 67A',
+          },
+
+          'psc48v10a':{
+              'wm48v10a':'WeidMuller 48V 10A',
+              'mw48v67a':'MeanWell 48V 67A',
+          },
+
+          'psc48v40a':{
+              'wm48v20a':'WeidMuller 48V 20A',
+              'mw48v67a':'MeanWell 48V 67A',
+          }
+        };
+
+        // Включаем синхронизацию связанных списков
+        syncList1.sync("device_type","device_name","power_supply_type");
+    </script>
+           <br> <input type="checkbox" id="voltage_thresholds" name="power_supply">
+          <label for="voltage_thresholds">Проверка порогов по напряжению (Необходимо подключить ЛБП)</label><br>
+
+            <input type="checkbox" id="switch_channel" name="switch_channel"checked>
+          <label for="switch_channel">Переключение каналов (Проверка провалов по напряжению)</label><br>
+
+            <label>Время прогрева (минут)</label><br>
+            <select id="warmup_time" name="bomba" class="selectpicker" title="Не прогревать" data-style="btn-primary">
+                <option selected>1</option>
+                <option>5</option>
+                <option>10</option>
+                <option>15</option>
+                <option>20</option>
+            </select>
+            <br>
+            <input type="checkbox" id="overload_mode" name="overload_mode">
+                  <label for="switch_channel">Режим перегрузки</label><br>
+                    <input disabled="disabled" type="checkbox" id="om_to_enable" name="overload_mode">
+                  <label for="switch_channel">На включение</label><br>
+                    <input disabled="disabled" type="checkbox" id="om_ad_idle" name="overload_mode">
+                  <label for="switch_channel">На холостом ходу</label><br>
+                    <input disabled="disabled" type="checkbox" id="om_under_load" name="overload_mode">
+                  <label for="switch_channel">Под нагрузкой</label><br>
+
+            <script type="text/javascript">
+            overload_mode.addEventListener('change', function() {
+                if (this.checked) {
+                    document.getElementById('om_to_enable').disabled = false;
+                    document.getElementById('om_ad_idle').disabled = false;
+                    document.getElementById('om_under_load').disabled = false;
+                 } else {
+                    document.getElementById('om_to_enable').disabled = true;
+                    document.getElementById('om_ad_idle').disabled = true;
+                    document.getElementById('om_under_load').disabled = true;
+                 }});
+            </script>
+                    <input type="checkbox" id="sc_mode" name="sc_mode">
+                  <label for="switch_channel">Режим короткого замыкания</label><br>
+                    <input disabled="disabled" type="checkbox" id="sc_to_enable" name="overload_mode">
+                  <label for="switch_channel">На включение</label><br>
+                    <input disabled="disabled" type="checkbox" id="sc_ad_idle" name="overload_mode">
+                  <label for="switch_channel">На холостом ходу</label><br>
+                    <input disabled="disabled" type="checkbox" id="sc_under_load" name="overload_mode">
+                  <label for="switch_channel">Под нагрузкой</label><br>
+
+            <script type="text/javascript">
+                sc_mode.addEventListener('change', function() {
+                    if (this.checked) {
+                        document.getElementById('sc_to_enable').disabled = false;
+                        document.getElementById('sc_ad_idle').disabled = false;
+                        document.getElementById('sc_under_load').disabled = false;
+                     } else {
+                        document.getElementById('sc_to_enable').disabled = true;
+                        document.getElementById('sc_ad_idle').disabled = true;
+                        document.getElementById('sc_under_load').disabled = true;
+                     }});
+            </script>
+
+            <label>Кол-во проверяемых устройств:</label>
+            <select id="checked_list" class="checked_list" name="checked_list">
+                <option>1</option>
+                <option>2</option>
+                <option>3</option>
+                <option>4</option>
+                <option>5</option>
+            </select>
+
+
+            <br><input type="checkbox" id="dry_contact" name="dry_contact"checked>
+          <label for="dry_contact">Проверка сухого контакта</label>
+
+            <br><input type="checkbox" id="sensor" name="sensor"checked>
+          <label for="switch_channel">Обрыв связи с датчиком</label><br>
+            <input id="save" type="submit" value="Сохранить" name="save"/>
+
+     </form>
+
+</body>
+</html>

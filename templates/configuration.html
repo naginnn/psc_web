@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="zxx">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="description" content="Hotel Template">
+    <meta name="keywords" content="Hotel, unica, creative, html">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Стенд PSC - Конфигурация</title>
+
+    <!-- Google Font -->
+    <link
+        href="https://fonts.googleapis.com/css?family=Montserrat+Alternates:100,200,300,400,500,600,700,800,900&display=swap"
+        rel="stylesheet">
+
+    <!-- Css Styles -->
+    <script src="{{ url_for('static', filename = 'js/configuration.js') }}"></script>
+    <script src="{{ url_for('static', filename = 'js/linkedselect.js') }}"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename = 'css/bootstrap.min.css') }}" type="text/css">
+    <link rel="stylesheet" href="{{ url_for('static', filename = 'css/font-awesome.min.css') }}" type="text/css">
+    <link rel="stylesheet" href="{{ url_for('static', filename = 'css/flaticon.css') }}" type="text/css">
+    <link rel="stylesheet" href="{{ url_for('static', filename = 'css/owl.carousel.min.css') }}" type="text/css">
+    <link rel="stylesheet" href="{{ url_for('static', filename = 'css/jquery-ui.min.css') }}" type="text/css">
+    <link rel="stylesheet" href="{{ url_for('static', filename = 'css/nice-select.css') }}" type="text/css">
+    <link rel="stylesheet" href="{{ url_for('static', filename = 'css/magnific-popup.css') }}" type="text/css">
+    <link rel="stylesheet" href="{{ url_for('static', filename = 'css/slicknav.min.css') }}" type="text/css">
+    <link rel="stylesheet" href="{{ url_for('static', filename = 'css/style.css') }}" type="text/css">
+    <link rel="stylesheet" href="{{ url_for('static', filename = 'css/progressbar.css') }}" type="text/css">
+</head>
+
+<body>
+    <!-- Page Preloder -->
+    <div id="preloder">
+        <div class="loader"></div>
+    </div>
+
+    <!-- Header Section Begin -->
+    <header class="header-section">
+        <div class="container-fluid">
+            <div class="inner-header">
+                <div class="logo">
+                    <a href="./welcome.html"><img src="{{ url_for('static', filename = 'img/logo.png') }}"  alt=""></a>
+                </div>
+                <nav class="main-menu mobile-menu">
+                    <ul>
+                        <li><a href="/">Главная</a></li>
+                        <li><a href="/diagnostics">Диагностика</a></li>
+                        <li class="active"><a href="/configuration">Конфигурация</a></li>
+                        <li><a href="/test">Тест</a></li>
+                        <li><a href="/shemeilogic">Схемы и логика</a></li>
+                        <li><a href="/about">О проекте</a></li>
+                    </ul>
+                </nav>
+                <div id="mobile-menu-wrap"></div>
+            </div>
+        </div>
+    </header>
+    <!-- Header End -->
+
+    <!-- Hero Area Section Begin -->
+    <!-- <div class="hero-area set-bg other-page" data-setbg="img/about_bg.jpg">
+    </div> -->
+    <!-- Hero Area Section End -->
+
+    <!-- About Us Section Begin -->
+    <section class="about-us spad">
+        <form id="form" class="form-group" action="/configuration" method="post">
+                        <h4>Конфигурация</h4>
+                        <div class="room-selector">
+                            <p>Тип устройства:</p>
+                            <div>{{lola}}</div>
+                            <select id="device_name"  class="form-control">
+                                <option {{psc24_10}} value="psc24_10">PSC 24V-10A</option>
+                                <option {{psc24_40}} value="psc24_40">PSC 24V-40A</option>
+                                <option {{psc48_10}} value="psc48_10">PSC 48V-10A</option>
+                                <option {{psc48_40}} value="psc48_40">PSC 48V-40A</option>
+                            </select>
+                        </div>
+
+                        <div class="room-selector">
+                            <p>Тип блоков питания</p>
+                            <select id="power_supply_type" class="form-control"></select>
+                        </div>
+                        <script>
+                            var syncList1 = new syncList;
+                            syncList1.dataList = {
+                              'psc24_10':{
+                                  'wm24_10':'WeidMuller 24V 10A',
+                                  'pw24_5':'Topaz PW 24V 5A'{{pw24_5}}
+                              },
+                              'psc24_40':{
+                                  'wm24_40':'WeidMuller 24V 40A',
+                                  'mw24_67':'MeanWell 24V 67A'
+                              },
+                              'psc48_10':{
+                                  'wm48_20':'WeidMuller 48V 20A'
+                              },
+
+                              'psc48_40':{
+                                  'mw48_67':'MeanWell 48V 67A'
+                              }
+                            };
+                            syncList1.sync("device_name","power_supply_type");
+
+                        </script>
+
+                <div class="room-selector">
+                    <label>Кол-во проверяемых устройств:</label>
+                    <select id="checked_list" class="checked_list" name="checked_list">
+                        <option {{checked_1}} >1</option>
+                        <option {{checked_2}} >2</option>
+                        <option {{checked_3}} >3</option>
+                        <option {{checked_4}} >4</option>
+                        <option {{checked_5}} >5</option>
+                    </select>
+                </div>
+
+
+                <div class="room-selector">
+                    <label>Время прогрева (минут)</label>
+                    <select id="warmup_time" name="bomba" class="selectpicker" title="Не прогревать" data-style="btn-primary">
+                        <option {{warmup_1}} >1</option>
+                        <option {{warmup_5}} >5</option>
+                        <option {{warmup_10}} >10</option>
+                        <option {{warmup_15}} >15</option>
+                        <option {{warmup_20}} >20</option>
+                    </select>
+                </div>
+
+                <div class="room-selector">
+                    <input type="checkbox" id="overload_mode" name="overload_mode" {{overload_mode}}>
+                    <label for="overload_mode">Режим перегрузки</label><br>
+                    <input type="checkbox" id="om_to_enable" name="overload_mode" {{om_to_enable}}>
+                    <label for="om_to_enable">На включение</label><br>
+                    <input type="checkbox" id="om_ad_idle" name="overload_mode" {{om_ad_idle}}>
+                    <label for="om_ad_idle">На холостом ходу</label><br>
+                    <input type="checkbox" id="om_under_load" name="overload_mode" {{om_under_load}}>
+                    <label for="om_under_load">Под нагрузкой</label><br>
+                </div>
+
+            <script type="text/javascript">
+            overload_mode.addEventListener('change', function() {
+                if (this.checked) {
+                    document.getElementById('om_to_enable').disabled = false;
+                    document.getElementById('om_ad_idle').disabled = false;
+                    document.getElementById('om_under_load').disabled = false;
+                 } else {
+                    document.getElementById('om_to_enable').disabled = true;
+                    document.getElementById('om_ad_idle').disabled = true;
+                    document.getElementById('om_under_load').disabled = true;
+                 }});
+            </script>
+                <div class="room-selector">
+                    <input type="checkbox" id="sc_mode" name="sc_mode" {{sc_mode}}>
+                    <label for="sc_mode">Режим короткого замыкания</label><br>
+                    <input type="checkbox" id="sc_to_enable" name="overload_mode" {{sc_to_enable}}>
+                    <label for="sc_to_enable">На включение</label><br>
+                    <input type="checkbox" id="sc_ad_idle" name="overload_mode" {{sc_ad_idle}}>
+                    <label for="sc_ad_idle">На холостом ходу</label><br>
+                    <input type="checkbox" id="sc_under_load" name="overload_mode" {{sc_under_load}}>
+                    <label for="sc_under_load">Под нагрузкой</label>
+                </div>
+
+            <script type="text/javascript">
+                sc_mode.addEventListener('change', function() {
+                    if (this.checked) {
+                        document.getElementById('sc_to_enable').disabled = false;
+                        document.getElementById('sc_ad_idle').disabled = false;
+                        document.getElementById('sc_under_load').disabled = false;
+                     } else {
+                        document.getElementById('sc_to_enable').disabled = true;
+                        document.getElementById('sc_ad_idle').disabled = true;
+                        document.getElementById('sc_under_load').disabled = true;
+                     }});
+            </script>
+
+                <div class="room-selector">
+                    <input type="checkbox" id="voltage_thresholds" name="power_supply" {{voltage_thresholds}}>
+                    <label for="voltage_thresholds">Проверка порогов по напряжению</label><br>
+                    <label>Минимальное напряжение IN</label>&nbsp;<label>Минимальное напряжение АКБ</label><br>
+                    <input type="text" id="min_voltage_in" value="{{min_voltage_in}}" {{min_voltage_in_ch}}>&nbsp;<input type="text" id="min_voltage_btr" value="{{min_voltage_btr}}" {{min_voltage_btr_ch}}><br>
+                    <label>Максимальное напряжение</label>&nbsp;<label>Максимальное напряжение</label><br>
+                    <input type="text" id="max_voltage_in" value="{{max_voltage_in}}" {{max_voltage_in_ch}}>&nbsp;<input type="text" id="max_voltage_btr" value="{{max_voltage_btr}}" {{max_voltage_btr_ch}}><br>
+
+                </div>
+
+                <script type="text/javascript">
+                    voltage_thresholds.addEventListener('change', function() {
+                        if (this.checked) {
+                            document.getElementById('min_voltage_in').disabled = false;
+                            document.getElementById('max_voltage_in').disabled = false;
+                            document.getElementById('min_voltage_btr').disabled = false;
+                            document.getElementById('max_voltage_btr').disabled = false;
+                         } else {
+                            document.getElementById('min_voltage_in').disabled = true;
+                            document.getElementById('max_voltage_in').disabled = true;
+                            document.getElementById('min_voltage_btr').disabled = true;
+                            document.getElementById('max_voltage_btr').disabled = true;
+                         }});
+                    </script>
+
+                <div class="room-selector">
+                    <input type="checkbox" id="switch_channel" name="switch_channel" {{switch_channel}}>
+                    <label for="switch_channel">Переключение каналов</label><br>
+                    <input type="checkbox" id="dry_contact" name="dry_contact" {{dry_contact}}>
+                    <label for="dry_contact">Проверка сухого контакта</label><br>
+                    <input type="checkbox" id="sensor" name="sensor" {{sensor}}>
+                    <label for="sensor">Обрыв связи с датчиком</label>
+                </div>
+                    <input class="primary-btn" id="save" type="submit" value="Сохранить" name="save"/>
+                    <br><br><div id="my-progressbar"></div>
+        </form>
+        <div class="container">
+            <div class="row">
+
+                <div class="col-lg-6">
+                   
+                </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    <!-- About Us Section End -->
+
+    <!-- Footer Section Begin -->
+    <footer class="footer-section">
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-4">
+                    <div class="footer-item">
+
+<!--                        <h5>Newsletter</h5>-->
+                        <div class="newslatter-form">
+<!--                            <input type="text" placeholder="Your Email Here">-->
+<!--                            <button type="submit">Subscribe</button>-->
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-2">
+
+                </div>
+            </div>
+        </div>
+        <div class="copyright">
+            <div class="container">
+                <div class="row pt-2">
+                    <div class="col-lg-12 ">
+                        <div class="small text-white text-center"><!-- Link back to Colorlib can't be removed. Template is licensed under CC BY 3.0. -->
+Copyright &copy;<script>document.write(new Date().getFullYear());</script> All rights reserved | by Nagin</a>
+<!-- Link back to Colorlib can't be removed. Template is licensed under CC BY 3.0. --></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </footer>
+    <!-- Footer Section End -->
+
+    <!-- Js Plugins -->
+    <script src="{{ url_for('static', filename = 'js/jquery-3.3.1.min.js') }}"></script>
+    <script src="{{ url_for('static', filename = 'js/bootstrap.min.js') }}"></script>
+    <script src="{{ url_for('static', filename = 'js/jquery.magnific-popup.min.js') }}"></script>
+    <script src="{{ url_for('static', filename = 'js/jquery-ui.min.js') }}"></script>
+    <script src="{{ url_for('static', filename = 'js/jquery.nice-select.min.js') }}"></script>
+    <script src="{{ url_for('static', filename = 'js/jquery.slicknav.js') }}"></script>
+    <script src="{{ url_for('static', filename = 'js/owl.carousel.min.js') }}"></script>
+    <script src="{{ url_for('static', filename = 'js/main.js') }}"></script>
+    <script src="{{ url_for('static', filename = 'js/progressbar.min.js') }}"></script>
+</body>
+
+</html>

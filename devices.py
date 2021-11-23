@@ -32,7 +32,7 @@ def number_func(str):
     except:
         return float(0)
 
-#готово
+
 class Modb:
     def getConnection(self,name, port, slave_adress,log):
         try:
@@ -40,8 +40,8 @@ class Modb:
             self.instrument = minimalmodbus.Instrument(port, slave_adress)
             self.instrument.serial.baudrate = 115200  # Baud
             self.instrument.serial.bytesize = 8
-            self.instrument.serial.stopbits = 1  # seconds
-            # self.instrument.serial.timeout = 0.05
+            self.instrument.serial.stopbits = 1
+            # self.instrument.serial.timeout = 0.05 # seconds
             # self.instrument.serial.timeout = 300000
             self.instrument.close_port_after_each_call = True
             self.instrument.clear_buffers_before_each_transaction = True
@@ -50,7 +50,7 @@ class Modb:
         except:
             self.log.add("Connection:", "Ошибка соединения с модулем " + name, False)
             return False
-#готово
+
 class Dout:
     def __init__(self, instrument,dout_names,name,log):
         self.instrument = instrument
@@ -127,37 +127,6 @@ class Dout:
                 time.sleep(i)
                 i = i + 1
 
-
-    # def check_dout(self,dout_101,din_201):
-    #     i = 0
-    #     j = 0
-    #     z = 0
-    #     bad_circuit = []
-    #     res = True
-    #
-    #
-    #     while i < len(self.adresses):
-    #         if dout_101.write_on(self.adresses[i]) != din_201.get_status()[j]:
-    #             bad_circuit.append("Неисправность в цепи: " + self.name + " - NO " + str(i+1) + " -> " + self.impact_names[z] + " -> " + "DIN201")
-    #             #return "Неисправность в цепи: " + self.name + " - NO " + str(i) + " -> " + self.impact_names[z] + " -> " + "DIN201"
-    #             res = False
-    #        # time.sleep(3)
-    #         if (dout_101.write_off(self.adresses[i]) != din_201.get_status()[j]):
-    #             bad_circuit.append("Неисправность в цепи: " + self.name + " - NO" + str(i+1) + " -> " + self.impact_names[z] + " -> " + "DIN201")
-    #             res = False
-    #
-    #             # return "Неисправность в цепи: " + self.name + " - NO" + str(i) + " -> " + self.impact_names[z] + " -> " + "DIN202"
-    #        # time.sleep(3)
-    #         i = i + 1
-    #         j = j + 1
-    #         z = z + 1
-    #
-    #
-    #     if res:
-    #         return "Устройства привязанные к " + self.name + " исправны"
-    #     else:
-    #         return bad_circuit
-#готово
 class Din:
     def __init__(self, instrument, din_names, name, log):
         self.instrument = instrument
@@ -209,7 +178,7 @@ class Din:
         except:
             self.log.add(self.name, "Фатальная ошибка при попытке получить телесигналы", False)
             return False
-#готово
+
 class PowerSupply:
 
     def __init__(self, ip_adress, port, name, log):
@@ -353,7 +322,7 @@ class PowerSupply:
     # OUTPut OFF // отключить выход
     # MEAS:CURR? // текущий ток блока питания
     # SOUR:VOLTAGE 25 // текущее напряжение блока питания
-#готово
+
 class Psc_10:
     psc10_names_ts = ["IN1", "IN2", "IN3", "OUT1", "OUT2", "ERROR_OUT1", "ERROR_OUT2", "ERROR_BTR", "ERROR_I_OUT1",
                       "ERROR_I_OUT2", "PWR_BTR", "TEN", "APTC"]
@@ -401,8 +370,6 @@ class Psc_10:
             self.log.add(self.name, "Критическая ошибка при попытке получения телесигнала " + name_signal, False)
             return False
 
-
-
     def check_status(self, *args):
         i = 0
         while i < len(args):
@@ -412,8 +379,6 @@ class Psc_10:
             i = i + 1
         return True
 
-
-#готово
 class Psc_40:
     psc40_names_ts = ["IN1", "IN2", "IN3", "IN4", "U_OUT1", "U_OUT2", "ERROR_KEY1", "ERROR_KEY2", "ERROR_KEY3",
                       "ERROR_KEY4", "PWR_BTR", "TEN", "OVERLOAD_I", "SHORT_I", "BTR_DISCHARGED", "U_IN1", "U_IN2",

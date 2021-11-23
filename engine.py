@@ -79,6 +79,8 @@ class Diagnostics:
         self.log.add(self.name,"Диагностика завершена",True)
         self.log.set_finish(True)
 interpreter = 1
+
+# Проверки
 class Check:
 
     def __init__(self, name, log, device_log, settings):

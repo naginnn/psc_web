@@ -6,3 +6,4 @@ if __name__ == "__main__":
         print("Middle")
     except AssertionError:
         print('Welcome to Prometheus!!!')
+        print("lala")

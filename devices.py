@@ -7,7 +7,7 @@ import time
 dout_names_101 = {"KL1":81,"KL2":82,"KL3":83,"KL4":84,"KL5":85,"KL6":86,"KL7":87,"KL8":88,"KL9":89,"KL10":90,"KL11":91,"KL12":92,"KL13":93,"KL14":94,"KL15":95,"KL16":96}
 dout_names_102 = {"KL17":81,"KL18":82,"KL19":83,"KL20":84,"KL21":85,"KL22":86,"KL23":87,"KL24":88,"KL25":89,"KL26":90,"KL27":91,"KL28":92,"KL29":93,"KL30":94,"KL31":95,"KL32":96}
 dout_names_103 = {"KL33":81,"KM1":82,"KM2":83,"KM3":84,"KM4":85,"KM5":86,"KM6":87,"KM7":88,"KM8":89,"KM9":90,"KM10":91,"KM11":92,"KM14":93,"KM15":94,"KM16":95,"KM17":96}
-dout_names_104 = {"KM18":81,"KM19":82,"KM12":83,"KM13":84,"KM20":85,"KM21":86,"KM22":87,"KM23":88}
+dout_names_104 = {"KM18":81,"KM19":82,"KM12":83,"KM13":84,"KM20":85,"KM21":86,"KM22":87,"KM23":88,"KL34":93}
 din_names_201 = {"KL1":"MW1 - MeanWell 24-67","KL2":"MW2 - MeanWell 24-67","KL3":"MW3 - MeanWell 24-67","KL4":"MW4 - MeanWell 48-67","KL5":"MW5 - MeanWell 48-67",
                  "KL6":"WM1 - WeidMuller 24-10","KL7":"WM1 - WeidMuller 24-10","KL8":"WM2 - WeidMuller 24-10","KL9":"WM3 - WeidMuller 24-40","KL10":"WM4 - WeidMuller 24-40",
                  "KL11":"WM5 - WeidMuller 24-40","KL12":"WM6 - WeidMuller 48-20","KL13":"WM7 - WeidMuller 48-20","KL14":"WM8 - WeidMuller 48-20","KL15":"PW1 - TOPAZ PW 24-4",
@@ -20,8 +20,8 @@ din_names_202 = {"KL33":"ЛБП U4 - U на IN4","KM1":"АКБ #1 - IN 3,4","KM2
                  "KM5":"АКБ #5 - IN 3,4","KM6":"АКБ #6 - IN 3,4","KM7":"PSC 1 - входные каналы","KM8":"PSC 2 - входные каналы","KM9":"PSC 3 - входные каналы",
                  "KM10":"PSC 4 - входные каналы","KM11":"PSC 5 - входные каналы","KM14":"OUT1  - R(реостат)","KM15":"OUT2  - R(реостат)","KM16":"OUT1  - Коммутаторы","KM17":"OUT2 - Коммутаторы",
                  "KM18": "Коротокое замыкание на R1(реостат)", "KM19": "Коротокое замыкание на R2(коммутаторы)","KM12": "Прибавить 5А(коммутаторы)", "KM13": "Прибавить 10А(коммутаторы)",
-                 "SF4": "Цепь IN1", "SF5": "Цепь IN2", "SF6": "Цепь IN3", "SF7": "Цепь IN4","KM20": "Прибавить 10А(реостат)", "KM21": "Прибавить 20А(реостат)", "KM22": "Прибавить 40А(реостат)", "KM23": "Прибавить 40А(реостат)"
-                 }
+                 "SF4": "Цепь IN1", "SF5": "Цепь IN2", "SF6": "Цепь IN3", "SF7": "Цепь IN4","KM20": "Прибавить 20А(реостат)", "KM21": "Прибавить 40А(реостат)", "KM22": "Прибавить 40А(реостат)", "KM23": "Прибавить 80А(реостат)",
+                 "KL34": "Обрыв связи с датчиком"}
 
 
 def number_func(str):
@@ -89,16 +89,20 @@ class Dout:
             return False
 
     def command(self,relay,status):
-        i = 1
+        i = 0
+        if status == "ON":
+            self.log.add(self.name, "Команда включить на " + relay, True)
+        if status == "OFF":
+            self.log.add(self.name, "Команда отключить на " + relay, True)
         while True:
             try:
                 if status == "ON":
-                    self.log.add(self.name, "Команда включить на " + relay, True)
                     self.instrument.write_register(self.dout_names.get(relay), 1, 4)
                     if (self.check_tu_ti(relay,status)):
                         self.log.add(self.name, "Команда включить на " + relay + " успешно подана", True)
                         return True
                     else:
+                        # Прекратить попытки
                         if i == 3:
                             self.log.add(self.name, "Команда включить на " + relay + " не прошла", False)
                             return False
@@ -106,12 +110,12 @@ class Dout:
                         time.sleep(i)
                         i = i + 1
                 if status == "OFF":
-                    self.log.add(self.name, "Команда отключить на " + relay, True)
                     self.instrument.write_register(self.dout_names.get(relay), 0, 4)
                     if (self.check_tu_ti(relay,status)):
                         self.log.add(self.name, "Команда отключить на " + relay + " успешно подана", True)
                         return True
                     else:
+                        # Прекратить попытки
                         if i == 3:
                             self.log.add(self.name, "Команда отключить на " + relay + " не прошла", False)
                             return False
@@ -120,7 +124,7 @@ class Dout:
                         i = i + 1
             except:
                 if i == 3:
-                    print("Прекратить эесцепт")
+                    # Прекратить попытки
                     self.log.add(self.name, "Фатальная ошибка при подачи команды: " + status + "  на " + relay, False)
                     return False
                 self.log.add(self.name, "Попытка подать команду " + status + " №" + str(i + 1), True)
@@ -165,7 +169,6 @@ class Din:
                 self.log.add(self.name, "Попытка получить телесигналы №" + str(i + 1), True)
                 time.sleep(i)
                 i = i + 1
-
 
     def get_status(self):
         try:

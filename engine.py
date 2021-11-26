@@ -30,19 +30,20 @@ class Diagnostics:
 
     def diagnostics(self, key):
         self.log.set_start(False)
-        self.modb_dout_101 = devices.Modb().getConnection("DOUT_101", 'com22', 101, self.log)
-        self.modb_dout_102 = devices.Modb().getConnection("DOUT_102", 'com32', 102, self.log)
-        self.modb_dout_103 = devices.Modb().getConnection("DOUT_103", 'com23', 103, self.log)
-        self.modb_dout_104 = devices.Modb().getConnection("DOUT_104", 'com23', 104, self.log)
-        self.modb_din_201 = devices.Modb().getConnection("DIN_201", 'com23', 201, self.log)
-        self.modb_din_202 = devices.Modb().getConnection("DIN_202", 'com23', 202, self.log)
+        self.modb_dout_101 = devices.Modb().getConnection("DOUT_101", 'com1', 101, self.log)
+        self.modb_dout_102 = devices.Modb().getConnection("DOUT_102", 'com1', 102, self.log)
+        self.modb_dout_103 = devices.Modb().getConnection("DOUT_103", 'com1', 103, self.log)
+        self.modb_dout_104 = devices.Modb().getConnection("DOUT_104", 'com1', 104, self.log)
+        self.modb_din_201 = devices.Modb().getConnection("DIN_201", 'com1', 201, self.log)
+        self.modb_din_202 = devices.Modb().getConnection("DIN_202", 'com1', 202, self.log)
         self.dout_101 = devices.Dout(self.modb_dout_101, dout_names_101, "DOUT_101", self.log)
         self.dout_102 = devices.Dout(self.modb_dout_102, dout_names_102, "DOUT_102", self.log)
         self.dout_103 = devices.Dout(self.modb_dout_103, dout_names_103, "DOUT_103", self.log)
         self.dout_104 = devices.Dout(self.modb_dout_104, dout_names_104, "DOUT_104", self.log)
         self.din_201 = devices.Din(self.modb_din_201, din_names_201, "DIN_201", self.log)
         self.din_202 = devices.Din(self.modb_din_202, din_names_202, "DIN_202", self.log)
-
+        error_code = False
+        error_count = 0
         i = 0
         command_101 = list(dout_names_101.keys())
         command_102 = list(dout_names_102.keys())
@@ -51,32 +52,55 @@ class Diagnostics:
 
         if ((self.modb_dout_101 != False) and (self.modb_din_201 != False)):
             while i < len(dout_names_101):
-                self.dout_101.command(command_101[i],key)
+                if self.dout_101.command(command_101[i],key):
+                    self.din_201.check_voltage(command_101[i], key)
+                    time.sleep(1)
+                    if self.dout_101.command(command_101[i],"OFF"):
+                        self.din_201.check_voltage(command_101[i], "OFF")
+                    else:
+                        error_code = True
+                        error_count = error_code + 1
+                else:
+                    error_code = True
+                    error_count = error_count + 1
                 time.sleep(1)
-                self.din_201.check_voltage(command_101[i],key)
                 i = i + 1
-        i = 0
-        if ((self.modb_dout_102 != False) and (self.modb_din_201 != False)):
-            while i < len(dout_names_102):
-                self.dout_102.command(command_102[i],key)
-                time.sleep(1)
-                self.din_201.check_voltage(command_102[i],key)
-                i = i + 1
-        i = 0
-        if ((self.modb_dout_103 != False) and (self.modb_din_202 != False)):
-            while i < len(dout_names_103):
-                self.dout_103.command(command_103[i],key)
-                time.sleep(1)
-                self.din_202.check_voltage(command_103[i],key)
-                i = i + 1
-        i = 0
-        if ((self.modb_dout_104 != False) and (self.modb_din_202 != False)):
-            while i < len(dout_names_104):
-                self.dout_104.command(command_104[i],key)
-                time.sleep(1)
-                self.din_202.check_voltage(command_104[i],key)
-                i = i + 1
-        self.log.add(self.name,"Диагностика завершена",True)
+        # i = 0
+        # if ((self.modb_dout_102 != False) and (self.modb_din_201 != False)):
+        #     while i < len(dout_names_102):
+        #         if self.dout_102.command(command_102[i],key):
+        #             self.din_201.check_voltage(command_102[i],key)
+        #             time.sleep(1)
+        #             if self.dout_102.command(command_102[i], "OFF"):
+        #                 self.din_201.check_voltage(command_102[i], "OFF")
+        #         time.sleep(1)
+        #         i = i + 1
+        # i = 0
+        # if ((self.modb_dout_103 != False) and (self.modb_din_202 != False)):
+        #     while i < len(dout_names_103):
+        #         if self.dout_103.command(command_103[i],key):
+        #             self.din_202.check_voltage(command_103[i], key)
+        #             time.sleep(1)
+        #             if self.dout_103.command(command_103[i], "OFF"):
+        #                 self.din_202.check_voltage(command_103[i], "OFF")
+        #         time.sleep(1)
+        #         i = i + 1
+        # i = 0
+        # if ((self.modb_dout_104 != False) and (self.modb_din_202 != False)):
+        #     while i < len(dout_names_104):
+        #         if self.dout_104.command(command_104[i],key):
+        #             self.din_202.check_voltage(command_104[i], key)
+        #             time.sleep(1)
+        #             if self.dout_104.command(command_104[i], "OFF"):
+        #                 self.din_202.check_voltage(command_104[i], "OFF")
+        #         else:
+        #             error_code = False
+        #         time.sleep(1)
+        #         i = i + 1
+        if error_code:
+            self.log.add(self.name, "Диагностика завершена, ошибок: " + str(error_count), True)
+        else:
+            self.log.add(self.name, "Диагностика завершена, нет ошибок", True)
         self.log.set_finish(True)
 interpreter = 1
 
@@ -528,8 +552,8 @@ class Log:
 
 
     def add(self, name, event, result):
-        self.log = self.log + name + ":" + " " + event + " " + datetime.now().strftime('%H:%M:%S.%f')[:-4] + " " + "\n"
-        self.log_data.append(name + ":" + " " + event + " " + datetime.now().strftime('%H:%M:%S.%f')[:-4] + " " + "\n")
+        self.log = self.log + datetime.now().strftime('%H:%M:%S.%f')[:-4] + " " + " " + name + ":" + " " + event + "\n"
+        self.log_data.append(datetime.now().strftime('%H:%M:%S.%f')[:-4] + " " +name + ":" + " " + event + "\n")
         self.log_result.append(result)
 
     def get_log_result(self):

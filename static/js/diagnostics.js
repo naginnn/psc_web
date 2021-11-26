@@ -45,7 +45,7 @@ document.addEventListener('DOMContentLoaded', () => {
 //                                div.innerHTML = "<strong>Всем привет!</strong> Вы прочитали важное сообщение.";
                                 res = res  + "<div>"+ data.message[i] + "</div>";
                             else
-                                res = res  + "<div style=\"color:red\">"+ data.message[i] + "</div>";
+                                res = res  + "<div style=\"color:#ff0000\">"+ data.message[i] + "</div>";
                             }
 //                            res = res + data.result[i] + " <br /> ";}
                           document.querySelector('#log').innerHTML = res;

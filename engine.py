@@ -49,7 +49,7 @@ class Diagnostics:
         command_102 = list(dout_names_102.keys())
         command_103 = list(dout_names_103.keys())
         command_104 = list(dout_names_104.keys())
-
+        #dds
         if ((self.modb_dout_101 != False) and (self.modb_din_201 != False)):
             while i < len(dout_names_101):
                 if self.dout_101.command(command_101[i],key):

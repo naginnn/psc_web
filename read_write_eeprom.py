@@ -301,35 +301,38 @@ def float_to_hex(f):
 
 def read_param():
     print("Parameters load")
-
+# добавить лог записи
 def sensor_on():
-    package = []
-    write = WriteParam()
-    # установить температуру, через функцию power_management (там реализован FLOAT32)
-    package.append(write.power_management(0x09, 0x01, -10))
-    # управление датчиками (режим ten или fan)
-    package.append(write.sensor_controls(0x09, 0x03, "ten"))
-    # Включить защиту от холодного старта
-    package.append(write.sensor_controls(0x09, 0x04, "on"))
-    # включить все датчики
-    package.append(write.sensor_controls(0x09, 0x02, 31))
-    # выключить все датчики
-    package.append(write.sensor_controls(0x09, 0x02, 0))
+    try:
+        package = []
+        write = WriteParam()
+        # установить температуру, через функцию power_management (там реализован FLOAT32)
+        package.append(write.power_management(0x09, 0x01, -10))
+        # управление датчиками (режим ten или fan)
+        package.append(write.sensor_controls(0x09, 0x03, "ten"))
+        # Включить защиту от холодного старта
+        package.append(write.sensor_controls(0x09, 0x04, "on"))
+        # включить все датчики
+        package.append(write.sensor_controls(0x09, 0x02, 31))
+        # выключить все датчики
+        package.append(write.sensor_controls(0x09, 0x02, 0))
+        # linux port
+        ser = serial.Serial("com1", 115200, timeout=0.3)
 
-    ser = serial.Serial("com1", 115200, timeout=0.3)
-
-    for frame in package:
-        modb_frame = write_modbus(frame)
-        values = bytearray(modb_frame)
-        print("write: ", values)
-        ser.write(values)
-        response = ser.read(len(values))
-        print("read: ", response)
-        if (values == response):
-            print("ok")
-        else:
-            print("bad")
-    ser.close()
+        for frame in package:
+            modb_frame = write_modbus(frame)
+            values = bytearray(modb_frame)
+            print("write: ", values)
+            ser.write(values)
+            response = ser.read(len(values))
+            print("read: ", response)
+            if (values == response):
+                print("ok")
+            else:
+                print("bad")
+        ser.close()
+    except:
+        print("")
 
 def sensor_off():
     print("Parameters load")

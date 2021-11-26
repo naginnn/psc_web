@@ -85,8 +85,8 @@
                             var syncList1 = new syncList;
                             syncList1.dataList = {
                               'psc24_10':{
-                                  'wm24_10':"WeidMuller 24V 10A",
-                                   'pw24_5':"Topaz PW 24V 5A"
+                                  'wm24_10':'WeidMuller 24V 10A',
+                                  'pw24_5':'Topaz PW 24V 5A'
                               },
                               'psc24_40':{
                                   'wm24_40':'WeidMuller 24V 40A',
@@ -101,6 +101,7 @@
                               }
                             };
                             syncList1.sync("device_name","power_supply_type");
+
                         </script>
 
                 <div class="room-selector">
@@ -114,6 +115,98 @@
                     </select>
                 </div>
 
+
+                <div class="room-selector">
+                    <label>Время прогрева (минут)</label>
+                    <select id="warmup_time" name="bomba" class="selectpicker" title="Не прогревать" data-style="btn-primary">
+                        <option {{warmup_1}} >1</option>
+                        <option {{warmup_5}} >5</option>
+                        <option {{warmup_10}} >10</option>
+                        <option {{warmup_15}} >15</option>
+                        <option {{warmup_20}} >20</option>
+                    </select>
+                </div>
+
+                <div class="room-selector">
+                    <input type="checkbox" id="overload_mode" name="overload_mode" {{overload_mode}}>
+                    <label for="overload_mode">Режим перегрузки</label><br>
+                    <input type="checkbox" id="om_to_enable" name="overload_mode" {{om_to_enable}}>
+                    <label for="om_to_enable">На включение</label><br>
+                    <input type="checkbox" id="om_ad_idle" name="overload_mode" {{om_ad_idle}}>
+                    <label for="om_ad_idle">На холостом ходу</label><br>
+                    <input type="checkbox" id="om_under_load" name="overload_mode" {{om_under_load}}>
+                    <label for="om_under_load">Под нагрузкой</label><br>
+                </div>
+
+            <script type="text/javascript">
+            overload_mode.addEventListener('change', function() {
+                if (this.checked) {
+                    document.getElementById('om_to_enable').disabled = false;
+                    document.getElementById('om_ad_idle').disabled = false;
+                    document.getElementById('om_under_load').disabled = false;
+                 } else {
+                    document.getElementById('om_to_enable').disabled = true;
+                    document.getElementById('om_ad_idle').disabled = true;
+                    document.getElementById('om_under_load').disabled = true;
+                 }});
+            </script>
+                <div class="room-selector">
+                    <input type="checkbox" id="sc_mode" name="sc_mode" {{sc_mode}}>
+                    <label for="sc_mode">Режим короткого замыкания</label><br>
+                    <input type="checkbox" id="sc_to_enable" name="overload_mode" {{sc_to_enable}}>
+                    <label for="sc_to_enable">На включение</label><br>
+                    <input type="checkbox" id="sc_ad_idle" name="overload_mode" {{sc_ad_idle}}>
+                    <label for="sc_ad_idle">На холостом ходу</label><br>
+                    <input type="checkbox" id="sc_under_load" name="overload_mode" {{sc_under_load}}>
+                    <label for="sc_under_load">Под нагрузкой</label>
+                </div>
+
+            <script type="text/javascript">
+                sc_mode.addEventListener('change', function() {
+                    if (this.checked) {
+                        document.getElementById('sc_to_enable').disabled = false;
+                        document.getElementById('sc_ad_idle').disabled = false;
+                        document.getElementById('sc_under_load').disabled = false;
+                     } else {
+                        document.getElementById('sc_to_enable').disabled = true;
+                        document.getElementById('sc_ad_idle').disabled = true;
+                        document.getElementById('sc_under_load').disabled = true;
+                     }});
+            </script>
+
+                <div class="room-selector">
+                    <input type="checkbox" id="voltage_thresholds" name="power_supply" {{voltage_thresholds}}>
+                    <label for="voltage_thresholds">Проверка порогов по напряжению</label><br>
+                    <label>Минимальное напряжение IN</label>&nbsp;<label>Минимальное напряжение АКБ</label><br>
+                    <input type="text" id="min_voltage_in" value="{{min_voltage_in}}" {{min_voltage_in_ch}}>&nbsp;<input type="text" id="min_voltage_btr" value="{{min_voltage_btr}}" {{min_voltage_btr_ch}}><br>
+                    <label>Максимальное напряжение</label>&nbsp;<label>Максимальное напряжение</label><br>
+                    <input type="text" id="max_voltage_in" value="{{max_voltage_in}}" {{max_voltage_in_ch}}>&nbsp;<input type="text" id="max_voltage_btr" value="{{max_voltage_btr}}" {{max_voltage_btr_ch}}><br>
+
+                </div>
+
+                <script type="text/javascript">
+                    voltage_thresholds.addEventListener('change', function() {
+                        if (this.checked) {
+                            document.getElementById('min_voltage_in').disabled = false;
+                            document.getElementById('max_voltage_in').disabled = false;
+                            document.getElementById('min_voltage_btr').disabled = false;
+                            document.getElementById('max_voltage_btr').disabled = false;
+                         } else {
+                            document.getElementById('min_voltage_in').disabled = true;
+                            document.getElementById('max_voltage_in').disabled = true;
+                            document.getElementById('min_voltage_btr').disabled = true;
+                            document.getElementById('max_voltage_btr').disabled = true;
+                         }});
+                    </script>
+
+                <div class="room-selector">
+                    <input type="checkbox" id="switch_channel" name="switch_channel" {{switch_channel}}>
+                    <label for="switch_channel">Переключение каналов</label><br>
+                    <input type="checkbox" id="dry_contact" name="dry_contact" {{dry_contact}}>
+                    <label for="dry_contact">Проверка сухого контакта</label><br>
+                    <input type="checkbox" id="sensor" name="sensor" {{sensor}}>
+                    <label for="sensor">Обрыв связи с датчиком</label>
+                </div>
                     <input class="primary-btn" id="save" type="submit" value="Сохранить" name="save"/>
                     <br><br><div id="my-progressbar"></div>
         </form>

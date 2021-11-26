@@ -481,6 +481,7 @@ class Check:
                 break
 
     def switch_channel_func(self):
+        ### Пинги управление
         print("Переключение каналов (Проверка провалов по напряжению)")
 
     def sensor_check(self):
@@ -507,6 +508,9 @@ class Check:
 
     def check_device(self):
         print("Проверка устройства")
+
+# class st_managment:
+#     print("dsa")
 
 class Settings:
     data = {}

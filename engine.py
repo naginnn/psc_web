@@ -36,6 +36,7 @@ class Diagnostics:
         self.modb_dout_104 = devices.Modb().getConnection("DOUT_104", 'com1', 104, self.log)
         self.modb_din_201 = devices.Modb().getConnection("DIN_201", 'com1', 201, self.log)
         self.modb_din_202 = devices.Modb().getConnection("DIN_202", 'com1', 202, self.log)
+
         self.dout_101 = devices.Dout(self.modb_dout_101, dout_names_101, "DOUT_101", self.log)
         self.dout_102 = devices.Dout(self.modb_dout_102, dout_names_102, "DOUT_102", self.log)
         self.dout_103 = devices.Dout(self.modb_dout_103, dout_names_103, "DOUT_103", self.log)
@@ -59,12 +60,16 @@ class Diagnostics:
                         self.din_201.check_voltage(command_101[i], "OFF")
                     else:
                         error_code = True
-                        error_count = error_code + 1
+                        error_count = error_count + 1
                 else:
                     error_code = True
                     error_count = error_count + 1
                 time.sleep(1)
                 i = i + 1
+        else:
+            error_code = True
+            error_count = error_count + 2
+
         i = 0
         if ((self.modb_dout_102 != False) and (self.modb_din_201 != False)):
             while i < len(dout_names_102):
@@ -75,12 +80,16 @@ class Diagnostics:
                         self.din_201.check_voltage(command_102[i], "OFF")
                     else:
                         error_code = True
-                        error_count = error_code + 1
+                        error_count = error_count + 1
                 else:
                     error_code = True
                     error_count = error_count + 1
-                time.sleep(1)
+                time.sleep(0.5)
                 i = i + 1
+        else:
+            error_code = True
+            error_count = error_count + 2
+
         i = 0
         if ((self.modb_dout_103 != False) and (self.modb_din_202 != False)):
             while i < len(dout_names_103):
@@ -91,12 +100,16 @@ class Diagnostics:
                         self.din_202.check_voltage(command_103[i], "OFF")
                     else:
                         error_code = True
-                        error_count = error_code + 1
+                        error_count = error_count + 1
                 else:
                     error_code = True
                     error_count = error_count + 1
                 time.sleep(1)
                 i = i + 1
+        else:
+            error_code = True
+            error_count = error_count + 2
+
         i = 0
         if ((self.modb_dout_104 != False) and (self.modb_din_202 != False)):
             while i < len(dout_names_104):
@@ -107,12 +120,16 @@ class Diagnostics:
                         self.din_202.check_voltage(command_104[i], "OFF")
                     else:
                         error_code = True
-                        error_count = error_code + 1
+                        error_count = error_count + 1
                 else:
                     error_code = True
                     error_count = error_count + 1
                 time.sleep(1)
                 i = i + 1
+        else:
+            error_code = True
+            error_count = error_count + 2
+
         if error_code:
             self.log.add(self.name, "Диагностика завершена, ошибок: " + str(error_count), True)
         else:
@@ -124,40 +141,45 @@ class Check:
 
     def __init__(self, name, log, device_log, settings):
         self.name = name
-        self.log = log
-        self.device_log = device_log
+        self.control_log = log
+        self.main_log = device_log
         self.settings = settings
-        self.config = self.settings.load(self.settings, "settings.cfg")
+        self.config = self.settings.load("settings.cfg")
         self.power_supply_type = self.config.get('power_supply_type')
         self.checked_list = int(self.config.get('checked_list'))
         self.device_name = self.config.get('device_name')
 
     # подготовка // Подключиться
-    def control_connect(self):
-        self.log.set_start(False)
-        self.device_log.set_start(False)
+    def connect(self):
         try:
-            self.modb_dout_101 = devices.Modb().getConnection("DOUT_101", 'com1', 101, self.log)
-            self.modb_dout_102 = devices.Modb().getConnection("DOUT_102", 'com1', 102, self.log)
-            self.modb_dout_103 = devices.Modb().getConnection("DOUT_103", 'com1', 103, self.log)
-            self.modb_dout_104 = devices.Modb().getConnection("DOUT_104", 'com1', 104, self.log)
-            self.modb_din_201 = devices.Modb().getConnection("DIN_201", 'com1', 201, self.log)
-            self.modb_din_202 = devices.Modb().getConnection("DIN_202", 'com1', 202, self.log)
-            self.dout_101 = devices.Dout(self.modb_dout_101, dout_names_101, "DOUT_101", self.log)
-            self.dout_102 = devices.Dout(self.modb_dout_102, dout_names_102, "DOUT_102", self.log)
-            self.dout_103 = devices.Dout(self.modb_dout_103, dout_names_103, "DOUT_103", self.log)
-            self.dout_104 = devices.Dout(self.modb_dout_104, dout_names_104, "DOUT_104", self.log)
-            self.din_201 = devices.Din(self.modb_din_201, din_names_201, "DIN_201", self.log)
-            self.din_202 = devices.Din(self.modb_din_202, din_names_202, "DIN_202", self.log)
+            self.main_log.add("Connection:", "Соединение с модулями управления", True)
+            self.modb_dout_101 = devices.Modb().getConnection("DOUT_101", 'com1', 101, self.control_log)
+            self.modb_dout_102 = devices.Modb().getConnection("DOUT_102", 'com1', 102, self.control_log)
+            self.modb_dout_103 = devices.Modb().getConnection("DOUT_103", 'com1', 103, self.control_log)
+            self.modb_dout_104 = devices.Modb().getConnection("DOUT_104", 'com1', 104, self.control_log)
+            self.modb_din_201 = devices.Modb().getConnection("DIN_201", 'com1', 201, self.control_log)
+            self.modb_din_202 = devices.Modb().getConnection("DIN_202", 'com1', 202, self.control_log)
+            self.dout_101 = devices.Dout(self.modb_dout_101, dout_names_101, "DOUT_101", self.control_log)
+            self.dout_102 = devices.Dout(self.modb_dout_102, dout_names_102, "DOUT_102", self.control_log)
+            self.dout_103 = devices.Dout(self.modb_dout_103, dout_names_103, "DOUT_103", self.control_log)
+            self.dout_104 = devices.Dout(self.modb_dout_104, dout_names_104, "DOUT_104", self.control_log)
+            self.din_201 = devices.Din(self.modb_din_201, din_names_201, "DIN_201", self.control_log)
+            self.din_202 = devices.Din(self.modb_din_202, din_names_202, "DIN_202", self.control_log)
+            self.main_log.add("Connection:","Соединение с модулями управления установлено ", True)
             return True
         except:
+            self.main_log.add("Connection:","Ошибка соединения с модулями управления, дальнейшая рабоа стенда остановлена", False)
             return False
 
-    def device_connect(self):
-        # self.log.set_start(False)
-        # self.device_log.set_start(False)
-        self.modb_psc24_10 = devices.Modb().getConnection("PSC24_10", 'com1', 1, self.log)
-        self.psc24_10 = devices.Psc_10(self.modb_psc24_10, "PSC24_10", self.log)
+    def first_start(self):
+
+
+    # def device_connect(self):
+    #     try:
+    #         modb_psc24_10 = devices.Modb().getConnection("PSC24_10", 'com1', 1, self.log)
+    #         self.psc24_10 = devices.Psc_10(self.modb_psc24_10, "PSC24_10", self.log)
+    #     except:
+    #         print("xaxsaxsaxsaxsa")
 
     # установка
     def set(self):
@@ -568,6 +590,8 @@ class Check:
 #     print("dsa")
 
 class Settings:
+    def __init__(self, log):
+        self.log = log
     data = {}
     device_type = ()
     device_name = ()
@@ -577,6 +601,7 @@ class Settings:
     warmup_time = ()
 
     def save(self,filename, data):
+        self.log.add("Сохранение", "Сохраняем конфигурацию", True)
         try:
             with open(filename, 'wb+') as f:
                 pickle.dump(data, f)
@@ -584,7 +609,7 @@ class Settings:
         except:
             return False
 
-    def load(self,filename):
+    def load(self, filename):
         try:
             with open(filename, 'rb') as f:
                 while True:
@@ -598,9 +623,6 @@ class Settings:
             print("Файла конфигурации не существует! Сначала сохраните конфигурацию!")
             return False
 
-    def parse(self):
-        print()
-
 class Log:
     filename = str(datetime.now().strftime('%d.%m.%Y-%H-%M')) + ".log"
     log = str()
@@ -611,7 +633,7 @@ class Log:
 
 
     def add(self, name, event, result):
-        self.log = self.log + datetime.now().strftime('%H:%M:%S.%f')[:-4] + " " + " " + name + ":" + " " + event + "\n"
+        self.log = self.log + datetime.now().strftime('%H:%M:%S.%f')[:-4] + " " + name + ":" + " " + event + "\n"
         self.log_data.append(datetime.now().strftime('%H:%M:%S.%f')[:-4] + " " +name + ":" + " " + event + "\n")
         self.log_result.append(result)
 
@@ -643,5 +665,8 @@ class Log:
         self.log_result.clear()
 
 if __name__ == "__main__":
-    check = Check("Тест", Log())
+    main_log = Log()
+    control_log = Log()
+    settings = Settings().load()
+    check = Check("Тест", control_log, main_log, settings)
     check.voltage_thresholds_func()

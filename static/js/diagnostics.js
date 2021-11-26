@@ -56,7 +56,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 document.querySelector('#diagnostics').disabled = false;
                                 progressBar.initialMode(false);
 //                            return null;
-                        } else{timerId = setTimeout(lala, delay);}
+                            } else{timerId = setTimeout(lala, delay);}
                           }});
 
 

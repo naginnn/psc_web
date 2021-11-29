@@ -365,8 +365,9 @@ class ReadWriteEEprom:
     def sensor_on(self):
         package = []
         write = FrameCollector()
-        # считываем id датчика 1 key = 0x8A / key = 0x01 / value = 0x00
-        package.append(write.sensor_controls(0x0B, 0x01, 0x55))
+        # считываем id датчика 1
+        package.append(write.sensor_controls(0x0B, 0x01, 0xAA))
+        package.append(write.sensor_controls(0x8A, 0x01, 0))
         # установить температуру, через функцию power_management (там реализован FLOAT32)
         package.append(write.power_management(0x09, 0x01, 50))
         # управление датчиками (режим ten или fan)
@@ -415,22 +416,13 @@ class ReadWriteEEprom:
         except:
             print("")
 
+# for the future -> add to read a serial number
 if __name__ == '__main__':
     print("lala")
     eeprom = ReadWriteEEprom()
-    # print(eeprom.read_float_param())
-    eeprom.sensor_on()
-    print("Отдыхаем 1 секунды")
-    time.sleep(1)
-    eeprom.sensor_off()
-    # print("Float: ", float(1))
-    # my = FloatToHex.floattohex(1)
-    # print("FloatToHex: ", my, type(my))
-    # my = hex(my)
-    # print("hex: ", my, type(my))
-    # my = int(my, 16)
-    # print("int: ", my, type(my))
-    # my = FloatToHex.hextofloat(my)
-    # print("HexToFloat: ", my, type(my))
-    # 0x3f800000
+    print(eeprom.read_float_param())
+    # eeprom.sensor_on()
+    # print("Отдыхаем 2 секунды")
+    # time.sleep(3)
+    # eeprom.sensor_off()
 

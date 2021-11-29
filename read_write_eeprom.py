@@ -297,7 +297,6 @@ class FrameCollector:
 
         value = int(value, 16)
         return round(FloatToHex.hextofloat(value), 2)
-
     # Парсим строку из HEX в FLOAT (для serial number)
     def hex_to_float(self, response):
         d = 0
@@ -312,7 +311,6 @@ class FrameCollector:
 
         value = int(value, 16)
         return value
-
     # Парсим строку из FLOAT в HEXFLOAT32
     def float_to_hexfloat(self, f):
         data = []

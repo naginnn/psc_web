@@ -54,6 +54,13 @@ registers_pointer = {
     0x33: {"serial_number": 0x01}
 }
 
+device_values = {"pw1_u_nom": 0.0, "pw1_u_max": 0.0, "pw1_u_min": 0.0, "pw1_u_max_hyst": 0.0, "pw1_u_min_hyst": 0.0,
+    "pw2_u_nom": 0.0, "pw2_u_max": 0.0, "pw2_u_min": 0.0, "pw2_u_max_hyst": 0.0, "pw2_u_min_hyst": 0.0,
+    "btr_u_nom": 0.0, "btr_u_max": 0.0, "btr_u_min": 0.0, "btr_u_max_hyst": 0.0, "btr_u_min_hyst": 0.0,
+    "out_i_1": 0.0, "out_i_2": 0.0,
+    "charge_err_min": 0.0, "charge_u_max": 0.0, "charge_u_min": 0.0, "charge_i_stable": 0.0,"charge_u_stable": 0.0}
+
+
 HIBYTE = b'\
 \x00\xC0\xC1\x01\xC3\x03\x02\xC2\xC6\x06\x07\xC7\x05\xC5\xC4\x04\
 \xCC\x0C\x0D\xCD\x0F\xCF\xCE\x0E\x0A\xCA\xCB\x0B\xC9\x09\x08\xC8\
@@ -191,7 +198,8 @@ class WriteParam:
             frame.append(crc)
             return frame
 
-        if (param == 0x04 or param == 0x05 or param == 0x06 or param == 0x07 or param == 0x08 or param == 0x09 or param == 0x87 or param == 0x84):
+        if (param == 0x04 or param == 0x05 or param == 0x06 or param == 0x07 or param == 0x08 or param == 0x09
+                or param == 0x84 or param == 0x85 or param == 0x86 or param == 0x87 or param == 0x88):
             frame.append(param)
             frame.append(0x0A)
             frame.append(key)
@@ -284,21 +292,6 @@ class WriteParam:
             crc = crc - 256
         return crc
 
-def float_to_hex(f):
-    data = []
-    if f == 0:
-        data.append(0)
-        data.append(0)
-        data.append(0)
-        data.append(0)
-    else:
-        temp2 = hex(struct.unpack('<I', struct.pack('<f', f))[0])[2:]
-        data.append(int(temp2[6:8],16))
-        data.append(int(temp2[4:6],16))
-        data.append(int(temp2[2:4],16))
-        data.append(int(temp2[0:2],16))
-    return data
-
 def read_param():
     print("Parameters load")
 # добавить лог записи
@@ -333,26 +326,37 @@ def sensor_on():
         ser.close()
     except:
         print("")
-
 def sensor_off():
     print("Parameters load")
-
-# Парсим строку с FLOAT32
+# Парсим строку из FLOAT32 в FLOAT
 def hex_to_float(response):
+    d = 0
     value = "0x"
     i = len(response) - 2
-    while i > 4:
+    while d < 4:
         if response[i] == 0:
             value = value + "0"
         value = value + hex(response[i])[2:]
         i = i - 1
+        d = d + 1
 
-    print("Полученное значение 1",value, type(value))
     value = int(value,16)
-    print("Полученное значение 2", value, type(value))
-    print("Полученное значение 3", round(FloatToHex.hextofloat(value), 2))
-    return value
-
+    return round(FloatToHex.hextofloat(value), 2)
+# Парсим строку из FLOAT в FLOAT32
+def float_to_hex(f):
+    data = []
+    if f == 0:
+        data.append(0)
+        data.append(0)
+        data.append(0)
+        data.append(0)
+    else:
+        temp2 = hex(struct.unpack('<I', struct.pack('<f', f))[0])[2:]
+        data.append(int(temp2[6:8],16))
+        data.append(int(temp2[4:6],16))
+        data.append(int(temp2[2:4],16))
+        data.append(int(temp2[0:2],16))
+    return data
 
 #   0x17 function modbus
 # # 0x01 0x17 0x40 0x55 0x00 0x04 0x40 0xAA 0x00 0x04 [длина фрейма 232] [фрейм 232] [hi] [lo]
@@ -372,20 +376,86 @@ if __name__ == '__main__':
     package = []
     write = WriteParam()
     package.append(write.power_management(0x84, registers_pointer.get(0x04).get("pw1_u_nom"), float(0)))  # Считываем
-    ser = serial.Serial("com10", 2400, timeout=0.3)
+    package.append(write.power_management(0x84, registers_pointer.get(0x04).get("pw1_u_max"), float(0)))
+    package.append(write.power_management(0x84, registers_pointer.get(0x04).get("pw1_u_min"), float(0)))
+    package.append(write.power_management(0x84, registers_pointer.get(0x04).get("pw1_u_max_hyst"), float(0)))
+    package.append(write.power_management(0x84, registers_pointer.get(0x04).get("pw1_u_min_hyst"), float(0)))
+
+    package.append(write.power_management(0x85, registers_pointer.get(0x05).get("pw2_u_nom"), float(0)))  # Считываем
+    package.append(write.power_management(0x85, registers_pointer.get(0x05).get("pw2_u_max"), float(0)))
+    package.append(write.power_management(0x85, registers_pointer.get(0x05).get("pw2_u_min"), float(0)))
+    package.append(write.power_management(0x85, registers_pointer.get(0x05).get("pw2_u_max_hyst"), float(0)))
+    package.append(write.power_management(0x85, registers_pointer.get(0x05).get("pw2_u_min_hyst"), float(0)))
+
+    package.append(write.power_management(0x86, registers_pointer.get(0x06).get("btr_u_nom"), float(0)))  # Считываем
+    package.append(write.power_management(0x86, registers_pointer.get(0x06).get("btr_u_max"), float(0)))
+    package.append(write.power_management(0x86, registers_pointer.get(0x06).get("btr_u_min"), float(0)))
+    package.append(write.power_management(0x86, registers_pointer.get(0x06).get("btr_u_max_hyst"), float(0)))
+    package.append(write.power_management(0x86, registers_pointer.get(0x06).get("btr_u_min_hyst"), float(0)))
+
+    package.append(write.power_management(0x87, registers_pointer.get(0x07).get("out_i_1"), float(0)))
+    package.append(write.power_management(0x87, registers_pointer.get(0x07).get("out_i_2"), float(0)))
+
+    package.append(write.power_management(0x88, registers_pointer.get(0x08).get("charge_err_min"), float(0)))  # Считываем
+    package.append(write.power_management(0x88, registers_pointer.get(0x08).get("charge_u_max"), float(0)))
+    package.append(write.power_management(0x88, registers_pointer.get(0x08).get("charge_u_min"), float(0)))
+    package.append(write.power_management(0x88, registers_pointer.get(0x08).get("charge_i_stable"), float(0)))
+    package.append(write.power_management(0x88, registers_pointer.get(0x08).get("charge_u_stable"), float(0)))
+
+    # через MODBUS
+    ser = serial.Serial("com1", 115200, timeout=0.3)
+    val = []
     for frame in package:
-        values = bytearray(frame)
+        values = bytearray(write_modbus(frame))
         print("write: ", values)
         ser.write(values)
         response = ser.read(len(values))
         print("read: ",  response)
-        my = int(hex_to_float(response),16)
-        # my = hex(my)
-        print("read:", FloatToHex.hextofloat(my))
-        if (values == response):
-            print("ok")
-        else:
-            print("bad")
+        print(response)
+        val.append(hex_to_float(response[:len(response)-2]))
+    i = 0
+    for key in device_values:
+        device_values[key] = val[i]
+        i = i + 1
+    print(device_values)
+
+
+
+
+
+
+
+
+
+
+    # Через RS-232
+    # ser = serial.Serial("com10", 2400, timeout=0.3)
+    # val = []
+    # for frame in package:
+    #     values = bytearray(frame)
+    #     print("write: ", values)
+    #     ser.write(values)
+    #     response = ser.read(len(values))
+    #     print("read: ", response)
+    #     val.append(hex_to_float(response))
+    # i = 0
+    # for key in device_values:
+    #     device_values[key] = val[i]
+    #     i = i + 1
+    # print(device_values)
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     # package.append(write.power_management(register_names.get("outi"), registers_pointer.get(0x07).get("out_i_2"),float(0)))
 

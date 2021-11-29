@@ -106,6 +106,7 @@ def write_modbus(frame):
     data.append(hi)
     data.append(lo)
     return data
+
 def crc16(data):
     crchi = 0xFF
     crclo = 0xFF
@@ -118,7 +119,8 @@ def crc16(data):
     return crchi, crclo
 # Просто кидать нули вместо данных в посылке! А может и нет!
 class WriteParam:
-    # упаковываем информацию с сетевыми настройками
+
+    # key в виде конкретного номера регистра номера байт управления уже передан
     def network_settings(self,param,key,value):
         frame = [0x55, 0xAA]
         frame.append(param)
@@ -179,7 +181,7 @@ class WriteParam:
             frame.append(crc)
             return frame
         print("nothing is read!")
-    # упаковываем информацию с настройками питания
+    # param в виде байта управления key в виде конкретного регистра
     def power_management(self,param, key, value):
         frame = [0x55, 0xAA]
         if (param == 0x0C):
@@ -207,7 +209,7 @@ class WriteParam:
             frame.append(crc)
             return frame
             print("power management is read!")
-    # упаковываем информацию с датчиками
+
     def sensor_controls(self,param, key, value):
         frame = [0x55, 0xAA]
         if (param == 0x09 and key == 0x03):
@@ -261,7 +263,7 @@ class WriteParam:
             crc = self.crc_calculate(frame)
             frame.append(crc)
             return frame
-    # упаковываем информацию с серийником
+
     def serial_number(self,value):
         frame = [0x55, 0xAA, 0x33, 0x09]
         temp = []
@@ -278,6 +280,7 @@ class WriteParam:
         crc = self.crc_calculate(frame)
         frame.append(crc)
         return frame
+
     def crc_calculate(self,frame):
         i = 2
         crc = 0x00
@@ -347,7 +350,7 @@ def sensor_on():
         package.append(write.sensor_controls(0x09, 0x04, "on"))
         # включить все датчики
         package.append(write.sensor_controls(0x09, 0x02, 31))
-        # linux port
+
         ser = serial.Serial("com1", 115200, timeout=0.3)
 
         for frame in package:
@@ -423,4 +426,14 @@ def float_to_hex(f):
 if __name__ == '__main__':
     print("lala")
     print(read_param())
+    # print("Float: ", float(1))
+    # my = FloatToHex.floattohex(1)
+    # print("FloatToHex: ", my, type(my))
+    # my = hex(my)
+    # print("hex: ", my, type(my))
+    # my = int(my, 16)
+    # print("int: ", my, type(my))
+    # my = FloatToHex.hextofloat(my)
+    # print("HexToFloat: ", my, type(my))
+    # 0x3f800000
 

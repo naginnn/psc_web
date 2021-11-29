@@ -262,7 +262,7 @@ class FrameCollector:
             crc = crc - 256
         return crc
     # упаковщик фрейма в модбас реализация 17 функции
-    def write_modbus(self,frame):
+    def write_modbus(self, frame):
         data = [0x01, 0x17, 0x40, 0x55, 0x00, 0x04, 0x40, 0xAA, 0x00, 0x04]
         data.append(frame[3])
         for f in frame:
@@ -365,12 +365,12 @@ class ReadWriteEEprom:
     def sensor_on(self):
         package = []
         write = FrameCollector()
+        # считываем id датчика 1 key = 0x8A / key = 0x01 / value = 0x00
+        package.append(write.sensor_controls(0x0B, 0x01, 0x55))
         # установить температуру, через функцию power_management (там реализован FLOAT32)
         package.append(write.power_management(0x09, 0x01, 50))
         # управление датчиками (режим ten или fan)
         package.append(write.sensor_controls(0x09, 0x03, "ten"))
-        # Включить защиту от холодного старта
-        package.append(write.sensor_controls(0x09, 0x04, "on"))
         # включить все датчики
         package.append(write.sensor_controls(0x09, 0x02, 31))
 
@@ -415,11 +415,14 @@ class ReadWriteEEprom:
         except:
             print("")
 
-
 if __name__ == '__main__':
     print("lala")
     eeprom = ReadWriteEEprom()
-    print(eeprom.read_float_param())
+    # print(eeprom.read_float_param())
+    eeprom.sensor_on()
+    print("Отдыхаем 1 секунды")
+    time.sleep(1)
+    eeprom.sensor_off()
     # print("Float: ", float(1))
     # my = FloatToHex.floattohex(1)
     # print("FloatToHex: ", my, type(my))

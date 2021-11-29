@@ -172,7 +172,7 @@ class Check:
             return False
 
     def first_start(self):
-
+        print("")
 
     # def device_connect(self):
     #     try:

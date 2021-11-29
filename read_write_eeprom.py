@@ -27,7 +27,6 @@ register_names = {"interface": 0x01, "tsmask": 0x02, "offset": 0x03, "pw1u": 0x0
                   "sensors": 0x0A, "readsensor": 0x0B, "select_pwr": 0x0C, "ty": 0x0D,
                   "error_pwr": 0x0E, "ubatlow": 0x0F, "offsetinzero": 0x10, "offset_i": 0x11,
                   "calib_i": 0x12, "versions": 0x18, "current_param": 0x32, "serial_number": 0x33}
-
 registers_pointer = {
     0x01: {"InterfaceAdress": 0x01, "InterfaceSpeed": 0x02, "InterfaceChet": 0x03, "ProtocolType": 0x04},
     0x02: {"TsMask1": 0x01, "TsMask2": 0x02, "TsMask3": 0x03, "TiMask1": 0x04, "TiMask2": 0x05, "TiMask3": 0x06},
@@ -53,14 +52,11 @@ registers_pointer = {
     0x32: {"current_param": 0x01},
     0x33: {"serial_number": 0x01}
 }
-
 device_values = {"pw1_u_nom": 0.0, "pw1_u_max": 0.0, "pw1_u_min": 0.0, "pw1_u_max_hyst": 0.0, "pw1_u_min_hyst": 0.0,
     "pw2_u_nom": 0.0, "pw2_u_max": 0.0, "pw2_u_min": 0.0, "pw2_u_max_hyst": 0.0, "pw2_u_min_hyst": 0.0,
     "btr_u_nom": 0.0, "btr_u_max": 0.0, "btr_u_min": 0.0, "btr_u_max_hyst": 0.0, "btr_u_min_hyst": 0.0,
     "out_i_1": 0.0, "out_i_2": 0.0,
     "charge_err_min": 0.0, "charge_u_max": 0.0, "charge_u_min": 0.0, "charge_i_stable": 0.0,"charge_u_stable": 0.0}
-
-
 HIBYTE = b'\
 \x00\xC0\xC1\x01\xC3\x03\x02\xC2\xC6\x06\x07\xC7\x05\xC5\xC4\x04\
 \xCC\x0C\x0D\xCD\x0F\xCF\xCE\x0E\x0A\xCA\xCB\x0B\xC9\x09\x08\xC8\
@@ -78,7 +74,6 @@ HIBYTE = b'\
 \x9C\x5C\x5D\x9D\x5F\x9F\x9E\x5E\x5A\x9A\x9B\x5B\x99\x59\x58\x98\
 \x88\x48\x49\x89\x4B\x8B\x8A\x4A\x4E\x8E\x8F\x4F\x8D\x4D\x4C\x8C\
 \x44\x84\x85\x45\x87\x47\x46\x86\x82\x42\x43\x83\x41\x81\x80\x40'
-
 LOBYTE = b'\
 \x00\xC1\x81\x40\x01\xC0\x80\x41\x01\xC0\x80\x41\x00\xC1\x81\x40\
 \x01\xC0\x80\x41\x00\xC1\x81\x40\x00\xC1\x81\x40\x01\xC0\x80\x41\
@@ -97,31 +92,10 @@ LOBYTE = b'\
 \x01\xC0\x80\x41\x00\xC1\x81\x40\x00\xC1\x81\x40\x01\xC0\x80\x41\
 \x00\xC1\x81\x40\x01\xC0\x80\x41\x01\xC0\x80\x41\x00\xC1\x81\x40'
 
-def write_modbus(frame):
-    data = [0x01, 0x17, 0x40, 0x55, 0x00, 0x04, 0x40, 0xAA, 0x00, 0x04]
-    data.append(frame[3])
-    for f in frame:
-        data.append(f)
-    hi,lo = crc16(data)
-    data.append(hi)
-    data.append(lo)
-    return data
-
-def crc16(data):
-    crchi = 0xFF
-    crclo = 0xFF
-    index = 0
-    for byte in data:
-        index = crchi ^ int(byte)
-        crchi = crclo ^ LOBYTE[index]
-        crclo = HIBYTE[index]
-    # print("{0:02X} {1:02X}".format(crclo, crchi)),
-    return crchi, crclo
 # Просто кидать нули вместо данных в посылке! А может и нет!
-class WriteParam:
-
-    # key в виде конкретного номера регистра номера байт управления уже передан
-    def network_settings(self,param,key,value):
+class FrameCollector:
+    # упаковка сетевых настроек (U8)
+    def network_settings(self,param, key, value):
         frame = [0x55, 0xAA]
         frame.append(param)
         if (key == 0x01):
@@ -181,7 +155,7 @@ class WriteParam:
             frame.append(crc)
             return frame
         print("nothing is read!")
-    # param в виде байта управления key в виде конкретного регистра
+    # упаковка параметров питания (FLOAT32)
     def power_management(self,param, key, value):
         frame = [0x55, 0xAA]
         if (param == 0x0C):
@@ -209,7 +183,7 @@ class WriteParam:
             frame.append(crc)
             return frame
             print("power management is read!")
-
+    # упаковка параметров датчиков (FLOAT32/UINT16)
     def sensor_controls(self,param, key, value):
         frame = [0x55, 0xAA]
         if (param == 0x09 and key == 0x03):
@@ -224,7 +198,6 @@ class WriteParam:
             crc = self.crc_calculate(frame)
             frame.append(crc)
             return frame
-
         if (param == 0x09 and key == 0x02):
             frame.append(0x09)
             frame.append(0x08)
@@ -238,7 +211,6 @@ class WriteParam:
             crc = self.crc_calculate(frame)
             frame.append(crc)
             return frame
-
         if (param == 0x0B):
             frame.append(0x0B)
             frame.append(0x07)
@@ -247,7 +219,6 @@ class WriteParam:
             crc = self.crc_calculate(frame)
             frame.append(crc)
             return frame
-
         if (param == 0x8A):
             frame.append(0x8A)
             frame.append(0x0E)
@@ -263,7 +234,7 @@ class WriteParam:
             crc = self.crc_calculate(frame)
             frame.append(crc)
             return frame
-
+    # упаковка серийного номера (FLOAT)
     def serial_number(self,value):
         frame = [0x55, 0xAA, 0x33, 0x09]
         temp = []
@@ -280,7 +251,7 @@ class WriteParam:
         crc = self.crc_calculate(frame)
         frame.append(crc)
         return frame
-
+    # расчет crc для пакетов
     def crc_calculate(self,frame):
         i = 2
         crc = 0x00
@@ -290,36 +261,89 @@ class WriteParam:
         while crc > 256:
             crc = crc - 256
         return crc
+    # упаковщик фрейма в модбас реализация 17 функции
+    def write_modbus(self,frame):
+        data = [0x01, 0x17, 0x40, 0x55, 0x00, 0x04, 0x40, 0xAA, 0x00, 0x04]
+        data.append(frame[3])
+        for f in frame:
+            data.append(f)
+        hi, lo = self.crc16(data)
+        data.append(hi)
+        data.append(lo)
+        return data
+    # расчет crc16 modbus
+    def crc16(self,data):
+        crchi = 0xFF
+        crclo = 0xFF
+        index = 0
+        for byte in data:
+            index = crchi ^ int(byte)
+            crchi = crclo ^ LOBYTE[index]
+            crclo = HIBYTE[index]
+        # print("{0:02X} {1:02X}".format(crclo, crchi)),
+        return crchi, crclo
+
+    # Парсим строку из HEXFLOAT32 в FLOAT
+    def hex_to_float(response):
+        d = 0
+        value = "0x"
+        i = len(response) - 2
+        while d < 4:
+            if response[i] == 0:
+                value = value + "0"
+            value = value + hex(response[i])[2:]
+            i = i - 1
+            d = d + 1
+
+        value = int(value, 16)
+        return round(FloatToHex.hextofloat(value), 2)
+    # Парсим строку из FLOAT в HEXFLOAT32
+    def float_to_hex(f):
+        data = []
+        if f == 0:
+            data.append(0)
+            data.append(0)
+            data.append(0)
+            data.append(0)
+        else:
+            temp2 = hex(struct.unpack('<I', struct.pack('<f', f))[0])[2:]
+            data.append(int(temp2[6:8], 16))
+            data.append(int(temp2[4:6], 16))
+            data.append(int(temp2[2:4], 16))
+            data.append(int(temp2[0:2], 16))
+        return data
+
+
 # Считываем настройки PSC
-def read_param():
+def read_float_param():
     package = []
-    write = WriteParam()
-    package.append(write.power_management(0x84, registers_pointer.get(0x04).get("pw1_u_nom"), float(0)))
-    package.append(write.power_management(0x84, registers_pointer.get(0x04).get("pw1_u_max"), float(0)))
-    package.append(write.power_management(0x84, registers_pointer.get(0x04).get("pw1_u_min"), float(0)))
-    package.append(write.power_management(0x84, registers_pointer.get(0x04).get("pw1_u_max_hyst"), float(0)))
-    package.append(write.power_management(0x84, registers_pointer.get(0x04).get("pw1_u_min_hyst"), float(0)))
+    read =  FrameCollector()
+    package.append(read.power_management(0x84, registers_pointer.get(0x04).get("pw1_u_nom"), float(0)))
+    package.append(read.power_management(0x84, registers_pointer.get(0x04).get("pw1_u_max"), float(0)))
+    package.append(read.power_management(0x84, registers_pointer.get(0x04).get("pw1_u_min"), float(0)))
+    package.append(read.power_management(0x84, registers_pointer.get(0x04).get("pw1_u_max_hyst"), float(0)))
+    package.append(read.power_management(0x84, registers_pointer.get(0x04).get("pw1_u_min_hyst"), float(0)))
 
-    package.append(write.power_management(0x85, registers_pointer.get(0x05).get("pw2_u_nom"), float(0)))
-    package.append(write.power_management(0x85, registers_pointer.get(0x05).get("pw2_u_max"), float(0)))
-    package.append(write.power_management(0x85, registers_pointer.get(0x05).get("pw2_u_min"), float(0)))
-    package.append(write.power_management(0x85, registers_pointer.get(0x05).get("pw2_u_max_hyst"), float(0)))
-    package.append(write.power_management(0x85, registers_pointer.get(0x05).get("pw2_u_min_hyst"), float(0)))
+    package.append(read.power_management(0x85, registers_pointer.get(0x05).get("pw2_u_nom"), float(0)))
+    package.append(read.power_management(0x85, registers_pointer.get(0x05).get("pw2_u_max"), float(0)))
+    package.append(read.power_management(0x85, registers_pointer.get(0x05).get("pw2_u_min"), float(0)))
+    package.append(read.power_management(0x85, registers_pointer.get(0x05).get("pw2_u_max_hyst"), float(0)))
+    package.append(read.power_management(0x85, registers_pointer.get(0x05).get("pw2_u_min_hyst"), float(0)))
 
-    package.append(write.power_management(0x86, registers_pointer.get(0x06).get("btr_u_nom"), float(0)))
-    package.append(write.power_management(0x86, registers_pointer.get(0x06).get("btr_u_max"), float(0)))
-    package.append(write.power_management(0x86, registers_pointer.get(0x06).get("btr_u_min"), float(0)))
-    package.append(write.power_management(0x86, registers_pointer.get(0x06).get("btr_u_max_hyst"), float(0)))
-    package.append(write.power_management(0x86, registers_pointer.get(0x06).get("btr_u_min_hyst"), float(0)))
+    package.append(read.power_management(0x86, registers_pointer.get(0x06).get("btr_u_nom"), float(0)))
+    package.append(read.power_management(0x86, registers_pointer.get(0x06).get("btr_u_max"), float(0)))
+    package.append(read.power_management(0x86, registers_pointer.get(0x06).get("btr_u_min"), float(0)))
+    package.append(read.power_management(0x86, registers_pointer.get(0x06).get("btr_u_max_hyst"), float(0)))
+    package.append(read.power_management(0x86, registers_pointer.get(0x06).get("btr_u_min_hyst"), float(0)))
 
-    package.append(write.power_management(0x87, registers_pointer.get(0x07).get("out_i_1"), float(0)))
-    package.append(write.power_management(0x87, registers_pointer.get(0x07).get("out_i_2"), float(0)))
+    package.append(read.power_management(0x87, registers_pointer.get(0x07).get("out_i_1"), float(0)))
+    package.append(read.power_management(0x87, registers_pointer.get(0x07).get("out_i_2"), float(0)))
 
-    package.append(write.power_management(0x88, registers_pointer.get(0x08).get("charge_err_min"), float(0)))
-    package.append(write.power_management(0x88, registers_pointer.get(0x08).get("charge_u_max"), float(0)))
-    package.append(write.power_management(0x88, registers_pointer.get(0x08).get("charge_u_min"), float(0)))
-    package.append(write.power_management(0x88, registers_pointer.get(0x08).get("charge_i_stable"), float(0)))
-    package.append(write.power_management(0x88, registers_pointer.get(0x08).get("charge_u_stable"), float(0)))
+    package.append(read.power_management(0x88, registers_pointer.get(0x08).get("charge_err_min"), float(0)))
+    package.append(read.power_management(0x88, registers_pointer.get(0x08).get("charge_u_max"), float(0)))
+    package.append(read.power_management(0x88, registers_pointer.get(0x08).get("charge_u_min"), float(0)))
+    package.append(read.power_management(0x88, registers_pointer.get(0x08).get("charge_i_stable"), float(0)))
+    package.append(read.power_management(0x88, registers_pointer.get(0x08).get("charge_u_stable"), float(0)))
 
     # через MODBUS
     ser = serial.Serial("com1", 115200, timeout=0.2)
@@ -393,39 +417,11 @@ def sensor_off():
         ser.close()
     except:
         print("")
-# Парсим строку из FLOAT32 в FLOAT
-def hex_to_float(response):
-    d = 0
-    value = "0x"
-    i = len(response) - 2
-    while d < 4:
-        if response[i] == 0:
-            value = value + "0"
-        value = value + hex(response[i])[2:]
-        i = i - 1
-        d = d + 1
 
-    value = int(value,16)
-    return round(FloatToHex.hextofloat(value), 2)
-# Парсим строку из FLOAT в FLOAT32
-def float_to_hex(f):
-    data = []
-    if f == 0:
-        data.append(0)
-        data.append(0)
-        data.append(0)
-        data.append(0)
-    else:
-        temp2 = hex(struct.unpack('<I', struct.pack('<f', f))[0])[2:]
-        data.append(int(temp2[6:8],16))
-        data.append(int(temp2[4:6],16))
-        data.append(int(temp2[2:4],16))
-        data.append(int(temp2[0:2],16))
-    return data
 
 if __name__ == '__main__':
     print("lala")
-    print(read_param())
+    print(read_float_param())
     # print("Float: ", float(1))
     # my = FloatToHex.floattohex(1)
     # print("FloatToHex: ", my, type(my))

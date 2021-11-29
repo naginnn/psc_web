@@ -106,7 +106,6 @@ def write_modbus(frame):
     data.append(hi)
     data.append(lo)
     return data
-
 def crc16(data):
     crchi = 0xFF
     crclo = 0xFF
@@ -118,7 +117,6 @@ def crc16(data):
     # print("{0:02X} {1:02X}".format(crclo, crchi)),
     return crchi, crclo
 # Просто кидать нули вместо данных в посылке! А может и нет!
-
 class WriteParam:
 
     # key в виде конкретного номера регистра номера байт управления уже передан
@@ -291,16 +289,61 @@ class WriteParam:
         while crc > 256:
             crc = crc - 256
         return crc
-
+# Считываем настройки PSC
 def read_param():
-    print("Parameters load")
-# добавить лог записи
+    package = []
+    write = WriteParam()
+    package.append(write.power_management(0x84, registers_pointer.get(0x04).get("pw1_u_nom"), float(0)))
+    package.append(write.power_management(0x84, registers_pointer.get(0x04).get("pw1_u_max"), float(0)))
+    package.append(write.power_management(0x84, registers_pointer.get(0x04).get("pw1_u_min"), float(0)))
+    package.append(write.power_management(0x84, registers_pointer.get(0x04).get("pw1_u_max_hyst"), float(0)))
+    package.append(write.power_management(0x84, registers_pointer.get(0x04).get("pw1_u_min_hyst"), float(0)))
+
+    package.append(write.power_management(0x85, registers_pointer.get(0x05).get("pw2_u_nom"), float(0)))
+    package.append(write.power_management(0x85, registers_pointer.get(0x05).get("pw2_u_max"), float(0)))
+    package.append(write.power_management(0x85, registers_pointer.get(0x05).get("pw2_u_min"), float(0)))
+    package.append(write.power_management(0x85, registers_pointer.get(0x05).get("pw2_u_max_hyst"), float(0)))
+    package.append(write.power_management(0x85, registers_pointer.get(0x05).get("pw2_u_min_hyst"), float(0)))
+
+    package.append(write.power_management(0x86, registers_pointer.get(0x06).get("btr_u_nom"), float(0)))
+    package.append(write.power_management(0x86, registers_pointer.get(0x06).get("btr_u_max"), float(0)))
+    package.append(write.power_management(0x86, registers_pointer.get(0x06).get("btr_u_min"), float(0)))
+    package.append(write.power_management(0x86, registers_pointer.get(0x06).get("btr_u_max_hyst"), float(0)))
+    package.append(write.power_management(0x86, registers_pointer.get(0x06).get("btr_u_min_hyst"), float(0)))
+
+    package.append(write.power_management(0x87, registers_pointer.get(0x07).get("out_i_1"), float(0)))
+    package.append(write.power_management(0x87, registers_pointer.get(0x07).get("out_i_2"), float(0)))
+
+    package.append(write.power_management(0x88, registers_pointer.get(0x08).get("charge_err_min"), float(0)))
+    package.append(write.power_management(0x88, registers_pointer.get(0x08).get("charge_u_max"), float(0)))
+    package.append(write.power_management(0x88, registers_pointer.get(0x08).get("charge_u_min"), float(0)))
+    package.append(write.power_management(0x88, registers_pointer.get(0x08).get("charge_i_stable"), float(0)))
+    package.append(write.power_management(0x88, registers_pointer.get(0x08).get("charge_u_stable"), float(0)))
+
+    # через MODBUS
+    ser = serial.Serial("com1", 115200, timeout=0.2)
+    val = []
+    for frame in package:
+        values = bytearray(write_modbus(frame))
+        print("write: ", values)
+        ser.write(values)
+        response = ser.read(len(values))
+        print("read: ", response)
+        print(response)
+        val.append(hex_to_float(response[:len(response) - 2]))
+    i = 0
+    for key in device_values:
+        device_values[key] = val[i]
+        i = i + 1
+    return device_values
+
+# включить ТЭН
 def sensor_on():
     try:
         package = []
         write = WriteParam()
         # установить температуру, через функцию power_management (там реализован FLOAT32)
-        package.append(write.power_management(0x09, 0x01, -10))
+        package.append(write.power_management(0x09, 0x01, 50))
         # управление датчиками (режим ten или fan)
         package.append(write.sensor_controls(0x09, 0x03, "ten"))
         # Включить защиту от холодного старта
@@ -326,8 +369,38 @@ def sensor_on():
         ser.close()
     except:
         print("")
+# выключить ТЭН
 def sensor_off():
-    print("Parameters load")
+    try:
+        package = []
+        write = WriteParam()
+        # установить температуру, через функцию power_management (там реализован FLOAT32)
+        package.append(write.power_management(0x09, 0x01, -20))
+        # управление датчиками (режим ten или fan)
+        package.append(write.sensor_controls(0x09, 0x03, "ten"))
+        # Включить защиту от холодного старта
+        package.append(write.sensor_controls(0x09, 0x04, "on"))
+        # включить все датчики
+        package.append(write.sensor_controls(0x09, 0x02, 31))
+        # выключить все датчики
+        package.append(write.sensor_controls(0x09, 0x02, 0))
+        # linux port
+        ser = serial.Serial("com1", 115200, timeout=0.3)
+
+        for frame in package:
+            modb_frame = write_modbus(frame)
+            values = bytearray(modb_frame)
+            print("write: ", values)
+            ser.write(values)
+            response = ser.read(len(values))
+            print("read: ", response)
+            if (values == response):
+                print("ok")
+            else:
+                print("bad")
+        ser.close()
+    except:
+        print("")
 # Парсим строку из FLOAT32 в FLOAT
 def hex_to_float(response):
     d = 0
@@ -358,10 +431,9 @@ def float_to_hex(f):
         data.append(int(temp2[0:2],16))
     return data
 
-#   0x17 function modbus
-# # 0x01 0x17 0x40 0x55 0x00 0x04 0x40 0xAA 0x00 0x04 [длина фрейма 232] [фрейм 232] [hi] [lo]
-# С записью понятно, теперь считывание
 if __name__ == '__main__':
+    print("lala")
+    print(read_param())
     # print("Float: ", float(1))
     # my = FloatToHex.floattohex(1)
     # print("FloatToHex: ", my, type(my))
@@ -372,257 +444,4 @@ if __name__ == '__main__':
     # my = FloatToHex.hextofloat(my)
     # print("HexToFloat: ", my, type(my))
     # 0x3f800000
-
-    package = []
-    write = WriteParam()
-    package.append(write.power_management(0x84, registers_pointer.get(0x04).get("pw1_u_nom"), float(0)))  # Считываем
-    package.append(write.power_management(0x84, registers_pointer.get(0x04).get("pw1_u_max"), float(0)))
-    package.append(write.power_management(0x84, registers_pointer.get(0x04).get("pw1_u_min"), float(0)))
-    package.append(write.power_management(0x84, registers_pointer.get(0x04).get("pw1_u_max_hyst"), float(0)))
-    package.append(write.power_management(0x84, registers_pointer.get(0x04).get("pw1_u_min_hyst"), float(0)))
-
-    package.append(write.power_management(0x85, registers_pointer.get(0x05).get("pw2_u_nom"), float(0)))  # Считываем
-    package.append(write.power_management(0x85, registers_pointer.get(0x05).get("pw2_u_max"), float(0)))
-    package.append(write.power_management(0x85, registers_pointer.get(0x05).get("pw2_u_min"), float(0)))
-    package.append(write.power_management(0x85, registers_pointer.get(0x05).get("pw2_u_max_hyst"), float(0)))
-    package.append(write.power_management(0x85, registers_pointer.get(0x05).get("pw2_u_min_hyst"), float(0)))
-
-    package.append(write.power_management(0x86, registers_pointer.get(0x06).get("btr_u_nom"), float(0)))  # Считываем
-    package.append(write.power_management(0x86, registers_pointer.get(0x06).get("btr_u_max"), float(0)))
-    package.append(write.power_management(0x86, registers_pointer.get(0x06).get("btr_u_min"), float(0)))
-    package.append(write.power_management(0x86, registers_pointer.get(0x06).get("btr_u_max_hyst"), float(0)))
-    package.append(write.power_management(0x86, registers_pointer.get(0x06).get("btr_u_min_hyst"), float(0)))
-
-    package.append(write.power_management(0x87, registers_pointer.get(0x07).get("out_i_1"), float(0)))
-    package.append(write.power_management(0x87, registers_pointer.get(0x07).get("out_i_2"), float(0)))
-
-    package.append(write.power_management(0x88, registers_pointer.get(0x08).get("charge_err_min"), float(0)))  # Считываем
-    package.append(write.power_management(0x88, registers_pointer.get(0x08).get("charge_u_max"), float(0)))
-    package.append(write.power_management(0x88, registers_pointer.get(0x08).get("charge_u_min"), float(0)))
-    package.append(write.power_management(0x88, registers_pointer.get(0x08).get("charge_i_stable"), float(0)))
-    package.append(write.power_management(0x88, registers_pointer.get(0x08).get("charge_u_stable"), float(0)))
-
-    # через MODBUS
-    ser = serial.Serial("com1", 115200, timeout=0.2)
-    val = []
-    for frame in package:
-        values = bytearray(write_modbus(frame))
-        print("write: ", values)
-        ser.write(values)
-        response = ser.read(len(values))
-        print("read: ",  response)
-        print(response)
-        val.append(hex_to_float(response[:len(response)-2]))
-    i = 0
-    for key in device_values:
-        device_values[key] = val[i]
-        i = i + 1
-    print(device_values)
-
-
-
-
-
-
-
-
-
-
-    # Через RS-232
-    # ser = serial.Serial("com10", 2400, timeout=0.3)
-    # val = []
-    # for frame in package:
-    #     values = bytearray(frame)
-    #     print("write: ", values)
-    #     ser.write(values)
-    #     response = ser.read(len(values))
-    #     print("read: ", response)
-    #     val.append(hex_to_float(response))
-    # i = 0
-    # for key in device_values:
-    #     device_values[key] = val[i]
-    #     i = i + 1
-    # print(device_values)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    # package.append(write.power_management(register_names.get("outi"), registers_pointer.get(0x07).get("out_i_2"),float(0)))
-
-
-    # print("ModSetConsole for PSC 24_10")
-    # ser = serial.Serial(serial_ports()[0], 2400, timeout=0.3)
-    # while True:
-    #     f = open('../read_write_eeprom/settings.cfg', 'r')
-    #     params = {}
-    #     for line in f:
-    #         temp = line.split(':')
-    #         for t in temp:
-    #             par_name = t.split("=")
-    #             params.update({par_name[0] : par_name[1]})
-    #     #
-    #     # # начало формирования фреймов
-    #     package = []
-    #     write = WriteParam()
-    #
-    #
-    #     # Записать серийник
-    #     print("Enter serial number")
-    #     serial_number = int(input()[3:])
-    #     package.append(write.serial_number(serial_number))
-
-        # # сетевые настройки
-        # package.append(write.network_settings(0x01,registers_pointer.get(0x01).get("InterfaceAdress"),int(params.get("InterfaceAdress"))))
-        # package.append(write.network_settings(0x01,registers_pointer.get(0x01).get("InterfaceSpeed"), int(params.get("InterfaceSpeed"))))
-        # package.append(write.network_settings(0x01,registers_pointer.get(0x01).get("InterfaceChet"), params.get("InterfaceChet")))
-        # package.append(write.network_settings(0x01,registers_pointer.get(0x01).get("ProtocolType"), params.get("ProtocolType")))
-        #
-        # # управление питанием pw1
-        # package.append(write.power_management(register_names.get("pw1u"), registers_pointer.get(0x04).get("pw1_u_nom"), float(params.get("pw1_u_nom"))))
-        # package.append(write.power_management(register_names.get("pw1u"), registers_pointer.get(0x04).get("pw1_u_min"), float(params.get("pw1_u_min"))))
-        # package.append(write.power_management(register_names.get("pw1u"), registers_pointer.get(0x04).get("pw1_u_max"), float(params.get("pw1_u_max"))))
-        # package.append(write.power_management(register_names.get("pw1u"), registers_pointer.get(0x04).get("pw1_u_min_hyst"), float(params.get("pw1_u_min_hyst"))))
-        # package.append(write.power_management(register_names.get("pw1u"), registers_pointer.get(0x04).get("pw1_u_max_hyst"), float(params.get("pw1_u_max_hyst"))))
-        #
-        # # управление питанием pw2
-        # package.append(write.power_management(register_names.get("pw2u"), registers_pointer.get(0x05).get("pw2_u_nom"), float(params.get("pw2_u_nom"))))
-        # package.append(write.power_management(register_names.get("pw2u"), registers_pointer.get(0x05).get("pw2_u_min"), float(params.get("pw2_u_min"))))
-        # package.append(write.power_management(register_names.get("pw2u"), registers_pointer.get(0x05).get("pw2_u_max"), float(params.get("pw2_u_max"))))
-        # package.append(write.power_management(register_names.get("pw2u"), registers_pointer.get(0x05).get("pw2_u_min_hyst"), float(params.get("pw2_u_min_hyst"))))
-        # package.append(write.power_management(register_names.get("pw2u"), registers_pointer.get(0x05).get("pw2_u_max_hyst"), float(params.get("pw2_u_max_hyst"))))
-        #
-        # # управление питанием pw3 (BTR)
-        # package.append(write.power_management(register_names.get("btru"), registers_pointer.get(0x06).get("btr_u_nom"), float(params.get("btr_u_nom"))))
-        # package.append(write.power_management(register_names.get("btru"), registers_pointer.get(0x06).get("btr_u_min"), float(params.get("btr_u_min"))))
-        # package.append(write.power_management(register_names.get("btru"), registers_pointer.get(0x06).get("btr_u_max"), float(params.get("btr_u_max"))))
-        # package.append(write.power_management(register_names.get("btru"), registers_pointer.get(0x06).get("btr_u_min_hyst"), float(params.get("btr_u_min_hyst"))))
-        # package.append(write.power_management(register_names.get("btru"), registers_pointer.get(0x06).get("btr_u_max_hyst"), float(params.get("btr_u_max_hyst"))))
-        # #
-        # # управление питанием outi
-        # package.append(write.power_management(register_names.get("outi"), registers_pointer.get(0x07).get("out_i_1"), float(params.get("out_i_1"))))
-        # package.append(write.power_management(register_names.get("outi"), registers_pointer.get(0x07).get("out_i_2"), float(params.get("out_i_2"))))
-        # # package.append(write.power_management(0x87, registers_pointer.get(0x07).get("out_i_1"),float(0))) # Считываем
-        # # package.append(write.power_management(register_names.get("outi"), registers_pointer.get(0x07).get("out_i_2"),float(0)))
-        # #
-        # # управление АКБ
-        # package.append(write.power_management(register_names.get("charge"), registers_pointer.get(0x08).get("charge_err_min"), float(params.get("charge_err_min"))))
-        # package.append(write.power_management(register_names.get("charge"), registers_pointer.get(0x08).get("charge_u_max"), float(params.get("charge_u_max"))))
-        # package.append(write.power_management(register_names.get("charge"), registers_pointer.get(0x08).get("charge_u_min"), float(params.get("charge_u_min"))))
-        # package.append(write.power_management(register_names.get("charge"), registers_pointer.get(0x08).get("charge_i_stable"), float(params.get("charge_i_stable"))))
-        # package.append(write.power_management(register_names.get("charge"), registers_pointer.get(0x08).get("charge_u_stable"), float(params.get("charge_u_stable"))))
-        #
-        #
-        #                                     #!!!!!!!!!!!!!!!!!ДАТЧИКИ!!!!!!!!!!!!!!!!!!!
-        # # # установить температуру, через функцию power_management (там реализован FLOAT32)
-        # # package.append(write.power_management(0x09, 0x01, -10))
-        # # # управление датчиками (режим ten или fan)
-        # # package.append(write.sensor_controls(0x09, 0x03, "ten"))
-        # # # Включить защиту от холодного старта
-        # # package.append(write.sensor_controls(0x09, 0x04, "on"))
-        # # # включить все датчики
-        # # package.append(write.sensor_controls(0x09, 0x02, 31))
-        # # # выключить все датчики
-        # # package.append(write.sensor_controls(0x09, 0x02, 0))
-
-        # # # Считать ID с линии 1 в датчик
-        # # package.append(write.sensor_controls(0x0B, 0x01, 0xAA))
-        # # package.append(write.sensor_controls(0x8A, 0x01, 0))
-        # # # # Считать ID с линии 2 в датчик
-        # # package.append(write.sensor_controls(0x0B, 0x02, 0xAA))
-        # # package.append(write.sensor_controls(0x8A, 0x02, 0))
-        # # # # Считать ID с линии 3 в датчик
-        # # package.append(write.sensor_controls(0x0B, 0x03, 0xAA))
-        # # package.append(write.sensor_controls(0x8A, 0x03, 0))
-        # # # # Считать ID с линии 4 в датчик
-        # # package.append(write.sensor_controls(0x0B, 0x04, 0xAA))
-        # # package.append(write.sensor_controls(0x8A, 0x04, 0))
-        # # # # Считать ID с линии 5 в датчик
-        # # package.append(write.sensor_controls(0x0B, 0x05, 0xAA))
-        # # package.append(write.sensor_controls(0x8A, 0x05, 0))
-        #
-        #
-        # # 0x01 0x17 0x40 0x55 0x00 0x04 0x40 0xAA 0x00 0x04 [длина фрейма 232] [фрейм 232] [непонятная хуйня] [CRC]
-        #
-
-        # print("Modbus or Serial? - m or s" )
-        # key = input()
-        # com = ''
-        # braudrate = 115200
-        # timeout = 1
-        # if key == "m":
-        #     com = 'com5'
-        #     braudrate = 115200
-        #     timeout = 1
-        # if key == "s":
-        #     com = 'com6'
-        #     braudrate = 2400
-        #     timeout =1
-
-        # for frame in package:
-        #     values = bytearray(frame)
-        #     print("write: ", values)
-        #     ser.write(values)
-        #     response = ser.read(len(values))
-        #     print("read: ", response)
-        #     if (values == response):
-        #         print("ok")
-        #     else:
-        #         print("bad")
-        #     # for rep in response:
-        #     #     print(int(rep))
-        #     # time.sleep(0.5)
-        #
-        # print("Проверка ТЭН'а")
-        # input()
-        # package = []
-        # # Считать ID с линии 1 в датчик
-        # package.append(write.sensor_controls(0x0B, 0x01, 0xAA))
-        # package.append(write.sensor_controls(0x8A, 0x01, 0))
-        # # # включить все датчики
-        # package.append(write.sensor_controls(0x09, 0x02, 31))
-        # # # установить температуру, через функцию power_management (там реализован FLOAT32)
-        # package.append(write.power_management(0x09, 0x01, 50))
-        # # управление датчиками (режим ten или fan)
-        # package.append(write.sensor_controls(0x09, 0x03, "ten"))
-        # # frame = create_package("select_pwr", "select_pw", 2)
-        #
-        # for frame in package:
-        #     values = bytearray(frame)
-        #     print("write: ", values)
-        #     ser.write(values)
-        #     response = ser.read(len(values))
-        #     print("read: ", response)
-        #     if (values == response):
-        #         print("ok")
-        #     else:
-        #         print("bad")
-        #
-        # package = []
-        # print("TEN work?")
-        # input()
-        # # # установить температуру, через функцию power_management (там реализован FLOAT32)
-        # package.append(write.power_management(0x09, 0x01, -20))
-        # # выключить все датчики
-        # package.append(write.sensor_controls(0x09, 0x02, 0))
-        #
-        # for frame in package:
-        #     values = bytearray(frame)
-        #     print("write: ", values)
-        #     ser.write(values)
-        #     response = ser.read(len(values))
-        #     print("read: ", response)
-        #     if (values == response):
-        #         print("ok")
-        #     else:
-        #         print("bad")
 

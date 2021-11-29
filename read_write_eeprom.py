@@ -176,7 +176,7 @@ class FrameCollector:
             frame.append(param)
             frame.append(0x0A)
             frame.append(key)
-            data = float_to_hex(value)
+            data = self.float_to_hex(value)
             for d in data:
                 frame.append(d)
             crc = self.crc_calculate(frame)
@@ -282,9 +282,8 @@ class FrameCollector:
             crclo = HIBYTE[index]
         # print("{0:02X} {1:02X}".format(crclo, crchi)),
         return crchi, crclo
-
     # Парсим строку из HEXFLOAT32 в FLOAT
-    def hex_to_float(response):
+    def hex_to_float(self,response):
         d = 0
         value = "0x"
         i = len(response) - 2
@@ -298,7 +297,7 @@ class FrameCollector:
         value = int(value, 16)
         return round(FloatToHex.hextofloat(value), 2)
     # Парсим строку из FLOAT в HEXFLOAT32
-    def float_to_hex(f):
+    def float_to_hex(self,f):
         data = []
         if f == 0:
             data.append(0)
@@ -313,59 +312,59 @@ class FrameCollector:
             data.append(int(temp2[0:2], 16))
         return data
 
+class ReadWriteEEprom:
 
-# Считываем настройки PSC
-def read_float_param():
-    package = []
-    read =  FrameCollector()
-    package.append(read.power_management(0x84, registers_pointer.get(0x04).get("pw1_u_nom"), float(0)))
-    package.append(read.power_management(0x84, registers_pointer.get(0x04).get("pw1_u_max"), float(0)))
-    package.append(read.power_management(0x84, registers_pointer.get(0x04).get("pw1_u_min"), float(0)))
-    package.append(read.power_management(0x84, registers_pointer.get(0x04).get("pw1_u_max_hyst"), float(0)))
-    package.append(read.power_management(0x84, registers_pointer.get(0x04).get("pw1_u_min_hyst"), float(0)))
-
-    package.append(read.power_management(0x85, registers_pointer.get(0x05).get("pw2_u_nom"), float(0)))
-    package.append(read.power_management(0x85, registers_pointer.get(0x05).get("pw2_u_max"), float(0)))
-    package.append(read.power_management(0x85, registers_pointer.get(0x05).get("pw2_u_min"), float(0)))
-    package.append(read.power_management(0x85, registers_pointer.get(0x05).get("pw2_u_max_hyst"), float(0)))
-    package.append(read.power_management(0x85, registers_pointer.get(0x05).get("pw2_u_min_hyst"), float(0)))
-
-    package.append(read.power_management(0x86, registers_pointer.get(0x06).get("btr_u_nom"), float(0)))
-    package.append(read.power_management(0x86, registers_pointer.get(0x06).get("btr_u_max"), float(0)))
-    package.append(read.power_management(0x86, registers_pointer.get(0x06).get("btr_u_min"), float(0)))
-    package.append(read.power_management(0x86, registers_pointer.get(0x06).get("btr_u_max_hyst"), float(0)))
-    package.append(read.power_management(0x86, registers_pointer.get(0x06).get("btr_u_min_hyst"), float(0)))
-
-    package.append(read.power_management(0x87, registers_pointer.get(0x07).get("out_i_1"), float(0)))
-    package.append(read.power_management(0x87, registers_pointer.get(0x07).get("out_i_2"), float(0)))
-
-    package.append(read.power_management(0x88, registers_pointer.get(0x08).get("charge_err_min"), float(0)))
-    package.append(read.power_management(0x88, registers_pointer.get(0x08).get("charge_u_max"), float(0)))
-    package.append(read.power_management(0x88, registers_pointer.get(0x08).get("charge_u_min"), float(0)))
-    package.append(read.power_management(0x88, registers_pointer.get(0x08).get("charge_i_stable"), float(0)))
-    package.append(read.power_management(0x88, registers_pointer.get(0x08).get("charge_u_stable"), float(0)))
-
-    # через MODBUS
-    ser = serial.Serial("com1", 115200, timeout=0.2)
-    val = []
-    for frame in package:
-        values = bytearray(write_modbus(frame))
-        print("write: ", values)
-        ser.write(values)
-        response = ser.read(len(values))
-        print("read: ", response)
-        print(response)
-        val.append(hex_to_float(response[:len(response) - 2]))
-    i = 0
-    for key in device_values:
-        device_values[key] = val[i]
-        i = i + 1
-    return device_values
-# включить ТЭН
-def sensor_on():
-    try:
+    # Считываем настройки PSC
+    def read_float_param(self):
         package = []
-        write = WriteParam()
+        read = FrameCollector()
+        package.append(read.power_management(0x84, registers_pointer.get(0x04).get("pw1_u_nom"), float(0)))
+        package.append(read.power_management(0x84, registers_pointer.get(0x04).get("pw1_u_max"), float(0)))
+        package.append(read.power_management(0x84, registers_pointer.get(0x04).get("pw1_u_min"), float(0)))
+        package.append(read.power_management(0x84, registers_pointer.get(0x04).get("pw1_u_max_hyst"), float(0)))
+        package.append(read.power_management(0x84, registers_pointer.get(0x04).get("pw1_u_min_hyst"), float(0)))
+
+        package.append(read.power_management(0x85, registers_pointer.get(0x05).get("pw2_u_nom"), float(0)))
+        package.append(read.power_management(0x85, registers_pointer.get(0x05).get("pw2_u_max"), float(0)))
+        package.append(read.power_management(0x85, registers_pointer.get(0x05).get("pw2_u_min"), float(0)))
+        package.append(read.power_management(0x85, registers_pointer.get(0x05).get("pw2_u_max_hyst"), float(0)))
+        package.append(read.power_management(0x85, registers_pointer.get(0x05).get("pw2_u_min_hyst"), float(0)))
+
+        package.append(read.power_management(0x86, registers_pointer.get(0x06).get("btr_u_nom"), float(0)))
+        package.append(read.power_management(0x86, registers_pointer.get(0x06).get("btr_u_max"), float(0)))
+        package.append(read.power_management(0x86, registers_pointer.get(0x06).get("btr_u_min"), float(0)))
+        package.append(read.power_management(0x86, registers_pointer.get(0x06).get("btr_u_max_hyst"), float(0)))
+        package.append(read.power_management(0x86, registers_pointer.get(0x06).get("btr_u_min_hyst"), float(0)))
+
+        package.append(read.power_management(0x87, registers_pointer.get(0x07).get("out_i_1"), float(0)))
+        package.append(read.power_management(0x87, registers_pointer.get(0x07).get("out_i_2"), float(0)))
+
+        package.append(read.power_management(0x88, registers_pointer.get(0x08).get("charge_err_min"), float(0)))
+        package.append(read.power_management(0x88, registers_pointer.get(0x08).get("charge_u_max"), float(0)))
+        package.append(read.power_management(0x88, registers_pointer.get(0x08).get("charge_u_min"), float(0)))
+        package.append(read.power_management(0x88, registers_pointer.get(0x08).get("charge_i_stable"), float(0)))
+        package.append(read.power_management(0x88, registers_pointer.get(0x08).get("charge_u_stable"), float(0)))
+
+        # через MODBUS
+        ser = serial.Serial("com1", 115200, timeout=0.2)
+        val = []
+        for frame in package:
+            values = bytearray(read.write_modbus(frame))
+            print("write: ", values)
+            ser.write(values)
+            response = ser.read(len(values))
+            print("read: ", response)
+            print(response)
+            val.append(read.hex_to_float(response[:len(response) - 2]))
+        i = 0
+        for key in device_values:
+            device_values[key] = val[i]
+            i = i + 1
+        return device_values
+    # включить ТЭН
+    def sensor_on(self):
+        package = []
+        write = FrameCollector()
         # установить температуру, через функцию power_management (там реализован FLOAT32)
         package.append(write.power_management(0x09, 0x01, 50))
         # управление датчиками (режим ten или fan)
@@ -378,7 +377,7 @@ def sensor_on():
         ser = serial.Serial("com1", 115200, timeout=0.3)
 
         for frame in package:
-            modb_frame = write_modbus(frame)
+            modb_frame = write.write_modbus(frame)
             values = bytearray(modb_frame)
             print("write: ", values)
             ser.write(values)
@@ -389,39 +388,38 @@ def sensor_on():
             else:
                 print("bad")
         ser.close()
-    except:
-        print("")
-# выключить ТЭН
-def sensor_off():
-    try:
-        package = []
-        write = WriteParam()
-        # установить температуру, через функцию power_management (там реализован FLOAT32)
-        package.append(write.power_management(0x09, 0x01, -20))
-        # выключить все датчики
-        package.append(write.sensor_controls(0x09, 0x02, 0))
-        # linux port
-        ser = serial.Serial("com1", 115200, timeout=0.3)
+    # выключить ТЭН
+    def sensor_off(self):
+        try:
+            package = []
+            write = FrameCollector()
+            # установить температуру, через функцию power_management (там реализован FLOAT32)
+            package.append(write.power_management(0x09, 0x01, -20))
+            # выключить все датчики
+            package.append(write.sensor_controls(0x09, 0x02, 0))
+            # linux port
+            ser = serial.Serial("com1", 115200, timeout=0.3)
 
-        for frame in package:
-            modb_frame = write_modbus(frame)
-            values = bytearray(modb_frame)
-            print("write: ", values)
-            ser.write(values)
-            response = ser.read(len(values))
-            print("read: ", response)
-            if (values == response):
-                print("ok")
-            else:
-                print("bad")
-        ser.close()
-    except:
-        print("")
+            for frame in package:
+                modb_frame = write.write_modbus(frame)
+                values = bytearray(modb_frame)
+                print("write: ", values)
+                ser.write(values)
+                response = ser.read(len(values))
+                print("read: ", response)
+                if (values == response):
+                    print("ok")
+                else:
+                    print("bad")
+            ser.close()
+        except:
+            print("")
 
 
 if __name__ == '__main__':
     print("lala")
-    print(read_float_param())
+    eeprom = ReadWriteEEprom()
+    print(eeprom.read_float_param())
     # print("Float: ", float(1))
     # my = FloatToHex.floattohex(1)
     # print("FloatToHex: ", my, type(my))

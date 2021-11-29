@@ -95,7 +95,7 @@ LOBYTE = b'\
 # Просто кидать нули вместо данных в посылке! А может и нет!
 class FrameCollector:
     # упаковка сетевых настроек (U8)
-    def network_settings(self,param, key, value):
+    def network_settings(self, param, key, value):
         frame = [0x55, 0xAA]
         frame.append(param)
         if (key == 0x01):
@@ -176,7 +176,7 @@ class FrameCollector:
             frame.append(param)
             frame.append(0x0A)
             frame.append(key)
-            data = self.float_to_hex(value)
+            data = self.float_to_hexfloat(value)
             for d in data:
                 frame.append(d)
             crc = self.crc_calculate(frame)
@@ -235,22 +235,23 @@ class FrameCollector:
             frame.append(crc)
             return frame
     # упаковка серийного номера (FLOAT)
-    def serial_number(self,value):
-        frame = [0x55, 0xAA, 0x33, 0x09]
-        temp = []
-        while value > 0:
-            byte = value % 0x100
-            temp.append(byte)
-            value //= 0x100
-        while len(temp) < 4:
-            temp.append(0x00)
-        frame.append(temp[0])
-        frame.append(temp[1])
-        frame.append(temp[2])
-        frame.append(temp[3])
-        crc = self.crc_calculate(frame)
-        frame.append(crc)
-        return frame
+    def serial_number(self, key, value):
+        if (key == 0x33 or key == 0xB3):
+            frame = [0x55, 0xAA, key, 0x09]
+            temp = []
+            while value > 0:
+                byte = value % 0x100
+                temp.append(byte)
+                value //= 0x100
+            while len(temp) < 4:
+                temp.append(0x00)
+            frame.append(temp[0])
+            frame.append(temp[1])
+            frame.append(temp[2])
+            frame.append(temp[3])
+            crc = self.crc_calculate(frame)
+            frame.append(crc)
+            return frame
     # расчет crc для пакетов
     def crc_calculate(self,frame):
         i = 2
@@ -283,7 +284,7 @@ class FrameCollector:
         # print("{0:02X} {1:02X}".format(crclo, crchi)),
         return crchi, crclo
     # Парсим строку из HEXFLOAT32 в FLOAT
-    def hex_to_float(self,response):
+    def hexfloat_to_float(self, response):
         d = 0
         value = "0x"
         i = len(response) - 2
@@ -296,8 +297,24 @@ class FrameCollector:
 
         value = int(value, 16)
         return round(FloatToHex.hextofloat(value), 2)
+
+    # Парсим строку из HEX в FLOAT (для serial number)
+    def hex_to_float(self, response):
+        d = 0
+        value = "0x"
+        i = len(response) - 2
+        while d < 4:
+            if response[i] == 0:
+                value = value + "0"
+            value = value + hex(response[i])[2:]
+            i = i - 1
+            d = d + 1
+
+        value = int(value, 16)
+        return value
+
     # Парсим строку из FLOAT в HEXFLOAT32
-    def float_to_hex(self,f):
+    def float_to_hexfloat(self, f):
         data = []
         if f == 0:
             data.append(0)
@@ -313,9 +330,11 @@ class FrameCollector:
         return data
 
 class ReadWriteEEprom:
-
+    def __init__(self, com, braudrate):
+        self.com = com
+        self.braudrate = braudrate
     # Считываем настройки PSC
-    def read_float_param(self):
+    def read_power_management(self):
         package = []
         read = FrameCollector()
         package.append(read.power_management(0x84, registers_pointer.get(0x04).get("pw1_u_nom"), float(0)))
@@ -346,7 +365,7 @@ class ReadWriteEEprom:
         package.append(read.power_management(0x88, registers_pointer.get(0x08).get("charge_u_stable"), float(0)))
 
         # через MODBUS
-        ser = serial.Serial("com1", 115200, timeout=0.2)
+        ser = serial.Serial(self.com, self.braudrate, timeout=0.3)
         val = []
         for frame in package:
             values = bytearray(read.write_modbus(frame))
@@ -355,11 +374,12 @@ class ReadWriteEEprom:
             response = ser.read(len(values))
             print("read: ", response)
             print(response)
-            val.append(read.hex_to_float(response[:len(response) - 2]))
+            val.append(read.hexfloat_to_float(response[:len(response) - 2]))
         i = 0
         for key in device_values:
             device_values[key] = val[i]
             i = i + 1
+        ser.close()
         return device_values
     # включить ТЭН
     def sensor_on(self):
@@ -375,7 +395,7 @@ class ReadWriteEEprom:
         # включить все датчики
         package.append(write.sensor_controls(0x09, 0x02, 31))
 
-        ser = serial.Serial("com1", 115200, timeout=0.3)
+        ser = serial.Serial(self.com,self.braudrate, timeout=0.2)
 
         for frame in package:
             modb_frame = write.write_modbus(frame)
@@ -399,7 +419,7 @@ class ReadWriteEEprom:
             # выключить все датчики
             package.append(write.sensor_controls(0x09, 0x02, 0))
             # linux port
-            ser = serial.Serial("com1", 115200, timeout=0.3)
+            ser = serial.Serial(self.com, self.braudrate, timeout=0.3)
 
             for frame in package:
                 modb_frame = write.write_modbus(frame)
@@ -415,14 +435,35 @@ class ReadWriteEEprom:
             ser.close()
         except:
             print("")
+    # прочитать серийный номер
+    def read_serial_number(self):
+        package = []
+        read = FrameCollector()
+        package.append(read.serial_number(0xB3, 0))
+        ser = serial.Serial(self.com, self.braudrate, timeout=0.3)
+        val = 0
+        for frame in package:
+            modb_frame = read.write_modbus(frame)
+            values = bytearray(modb_frame)
+            print("write: ", values)
+            ser.write(values)
+            response = ser.read(len(values))
+            print("read: ", response)
+            val = read.hex_to_float(response[:len(response) - 2])
+        ser.close()
+        return val
+
 
 # for the future -> add to read a serial number
 if __name__ == '__main__':
-    print("lala")
-    eeprom = ReadWriteEEprom()
-    print(eeprom.read_float_param())
-    # eeprom.sensor_on()
-    # print("Отдыхаем 2 секунды")
-    # time.sleep(3)
-    # eeprom.sensor_off()
+    # создаем объект
+    eeprom = ReadWriteEEprom("com1", 115200)
+    # считываем серийный номер
+    print(4710000000 + eeprom.read_serial_number())
+    # Считываем вкладку управление питанием
+    print(eeprom.read_power_management())
+    # считываем id датчика и меняем параметры провоцируя работу ТЭНА
+    eeprom.sensor_on()
+    # Проверяем ТЭН и возвращаем уставки по умолчанию
+    eeprom.sensor_off()
 

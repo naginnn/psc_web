@@ -403,7 +403,7 @@ if __name__ == '__main__':
     package.append(write.power_management(0x88, registers_pointer.get(0x08).get("charge_u_stable"), float(0)))
 
     # через MODBUS
-    ser = serial.Serial("com1", 115200, timeout=0.3)
+    ser = serial.Serial("com1", 115200, timeout=0.2)
     val = []
     for frame in package:
         values = bytearray(write_modbus(frame))

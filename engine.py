@@ -590,8 +590,8 @@ class Check:
 #     print("dsa")
 
 class Settings:
-    def __init__(self, log):
-        self.log = log
+    # def __init__(self, log):
+    #     self.log = log
     data = {}
     device_type = ()
     device_name = ()

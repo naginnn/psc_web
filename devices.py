@@ -155,7 +155,6 @@ class Din:
             return False
         return False
 
-
     def get_status(self):
         i = 0
         try:

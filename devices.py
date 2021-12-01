@@ -130,7 +130,7 @@ class Dout:
                 self.log.add(self.name, "Попытка подать команду " + status + " №" + str(i + 1), True)
                 time.sleep(i)
                 i = i + 1
-
+# переделать функционал повторения при неудачной попытки подачи команды
 class Din:
     def __init__(self, instrument, din_names, name, log):
         self.instrument = instrument
@@ -138,49 +138,42 @@ class Din:
         self.name = name
         self.log = log
 
-    def get_key(self,value):
+    def get_key(self, value):
         for k, v in self.impact.items():
             if v == value:
                 return k
 
-    def check_voltage(self,signal,status):
+    def check_voltage(self, signal, status):
+        din_signals = self.get_status()
+        if (din_signals != False):
+            if ((din_signals[list(self.din_names).index(signal)] == 1) and (status == "ON")):
+                self.log.add(self.name, "Напряжение на " + self.din_names.get(signal) + " подано", True)
+                return True
+            if ((din_signals[list(self.din_names).index(signal)] == 0) and (status == "OFF")):
+                self.log.add(self.name, "Напряжение с " + self.din_names.get(signal) + " снято", True)
+                return True
+            return False
+        return False
+
+
+    def get_status(self):
         i = 0
-        while True:
-            try:
-                din_signals = self.get_status()
-                if (din_signals != False):
-                    if ((din_signals[list(self.din_names).index(signal)] == 1) and (status == "ON")):
-                        self.log.add(self.name, "Напряжение на " + self.din_names.get(signal) + " подано", True)
-                        return True
-                    if ((din_signals[list(self.din_names).index(signal)] == 0) and (status == "OFF")):
-                        self.log.add(self.name, "Напряжение с " + self.din_names.get(signal) + " снято", True)
-                        return True
-                else:
-                    if i == 3:
-                        self.log.add(self.name, "Ошибка при подаче команды " + self.get_key(signal), False)
-                        return False
-                    self.log.add(self.name, "Попытка получить телесигналы №" + str(i + 1), True)
-                    time.sleep(i)
-                    i = i + 1
-            except:
+        try:
+            while True:
+                dict = self.instrument.read_registers(1, 32, 3)
+                if len(dict) > 0:
+                    self.log.add(self.name, "Телесигналы получены", True)
+                    return dict
                 if i == 3:
                     self.log.add(self.name, "Неудалось получить телесигналы", False)
                     return False
-                self.log.add(self.name, "Попытка получить телесигналы №" + str(i + 1), True)
-                time.sleep(i)
                 i = i + 1
-
-    def get_status(self):
-        try:
-            dict = self.instrument.read_registers(1, 32, 3)
-            if len(dict) > 0:
-                self.log.add(self.name, "Телесигналы получены", True)
-                return dict
-            self.log.add(self.name, "Неудалось получить телесигналы", False)
-            return False
         except:
-            self.log.add(self.name, "Фатальная ошибка при попытке получить телесигналы", False)
-            return False
+            if i == 3:
+                self.log.add(self.name, "Попытка получить телесигналы №" + str(i + 1), True)
+                return False
+            i = i + 1
+            time.sleep(i)
 
 class PowerSupply:
     def __init__(self, ip_adress, port, name, log):
@@ -344,17 +337,24 @@ class Psc_10:
         self.log = log
 
     def get_ti(self,name_signal):
-        try:
-            value = self.instrument.read_float(self.psc10_names_ti.get(name_signal), 4)
-            if (value != None):
-                self.log.add(self.name, "Телеизмерение " + name_signal + " = " + str(value) + " получено", True)
-                return value
-            else:
-                self.log.add(self.name, "Ошибка при попытке получения телеизмерения " + name_signal, False)
-                return False
-        except:
-            self.log.add(self.name, "Критическая ошибка при попытке получения телеизмерения " + name_signal, False)
-            return False
+        i = 0
+        while True:
+            try:
+                value = self.instrument.read_float(self.psc10_names_ti.get(name_signal), 4)
+                if (value != None):
+                    self.log.add(self.name, "Телеизмерение " + name_signal + " = " + str(round(value, 2)) + " получено", True)
+                    return round(value, 2)
+                else:
+                    if i == 3:
+                        self.log.add(self.name, "Ошибка при попытке получения телеизмерения " + name_signal, False)
+                        return False
+                    i = i + 1
+            except:
+                if i == 3:
+                    self.log.add(self.name, "Критическая ошибка при попытке получения телеизмерения " + name_signal, False)
+                    return False
+                i = i + 1
+                time.sleep(i)
 
     def check_behaviour(self, behaviour):
         dict = self.get_all_ts()
@@ -362,14 +362,11 @@ class Psc_10:
         if (dict != False):
             for key in behaviour:
                 if behaviour[key] != dict[i]:
-                    log.add(self.name, "Состояние устройства не соответствует действительности", True)
+                    self.log.add(self.name, "Состояние устройства не соответствует действительности", True)
                     return False
                 i = i + 1
-            log.add(self.name, "Состояние устройства соответствует", True)
+            self.log.add(self.name, "Состояние устройства соответствует", True)
             return True
-        else:
-            log.add(self.name, "Невозможно получить состояние устройства", False)
-            return False
 
     def get_all_ts(self):
         i = 0
@@ -377,18 +374,19 @@ class Psc_10:
             try:
                 dict = self.instrument.read_registers(1, 13, 4)
                 if (len(dict) == 13):
+                    self.log.add(self.name, "Состояние получено", True)
                     return dict
-                else:
-                    if i == 3:
-                        return False
-                    i = i + 1
+                if i == 3:
+                    self.log.add(self.name, "Попытка получить состояние устройства №" + str(i + 1), True)
+                    return False
+                i = i + 1
             except:
                 if i == 3:
+                    self.log.add(self.name, "Невозможно получить состояние устройства", False)
                     return False
-                log.add(self.name, "Попытка получить состояние устройства №" + str(i + 1), False)
+                self.log.add(self.name, "Попытка получить состояние устройства №" + str(i + 1), True)
                 i = i + 1
                 time.sleep(i)
-
 
 class Psc_40:
     psc40_names_ts = ["IN1", "IN2", "IN3", "IN4", "U_OUT1", "U_OUT2", "ERROR_KEY1", "ERROR_KEY2", "ERROR_KEY3",
@@ -449,7 +447,7 @@ if __name__ == '__main__':
 
     behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 0, "error_pwr2": 0, "error_btr": 0,
                  "error_out1": 0, "error_out2": 0, "charge_btr": 1, "ten": 0, "apts": 0}
-
+    print(psc24_10.get_ti("U_IN1"))
     print(psc24_10.check_behaviour(behaviour))
     print(log.get_log())
 

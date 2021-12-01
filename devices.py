@@ -436,6 +436,11 @@ class Psc_40:
             self.log.add(self.name, "Критическая ошибка при попытке получения телесигнала " + name_signal, False)
             return False
 # проверяем состояние устройства на соответствие
+
+# расчет процента (только для теста, удалить отсюда)
+def percentage(percent, whole):
+    return (percent * whole) / 100.0
+
 if __name__ == '__main__':
     # instrument.read_float
     log = engine.Log()
@@ -446,9 +451,21 @@ if __name__ == '__main__':
 
     behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 0, "error_pwr2": 0, "error_btr": 0,
                  "error_out1": 0, "error_out2": 0, "charge_btr": 1, "ten": 0, "apts": 0}
-    print(psc24_10.get_ti("U_IN1"))
+
     print(psc24_10.check_behaviour(behaviour))
     print(log.get_log())
+
+    u_nom = psc24_10.get_ti("U_IN1")
+    u_min = u_nom - percentage(1,24)
+    u_max = u_nom + percentage(1,24)
+    print(24, " номинальное значение")
+    print(u_nom, " измеренное значение")
+    print(u_min, " минимальное значение")
+    print(u_max, " максимальное значение")
+    if (u_nom < u_max and u_nom > u_min):
+        print("нет погрешности")
+    else:
+        print("есть погрешности")
 
 
     #

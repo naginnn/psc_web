@@ -214,7 +214,9 @@ class Diagnostics:
         else:
             self.log.add(self.name, "Диагностика завершена, нет ошибок", True)
         self.log.set_finish(True)
-
+# расчет процента
+def percentage(percent, whole):
+    return (percent * whole) / 100.0
 # Проверка устройства psc24_10
 class Check_psc24_10:
     # создаем список с измерениями

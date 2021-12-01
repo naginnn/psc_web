@@ -228,7 +228,7 @@ class Check_psc24_10:
                     "I_OUT2": {"i_nom": 0.0, "i_fact": 0.0, "error_rate": 0.0},
                     }
     # предполагаемое поведение
-    behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 0, "error_pwr2": 1, "error_btr": 1,
+    behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 0, "error_pwr2": 0, "error_btr": 0,
                  "error_out1": 0, "error_out2": 0, "charge_btr": 0, "ten": 0, "apts": 0}
 
     # читаем web конфигурацию
@@ -283,11 +283,32 @@ class Check_psc24_10:
 
     # первое включение проверки погрешности измерений тока и напряжения
     def first_start(self):
-        print("")
+        # подаём 3 канала с ЛБП
+        try:
+            self.dout_102.command("KL30", "ON")
+            self.din_201.check_voltage("KL30", "ON")
+            self.dout_102.command("KL31", "ON")
+            self.din_201.check_voltage("KL31", "ON")
+            self.dout_102.command("KL33", "ON")
+            self.din_201.check_voltage("KL33", "ON")
+            self.power_supply.connection()
+            self.power_supply.set_voltage(24)
+        except:
+            print("Boroda")
 
     # Проверка порогов по напряжению
     def check_voltage_thresholds(self):
-        print("")
+        try:
+            self.dout_102.command("KL30", "ON")
+            self.din_201.check_voltage("KL30", "ON")
+            self.dout_102.command("KL31", "ON")
+            self.din_201.check_voltage("KL31", "ON")
+            self.dout_102.command("KL33", "ON")
+            self.din_201.check_voltage("KL33", "ON")
+            self.power_supply.connection()
+            self.power_supply.set_voltage(24)
+        except:
+            print("Boroda")
 
     # переключение каналов
     def switch_channel(self):
@@ -303,7 +324,7 @@ class Check_psc24_10:
         print("Режим перегрузки")
 
     # проверка состояния устройства
-    def check_device(self):
+    def check_device(self, psc24_10):
         print("Проверка устройства")
 
     # главная функция

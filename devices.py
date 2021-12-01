@@ -3,6 +3,7 @@ import re
 import minimalmodbus
 import engine
 import time
+from accessify import implements, private
 
 dout_names_101 = {"KL1":81,"KL2":82,"KL3":83,"KL4":84,"KL5":85,"KL6":86,"KL7":87,"KL8":88,"KL9":89,"KL10":90,"KL11":91,"KL12":92,"KL13":93,"KL14":94,"KL15":95,"KL16":96}
 dout_names_102 = {"KL17":81,"KL18":82,"KL19":83,"KL20":84,"KL21":85,"KL22":86,"KL23":87,"KL24":88,"KL25":89,"KL26":90,"KL27":91,"KL28":92,"KL29":93,"KL30":94,"KL31":95,"KL32":96}
@@ -62,7 +63,7 @@ class Dout:
             if v == value:
                 return k
 
-    def check_tu_ti(self,signal,status):
+    def check_tu_ti(self, signal, status):
         dout_signals = self.get_status()
         if (dout_signals != False):
             if (dout_signals[list(self.dout_names).index(signal)] == 1) and status == "ON":
@@ -87,7 +88,7 @@ class Dout:
             self.log.add(self.name,"Ошибка при попытке получить телесигналы", False)
             return False
 
-    def command(self,relay,status):
+    def command(self, relay, status):
         i = 0
         if status == "ON":
             self.log.add(self.name, "Команда включить на " + relay, True)
@@ -209,31 +210,38 @@ class PowerSupply:
             return False
 
     def remote(self, on_off):
-        self.socket = socket.socket()
-        self.socket.connect((self.ip_adress, int(self.port)))
-        self.log.add(self.name, "Переключение режима ЛБП REMOTE: " + on_off, True)
-        message = "SYSTem:LOCK " + on_off + "\n"
-        self.socket.send(message.encode())
-        self.socket.close()
+        try:
+            self.socket = socket.socket()
+            self.socket.connect((self.ip_adress, int(self.port)))
+            self.log.add(self.name, "Переключение режима ЛБП REMOTE: " + on_off, True)
+            message = "SYSTem:LOCK " + on_off + "\n"
+            self.socket.send(message.encode())
+            self.socket.close()
+            return True
+        except:
+            return False
 
     def check_remote(self, on_off):
-        self.socket = socket.socket()
-        self.socket.connect((self.ip_adress, int(self.port)))
-        i = 0.5
-        while True:
-            self.socket.send("SYSTem:LOCK:OWNer?".encode())
-            param = str(self.socket.recv(100)).find(on_off)
-            if (param != -1):
-                self.log.add(self.name, "Подача команды " + on_off + " на ЛБП успешно прошла", True)
-                self.socket.close()
-                return True
-            else:
-                self.log.add(self.name, "Подача команды " + on_off + " на ЛБП не прошла", False)
-                self.socket.close()
-                return False
-
-            i = i + 0.5
-            time.sleep(i)
+        try:
+            self.socket = socket.socket()
+            self.socket.connect((self.ip_adress, int(self.port)))
+            i = 0.5
+            while True:
+                self.socket.send("SYSTem:LOCK:OWNer?".encode())
+                param = str(self.socket.recv(100)).find(on_off)
+                if (param != -1):
+                    self.log.add(self.name, "Подача команды " + on_off + " на ЛБП успешно прошла", True)
+                    self.socket.close()
+                    return True
+                else:
+                    self.log.add(self.name, "Подача команды " + on_off + " на ЛБП не прошла", False)
+                    self.socket.close()
+                    return False
+                i = i + 0.5
+                time.sleep(i)
+        except:
+            self.log.add(self.name, "Подача команды " + on_off + " на ЛБП не прошла", False)
+            return False
 
     def set_voltage(self,value):
         i = 0
@@ -348,49 +356,39 @@ class Psc_10:
             self.log.add(self.name, "Критическая ошибка при попытке получения телеизмерения " + name_signal, False)
             return False
 
-    def get_ts(self,name_signal):
-        try:
-            signals = {}
-            dict = self.instrument.read_registers(1, 13, 4)
-            if (len(dict) == 13):
-                i = 0
-                while (i < 13):
-                    signals.update({self.psc10_names_ts[i] : dict[i]})
-                    i = i + 1
-                value = signals.get(name_signal)
-                if (value != None):
-                    self.log.add(self.name, "Телесигнал " + name_signal + " = " + str(value) + " получен", True)
-                    return value
-                else:
-                    self.log.add(self.name, "Телесигнала " + name_signal + " не существует", False)
-                    return False
-            else:
-                self.log.add(self.name, "Ошибка при попытке получения телесигнала " + name_signal, False)
-                return False
-        except:
-            self.log.add(self.name, "Критическая ошибка при попытке получения телесигнала " + name_signal, False)
-            return False
-
     def check_behaviour(self, behaviour):
-        try:
-            dict = self.instrument.read_registers(1, 13, 4)
-            i = 0
+        dict = self.get_all_ts()
+        i = 0
+        if (dict != False):
             for key in behaviour:
                 if behaviour[key] != dict[i]:
+                    log.add(self.name, "Состояние устройства не соответствует действительности", True)
                     return False
                 i = i + 1
+            log.add(self.name, "Состояние устройства соответствует", True)
             return True
-        except:
-            print("")
+        else:
+            log.add(self.name, "Невозможно получить состояние устройства", False)
+            return False
 
-    def check_status(self, *args):
+    def get_all_ts(self):
         i = 0
-        while i < len(args):
-            ts = self.get_ts(args[i])
-            if (ts != 1):
-                return False
-            i = i + 1
-        return True
+        while True:
+            try:
+                dict = self.instrument.read_registers(1, 13, 4)
+                if (len(dict) == 13):
+                    return dict
+                else:
+                    if i == 3:
+                        return False
+                    i = i + 1
+            except:
+                if i == 3:
+                    return False
+                log.add(self.name, "Попытка получить состояние устройства №" + str(i + 1), False)
+                i = i + 1
+                time.sleep(i)
+
 
 class Psc_40:
     psc40_names_ts = ["IN1", "IN2", "IN3", "IN4", "U_OUT1", "U_OUT2", "ERROR_KEY1", "ERROR_KEY2", "ERROR_KEY3",
@@ -440,18 +438,21 @@ class Psc_40:
         except:
             self.log.add(self.name, "Критическая ошибка при попытке получения телесигнала " + name_signal, False)
             return False
-
+# проверяем состояние устройства на соответствие
 if __name__ == '__main__':
     # instrument.read_float
     log = engine.Log()
     modb_psc24_10 = Modb().getConnection("PSC24_10", 'com1', 1, log)
-    power_supply = PowerSupply("192.168.0.5", "5025", "ЛБП", log)
+    # power_supply = PowerSupply("192.168.0.5", "5025", "ЛБП", log)
+    # power_supply.connection()
     psc24_10 = Psc_10(modb_psc24_10, "PSC24_10", log)
 
-    behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 0, "error_pwr2": 1, "error_btr": 1,
-                 "error_out1": 0, "error_out2": 0, "charge_btr": 0, "ten": 0, "apts": 0}
+    behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 0, "error_pwr2": 0, "error_btr": 0,
+                 "error_out1": 0, "error_out2": 0, "charge_btr": 1, "ten": 0, "apts": 0}
 
     print(psc24_10.check_behaviour(behaviour))
+    print(log.get_log())
+
 
     #
     # i = 0

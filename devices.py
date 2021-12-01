@@ -32,7 +32,6 @@ def number_func(str):
     except:
         return float(0)
 
-
 class Modb:
     def getConnection(self, name, port, slave_adress,log):
         try:
@@ -183,7 +182,6 @@ class Din:
             return False
 
 class PowerSupply:
-
     def __init__(self, ip_adress, port, name, log):
         self.ip_adress = ip_adress
         self.port = port
@@ -325,7 +323,7 @@ class PowerSupply:
     # OUTPut OFF // отключить выход
     # MEAS:CURR? // текущий ток блока питания
     # SOUR:VOLTAGE 25 // текущее напряжение блока питания
-
+# задать предполагаемое поведение
 class Psc_10:
     psc10_names_ts = ["IN1", "IN2", "IN3", "OUT1", "OUT2", "ERROR_OUT1", "ERROR_OUT2", "ERROR_BTR", "ERROR_I_OUT1",
                       "ERROR_I_OUT2", "PWR_BTR", "TEN", "APTC"]
@@ -372,6 +370,18 @@ class Psc_10:
         except:
             self.log.add(self.name, "Критическая ошибка при попытке получения телесигнала " + name_signal, False)
             return False
+
+    def check_behaviour(self, behaviour):
+        try:
+            dict = self.instrument.read_registers(1, 13, 4)
+            i = 0
+            for key in behaviour:
+                if behaviour[key] != dict[i]:
+                    return False
+                i = i + 1
+            return True
+        except:
+            print("")
 
     def check_status(self, *args):
         i = 0
@@ -432,389 +442,401 @@ class Psc_40:
             return False
 
 if __name__ == '__main__':
-    i = 0
-    while i < 10:
-        # передать как аргумент
-        settings = engine.Settings
-        config = settings.load(settings,"settings.cfg")
-        print(config)
-        try:
-            main_log = engine.Log()
-            log = engine.Log()
-            log.set_start(False)
-            modb_dout_101 = Modb().getConnection("DOUT_101", 'com2', 101, log)
-            modb_dout_102 = Modb().getConnection("DOUT_102", 'com2', 102, log)
-            modb_dout_103 = Modb().getConnection("DOUT_103", 'com2', 103, log)
-            modb_dout_104 = Modb().getConnection("DOUT_104", 'com1', 104, log)
-            modb_din_201 = Modb().getConnection("DIN_201", 'com2', 201, log)
-            modb_din_202 = Modb().getConnection("DIN_202", 'com2', 202, log)
-            modb_psc24_10 = Modb().getConnection("PSC24_10", 'com1', 1, log)
-            dout_101 = Dout(modb_dout_101, dout_names_101, "DOUT_101", log)
-            dout_102 = Dout(modb_dout_102, dout_names_102, "DOUT_102", log)
-            dout_103 = Dout(modb_dout_103, dout_names_103, "DOUT_103", log)
-            dout_104 = Dout(modb_dout_104, dout_names_104, "DOUT_104", log)
-            din_201 = Din(modb_din_201, din_names_201, "DIN_201", log)
-            din_202 = Din(modb_din_202, din_names_202, "DIN_202", log)
+    # instrument.read_float
+    log = engine.Log()
+    modb_psc24_10 = Modb().getConnection("PSC24_10", 'com1', 1, log)
+    power_supply = PowerSupply("192.168.0.5", "5025", "ЛБП", log)
+    psc24_10 = Psc_10(modb_psc24_10, "PSC24_10", log)
 
-            power_supply = PowerSupply("192.168.0.5", "5025", "ЛБП", log)
-            psc24_10 = Psc_10(modb_psc24_10, "PSC24_10", log)
+    behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 0, "error_pwr2": 1, "error_btr": 1,
+                 "error_out1": 0, "error_out2": 0, "charge_btr": 0, "ten": 0, "apts": 0}
 
-            print(log.get_log())
+    print(psc24_10.check_behaviour(behaviour))
 
-            time.sleep(1)
-            # В зависимости от конфигурации выбираем и включаем блоки питания
-            if (config.get('power_supply_type') == "wm24_10"):
-                assert dout_101.command("KL7", "ON")
-                assert din_201.check_voltage("KL7", "ON")
-                time.sleep(1)
-                assert dout_101.command("KL8", "ON")
-                assert din_201.check_voltage("KL8", "ON")
-                time.sleep(1)
-
-            if (config.get('power_supply_type') == "pw24_5"):
-                assert dout_101.command("KL15", "ON")
-                assert din_201.check_voltage("KL15", "ON")
-                time.sleep(1)
-                assert dout_101.command("KL16", "ON")
-                assert din_201.check_voltage("KL16", "ON")
-                time.sleep(1)
-
-            # Конфигурируем ЛБП
-            power_supply.remote("ON")
-            assert power_supply.check_remote("REMOTE")
-            time.sleep(1)
-            print(log.get_log())
-            power_supply.output("ON")
-            assert power_supply.check_output("ON")
-            time.sleep(1)
-            print(log.get_log())
-            # Выставляем напряжение ЛБП
-            assert power_supply.set_voltage(24)
-            assert power_supply.check_voltage(24)
-            time.sleep(1)
-            print(log.get_log())
-
-            # Подаём IN1 с ЛБП
-            assert dout_102.command("KL30", "ON")
-            assert din_201.check_voltage("KL30", "ON")
-            time.sleep(1)
-            print(log.get_log())
-
-
-            # В зависимости от конфигурации выбираем и отключаем БП IN1
-            if (config.get('power_supply_type') == "wm24_10"):
-                assert dout_101.command("KL7", "OFF")
-                assert din_201.check_voltage("KL7", "OFF")
-                time.sleep(1)
-
-            if (config.get('power_supply_type') == "pw24_5"):
-                assert dout_101.command("KL15", "OFF")
-                assert din_201.check_voltage("KL15", "OFF")
-                time.sleep(1)
-
-            #Полаем вход IN1,IN2,IN3
-            assert dout_103.command("KM7", "ON")
-            assert din_202.check_voltage("KM7", "ON")
-            time.sleep(1)
-            print(log.get_log())
-            print("Ожидаем включение устройства 25 сек")
-            time.sleep(5)
-
-            print("Ожидаем включение устройства 20 сек")
-            time.sleep(5)
-
-            print("Ожидаем включение устройства 15 сек")
-            time.sleep(5)
-
-            print("Ожидаем включение устройства 10 сек")
-            time.sleep(5)
-
-            print("Ожидаем включение устройства 5 сек")
-            time.sleep(5)
-
-            # Проверяем запуск устройства без АКБ
-            if (psc24_10.check_status("IN1", "OUT1", "OUT2", "ERROR_BTR") == True) and (psc24_10.check_status("ERROR_OUT1", "ERROR_OUT2","ERROR_I_OUT1", "ERROR_I_OUT2") == False):
-                log.add("psc24-10 №1", "Устройство исправно", True)
-            else:
-                log.add("psc24-10 №1", "Устройство неисправно", True)
-                assert False
-            print(log.get_log())
-            time.sleep(1)
-
-            # подаём АКБ на IN3
-            assert dout_103.command("KM1", "ON")
-            assert din_202.check_voltage("KM1", "ON")
-            time.sleep(1)
-            print(log.get_log())
-
-            # Проверяем запуск устройства с АКБ
-            if (psc24_10.check_status("IN1", "OUT1", "OUT2") == True) and (psc24_10.check_status("ERROR_OUT1", "ERROR_OUT2", "ERROR_BTR", "ERROR_I_OUT1", "ERROR_I_OUT2") == False):
-                log.add("psc24-10 №1", "Устройство исправно", True)
-            else:
-                log.add("psc24-10 №1", "Устройство неисправно", True)
-                assert False
-            print(log.get_log())
-            time.sleep(1)
-
-            #Понижаем напряжение IN1 устройство должно быть исправно
-            power_supply.set_voltage(21.5)
-            time.sleep(5)
-            assert power_supply.check_voltage(21.5)
-
-            print(log.get_log())
-
-            # Проверяем что IN1 не вышел из-строя
-            if (psc24_10.check_status("IN1", "OUT1", "OUT2") == True) and (psc24_10.check_status("ERROR_OUT1", "ERROR_OUT2", "ERROR_BTR", "ERROR_I_OUT1", "ERROR_I_OUT2") == False):
-                log.add("psc24-10 №1", "Устройство исправно", True)
-            else:
-                log.add("psc24-10 №1", "Устройство неисправно", True)
-                assert False
-            print(log.get_log())
-            time.sleep(1)
-
-            #Понижаем напряжение IN1 до порога срабатывания U MIN
-            power_supply.set_voltage(20)
-            time.sleep(5)
-            assert power_supply.check_voltage(20)
-            print(log.get_log())
-
-            # Проверяем что IN1 неисправен и IN2 активный канал
-            if (psc24_10.check_status("IN2", "OUT1", "OUT2","ERROR_OUT1") == True) and (psc24_10.check_status("IN1", "ERROR_OUT2", "ERROR_BTR", "ERROR_I_OUT1", "ERROR_I_OUT2") == False):
-                log.add("psc24-10 №1", "Устройство исправно", True)
-            else:
-                log.add("psc24-10 №1", "Устройство неисправно", True)
-                assert False
-            print(log.get_log())
-            time.sleep(1)
-
-            #Повышаем напряжение IN1 устройство должно быть исправно
-            power_supply.set_voltage(26)
-            time.sleep(5)
-            assert power_supply.check_voltage(26)
-            time.sleep(1)
-            print(log.get_log())
-
-            # Проверяем что IN1 восстановился
-            if (psc24_10.check_status("IN1", "OUT1", "OUT2") == True) and (psc24_10.check_status("ERROR_OUT1", "ERROR_OUT2", "ERROR_BTR", "ERROR_I_OUT1", "ERROR_I_OUT2") == False):
-                log.add("psc24-10 №1", "Устройство исправно", True)
-            else:
-                log.add("psc24-10 №1", "Устройство неисправно", True)
-                assert False
-            print(log.get_log())
-            time.sleep(1)
-
-            #Повышаем напряжение IN1 до порога срабатывания U MAX
-            power_supply.set_voltage(27)
-            time.sleep(5)
-            assert power_supply.check_voltage(27)
-            time.sleep(3)
-            print(log.get_log())
-
-            # Проверяем что IN1 неисправен и IN2 активный канал
-            if (psc24_10.check_status("IN2", "OUT1", "OUT2","ERROR_OUT1") == True) and (psc24_10.check_status("IN1", "ERROR_OUT2", "ERROR_BTR", "ERROR_I_OUT1", "ERROR_I_OUT2") == False):
-                log.add("psc24-10 №1", "Устройство исправно", True)
-            else:
-                log.add("psc24-10 №1", "Устройство неисправно", True)
-                assert False
-            print(log.get_log())
-            time.sleep(1)
-
-            #Регулируем ЛБП на Uном
-            power_supply.set_voltage(24)
-            time.sleep(5)
-            assert power_supply.check_voltage(24)
-            time.sleep(3)
-            print(log.get_log())
-
-            #Отключаем ЛБП IN1 и включаем ЛБП IN2
-            assert dout_102.command("KL30", "OFF")
-            assert din_201.check_voltage("KL30", "OFF")
-            time.sleep(1)
-            print(log.get_log())
-            assert dout_102.command("KL31", "ON")
-            assert din_201.check_voltage("KL31", "ON")
-            time.sleep(1)
-            print(log.get_log())
-
-            # В зависимости от конфигурации выбираем и отключаем БП IN2
-            if (config.get('power_supply_type') == "wm24_10"):
-                assert dout_101.command("KL8", "OFF")
-                assert din_201.check_voltage("KL8", "OFF")
-                time.sleep(1)
-
-            if (config.get('power_supply_type') == "pw24_5"):
-                assert dout_101.command("KL16", "OFF")
-                assert din_201.check_voltage("KL16", "OFF")
-                time.sleep(1)
-
-            # Проверяем что устройство работает с IN2
-            if (psc24_10.check_status("IN2", "OUT1", "OUT2","ERROR_OUT1") == True) and (psc24_10.check_status("IN1", "ERROR_OUT2", "ERROR_BTR", "ERROR_I_OUT1", "ERROR_I_OUT2") == False):
-                log.add("psc24-10 №1", "Устройство исправно", True)
-            else:
-                log.add("psc24-10 №1", "Устройство неисправно", True)
-                assert False
-            print(log.get_log())
-            time.sleep(1)
-
-            # Понижаем напряжение IN2 устройство должно быть исправно
-            power_supply.set_voltage(21.5)
-            time.sleep(5)
-            assert power_supply.check_voltage(21.5)
-            time.sleep(1)
-            print(log.get_log())
-
-            # Проверяем что IN2 не вышел из-строя
-            if (psc24_10.check_status("IN2", "OUT1", "OUT2","ERROR_OUT1") == True) and (
-                    psc24_10.check_status( "ERROR_OUT2", "ERROR_BTR", "ERROR_I_OUT1","ERROR_I_OUT2") == False):
-                log.add("psc24-10 №1", "Устройство исправно", True)
-            else:
-                log.add("psc24-10 №1", "Устройство неисправно", True)
-                assert False
-            print(log.get_log())
-            time.sleep(1)
-
-            # Понижаем напряжение IN2 до порога срабатывания U MIN
-            power_supply.set_voltage(20)
-            time.sleep(5)
-            assert power_supply.check_voltage(20)
-            time.sleep(3)
-            print(log.get_log())
-
-            # Проверяем что IN2 неисправен и IN3 активный канал
-            if (psc24_10.check_status("IN3", "OUT1", "OUT2", "ERROR_OUT1", "ERROR_OUT2") == True) and (
-                    psc24_10.check_status("IN2", "ERROR_BTR", "ERROR_I_OUT1", "ERROR_I_OUT2") == False):
-                log.add("psc24-10 №1", "Устройство исправно", True)
-            else:
-                log.add("psc24-10 №1", "Устройство неисправно", True)
-                assert False
-            print(log.get_log())
-            time.sleep(1)
-
-            #Повышаем напряжение IN2 устройство должно быть исправно
-            power_supply.set_voltage(26)
-            time.sleep(5)
-            assert power_supply.check_voltage(26)
-            time.sleep(1)
-            print(log.get_log())
-
-            # Проверяем что IN2 восстановился
-            if (psc24_10.check_status("IN2", "OUT1", "OUT2","ERROR_OUT1",) == True) and (
-                    psc24_10.check_status( "ERROR_OUT2", "ERROR_BTR", "ERROR_I_OUT1","ERROR_I_OUT2") == False):
-                log.add("psc24-10 №1", "Устройство исправно", True)
-            else:
-                log.add("psc24-10 №1", "Устройство неисправно", True)
-                assert False
-            print(log.get_log())
-            time.sleep(1)
-
-            #Повышаем напряжение IN2 до порога срабатывания U MAX
-            power_supply.set_voltage(27)
-            time.sleep(5)
-            assert power_supply.check_voltage(27)
-            time.sleep(3)
-            print(log.get_log())
-
-            # Проверяем что IN2 неисправен и IN3 активный канал
-            if (psc24_10.check_status("IN3", "OUT1", "OUT2", "ERROR_OUT1", "ERROR_OUT2") == True) and (psc24_10.check_status("IN2", "ERROR_BTR", "ERROR_I_OUT1", "ERROR_I_OUT2") == False):
-                log.add("psc24-10 №1", "Устройство исправно", True)
-            else:
-                log.add("psc24-10 №1", "Устройство неисправно", True)
-                assert False
-            print(log.get_log())
-            time.sleep(1)
-
-            #Регулируем ЛБП на Uном
-            power_supply.set_voltage(24)
-            time.sleep(5)
-            assert power_supply.check_voltage(24)
-            print(log.get_log())
-
-            # Проверяем что IN2 восстановился и зарядку АКБ
-            if (psc24_10.check_status("IN2", "OUT1", "OUT2", "ERROR_OUT1", "PWR_BTR") == True) and (psc24_10.check_status("ERROR_OUT2", "ERROR_BTR", "ERROR_I_OUT1", "ERROR_I_OUT2") == False):
-                log.add("psc24-10 №1", "Устройство исправно", True)
-            else:
-                log.add("psc24-10 №1", "Устройство неисправно", True)
-                assert False
-            print(log.get_log())
-            time.sleep(1)
-
-            # В зависимости от конфигурации выбираем и включаем блоки питания
-            if (config.get('power_supply_type') == "wm24_10"):
-                assert dout_101.command("KL7", "ON")
-                assert din_201.check_voltage("KL7", "ON")
-                time.sleep(1)
-                assert dout_101.command("KL8", "ON")
-                assert din_201.check_voltage("KL8", "ON")
-                time.sleep(1)
-
-            if (config.get('power_supply_type') == "pw24_5"):
-                assert dout_101.command("KL15", "ON")
-                assert din_201.check_voltage("KL15", "ON")
-                time.sleep(1)
-                assert dout_101.command("KL16", "ON")
-                assert din_201.check_voltage("KL16", "ON")
-                time.sleep(1)
-
-            # Отключаем ЛБП
-                power_supply.remote("OFF")
-                assert power_supply.check_output("OFF")
-                time.sleep(1)
-                print(log.get_log())
-                print("Проверка успешно завершена, устройство исправно!")
-
-            # Проверяем запуск устройства с АКБ
-            if (psc24_10.check_status("IN1", "OUT1", "OUT2") == True) and\
-                    (psc24_10.check_status("ERROR_OUT1", "ERROR_OUT2", "ERROR_BTR", "ERROR_I_OUT1", "ERROR_I_OUT2") == False):
-                log.add("psc24-10 №1", "Устройство исправно", True)
-            else:
-                log.add("psc24-10 №1", "Устройство неисправно", True)
-                assert False
-            print(log.get_log())
-            time.sleep(1)
-
-            #Отключаем АКБ
-            # Отключаем АКБ на IN3
-            assert dout_103.command("KM1", "OFF")
-            assert din_202.check_voltage("KM1", "OFF")
-            time.sleep(1)
-            print(log.get_log())
-
-            # В зависимости от конфигурации выбираем и отключаем блоки питания
-            if (config.get('power_supply_type') == "wm24_10"):
-                assert dout_101.command("KL7", "OFF")
-                assert din_201.check_voltage("KL7", "OFF")
-                time.sleep(1)
-                assert dout_101.command("KL8", "OFF")
-                assert din_201.check_voltage("KL8", "OFF")
-                time.sleep(1)
-
-            if (config.get('power_supply_type') == "pw24_5"):
-                assert dout_101.command("KL15", "OFF")
-                assert din_201.check_voltage("KL15", "OFF")
-                time.sleep(1)
-                assert dout_101.command("KL16", "OFF")
-                assert din_201.check_voltage("KL16", "OFF")
-                time.sleep(1)
-
-                # Отключаем общий вход IN1,IN2,IN3
-                assert dout_103.command("KM7", "OFF")
-                assert din_202.check_voltage("KM7", "OFF")
-                time.sleep(1)
-                print(log.get_log())
-
-                #Отключаем ЛБП на IN2
-                assert dout_102.command("KL31", "OFF")
-                assert din_201.check_voltage("KL31", "OFF")
-                time.sleep(1)
-                print(log.get_log())
-
-                print("Проверка №"+str(i)+" успешно завершена!")
-                i = i + 1
-        except AssertionError:
-            print(log.get_log())
-            print('НУ и хорош!')
-            print("Устройств было проверено ",i)
-            break
+    #
+    # i = 0
+    # while i < 10:
+    #     # передать как аргумент
+    #     settings = engine.Settings
+    #     config = settings.load(settings,"settings.cfg")
+    #     print(config)
+    #     try:
+    #         main_log = engine.Log()
+    #         log = engine.Log()
+    #         log.set_start(False)
+    #         modb_dout_101 = Modb().getConnection("DOUT_101", 'com2', 101, log)
+    #         modb_dout_102 = Modb().getConnection("DOUT_102", 'com2', 102, log)
+    #         modb_dout_103 = Modb().getConnection("DOUT_103", 'com2', 103, log)
+    #         modb_dout_104 = Modb().getConnection("DOUT_104", 'com1', 104, log)
+    #         modb_din_201 = Modb().getConnection("DIN_201", 'com2', 201, log)
+    #         modb_din_202 = Modb().getConnection("DIN_202", 'com2', 202, log)
+    #         modb_psc24_10 = Modb().getConnection("PSC24_10", 'com1', 1, log)
+    #         dout_101 = Dout(modb_dout_101, dout_names_101, "DOUT_101", log)
+    #         dout_102 = Dout(modb_dout_102, dout_names_102, "DOUT_102", log)
+    #         dout_103 = Dout(modb_dout_103, dout_names_103, "DOUT_103", log)
+    #         dout_104 = Dout(modb_dout_104, dout_names_104, "DOUT_104", log)
+    #         din_201 = Din(modb_din_201, din_names_201, "DIN_201", log)
+    #         din_202 = Din(modb_din_202, din_names_202, "DIN_202", log)
+    #         # instrument.read_float
+    #         power_supply = PowerSupply("192.168.0.5", "5025", "ЛБП", log)
+    #         psc24_10 = Psc_10(modb_psc24_10, "PSC24_10", log)
+    #
+    #         print(log.get_log())
+    #
+    #         time.sleep(1)
+    #         # В зависимости от конфигурации выбираем и включаем блоки питания
+    #         if (config.get('power_supply_type') == "wm24_10"):
+    #             assert dout_101.command("KL7", "ON")
+    #             assert din_201.check_voltage("KL7", "ON")
+    #             time.sleep(1)
+    #             assert dout_101.command("KL8", "ON")
+    #             assert din_201.check_voltage("KL8", "ON")
+    #             time.sleep(1)
+    #
+    #         if (config.get('power_supply_type') == "pw24_5"):
+    #             assert dout_101.command("KL15", "ON")
+    #             assert din_201.check_voltage("KL15", "ON")
+    #             time.sleep(1)
+    #             assert dout_101.command("KL16", "ON")
+    #             assert din_201.check_voltage("KL16", "ON")
+    #             time.sleep(1)
+    #
+    #         # Конфигурируем ЛБП
+    #         power_supply.remote("ON")
+    #         assert power_supply.check_remote("REMOTE")
+    #         time.sleep(1)
+    #         print(log.get_log())
+    #         power_supply.output("ON")
+    #         assert power_supply.check_output("ON")
+    #         time.sleep(1)
+    #         print(log.get_log())
+    #         # Выставляем напряжение ЛБП
+    #         assert power_supply.set_voltage(24)
+    #         assert power_supply.check_voltage(24)
+    #         time.sleep(1)
+    #         print(log.get_log())
+    #
+    #         # Подаём IN1 с ЛБП
+    #         assert dout_102.command("KL30", "ON")
+    #         assert din_201.check_voltage("KL30", "ON")
+    #         time.sleep(1)
+    #         print(log.get_log())
+    #
+    #
+    #         # В зависимости от конфигурации выбираем и отключаем БП IN1
+    #         if (config.get('power_supply_type') == "wm24_10"):
+    #             assert dout_101.command("KL7", "OFF")
+    #             assert din_201.check_voltage("KL7", "OFF")
+    #             time.sleep(1)
+    #
+    #         if (config.get('power_supply_type') == "pw24_5"):
+    #             assert dout_101.command("KL15", "OFF")
+    #             assert din_201.check_voltage("KL15", "OFF")
+    #             time.sleep(1)
+    #
+    #         #Полаем вход IN1,IN2,IN3
+    #         assert dout_103.command("KM7", "ON")
+    #         assert din_202.check_voltage("KM7", "ON")
+    #         time.sleep(1)
+    #         print(log.get_log())
+    #         print("Ожидаем включение устройства 25 сек")
+    #         time.sleep(5)
+    #
+    #         print("Ожидаем включение устройства 20 сек")
+    #         time.sleep(5)
+    #
+    #         print("Ожидаем включение устройства 15 сек")
+    #         time.sleep(5)
+    #
+    #         print("Ожидаем включение устройства 10 сек")
+    #         time.sleep(5)
+    #
+    #         print("Ожидаем включение устройства 5 сек")
+    #         time.sleep(5)
+    #
+    #         # Проверяем запуск устройства без АКБ
+    #         if (psc24_10.check_status("IN1", "OUT1", "OUT2", "ERROR_BTR") == True) and (psc24_10.check_status("ERROR_OUT1", "ERROR_OUT2","ERROR_I_OUT1", "ERROR_I_OUT2") == False):
+    #             log.add("psc24-10 №1", "Устройство исправно", True)
+    #         else:
+    #             log.add("psc24-10 №1", "Устройство неисправно", True)
+    #             assert False
+    #         print(log.get_log())
+    #         time.sleep(1)
+    #
+    #         # подаём АКБ на IN3
+    #         assert dout_103.command("KM1", "ON")
+    #         assert din_202.check_voltage("KM1", "ON")
+    #         time.sleep(1)
+    #         print(log.get_log())
+    #
+    #         # Проверяем запуск устройства с АКБ
+    #         if (psc24_10.check_status("IN1", "OUT1", "OUT2") == True) and (psc24_10.check_status("ERROR_OUT1", "ERROR_OUT2", "ERROR_BTR", "ERROR_I_OUT1", "ERROR_I_OUT2") == False):
+    #             log.add("psc24-10 №1", "Устройство исправно", True)
+    #         else:
+    #             log.add("psc24-10 №1", "Устройство неисправно", True)
+    #             assert False
+    #         print(log.get_log())
+    #         time.sleep(1)
+    #
+    #         #Понижаем напряжение IN1 устройство должно быть исправно
+    #         power_supply.set_voltage(21.5)
+    #         time.sleep(5)
+    #         assert power_supply.check_voltage(21.5)
+    #
+    #         print(log.get_log())
+    #
+    #         # Проверяем что IN1 не вышел из-строя
+    #         if (psc24_10.check_status("IN1", "OUT1", "OUT2") == True) and (psc24_10.check_status("ERROR_OUT1", "ERROR_OUT2", "ERROR_BTR", "ERROR_I_OUT1", "ERROR_I_OUT2") == False):
+    #             log.add("psc24-10 №1", "Устройство исправно", True)
+    #         else:
+    #             log.add("psc24-10 №1", "Устройство неисправно", True)
+    #             assert False
+    #         print(log.get_log())
+    #         time.sleep(1)
+    #
+    #         #Понижаем напряжение IN1 до порога срабатывания U MIN
+    #         power_supply.set_voltage(20)
+    #         time.sleep(5)
+    #         assert power_supply.check_voltage(20)
+    #         print(log.get_log())
+    #
+    #         # Проверяем что IN1 неисправен и IN2 активный канал
+    #         if (psc24_10.check_status("IN2", "OUT1", "OUT2","ERROR_OUT1") == True) and (psc24_10.check_status("IN1", "ERROR_OUT2", "ERROR_BTR", "ERROR_I_OUT1", "ERROR_I_OUT2") == False):
+    #             log.add("psc24-10 №1", "Устройство исправно", True)
+    #         else:
+    #             log.add("psc24-10 №1", "Устройство неисправно", True)
+    #             assert False
+    #         print(log.get_log())
+    #         time.sleep(1)
+    #
+    #         #Повышаем напряжение IN1 устройство должно быть исправно
+    #         power_supply.set_voltage(26)
+    #         time.sleep(5)
+    #         assert power_supply.check_voltage(26)
+    #         time.sleep(1)
+    #         print(log.get_log())
+    #
+    #         # Проверяем что IN1 восстановился
+    #         if (psc24_10.check_status("IN1", "OUT1", "OUT2") == True) and (psc24_10.check_status("ERROR_OUT1", "ERROR_OUT2", "ERROR_BTR", "ERROR_I_OUT1", "ERROR_I_OUT2") == False):
+    #             log.add("psc24-10 №1", "Устройство исправно", True)
+    #         else:
+    #             log.add("psc24-10 №1", "Устройство неисправно", True)
+    #             assert False
+    #         print(log.get_log())
+    #         time.sleep(1)
+    #
+    #         #Повышаем напряжение IN1 до порога срабатывания U MAX
+    #         power_supply.set_voltage(27)
+    #         time.sleep(5)
+    #         assert power_supply.check_voltage(27)
+    #         time.sleep(3)
+    #         print(log.get_log())
+    #
+    #         # Проверяем что IN1 неисправен и IN2 активный канал
+    #         if (psc24_10.check_status("IN2", "OUT1", "OUT2","ERROR_OUT1") == True) and (psc24_10.check_status("IN1", "ERROR_OUT2", "ERROR_BTR", "ERROR_I_OUT1", "ERROR_I_OUT2") == False):
+    #             log.add("psc24-10 №1", "Устройство исправно", True)
+    #         else:
+    #             log.add("psc24-10 №1", "Устройство неисправно", True)
+    #             assert False
+    #         print(log.get_log())
+    #         time.sleep(1)
+    #
+    #         #Регулируем ЛБП на Uном
+    #         power_supply.set_voltage(24)
+    #         time.sleep(5)
+    #         assert power_supply.check_voltage(24)
+    #         time.sleep(3)
+    #         print(log.get_log())
+    #
+    #         #Отключаем ЛБП IN1 и включаем ЛБП IN2
+    #         assert dout_102.command("KL30", "OFF")
+    #         assert din_201.check_voltage("KL30", "OFF")
+    #         time.sleep(1)
+    #         print(log.get_log())
+    #         assert dout_102.command("KL31", "ON")
+    #         assert din_201.check_voltage("KL31", "ON")
+    #         time.sleep(1)
+    #         print(log.get_log())
+    #
+    #         # В зависимости от конфигурации выбираем и отключаем БП IN2
+    #         if (config.get('power_supply_type') == "wm24_10"):
+    #             assert dout_101.command("KL8", "OFF")
+    #             assert din_201.check_voltage("KL8", "OFF")
+    #             time.sleep(1)
+    #
+    #         if (config.get('power_supply_type') == "pw24_5"):
+    #             assert dout_101.command("KL16", "OFF")
+    #             assert din_201.check_voltage("KL16", "OFF")
+    #             time.sleep(1)
+    #
+    #         # Проверяем что устройство работает с IN2
+    #         if (psc24_10.check_status("IN2", "OUT1", "OUT2","ERROR_OUT1") == True) and (psc24_10.check_status("IN1", "ERROR_OUT2", "ERROR_BTR", "ERROR_I_OUT1", "ERROR_I_OUT2") == False):
+    #             log.add("psc24-10 №1", "Устройство исправно", True)
+    #         else:
+    #             log.add("psc24-10 №1", "Устройство неисправно", True)
+    #             assert False
+    #         print(log.get_log())
+    #         time.sleep(1)
+    #
+    #         # Понижаем напряжение IN2 устройство должно быть исправно
+    #         power_supply.set_voltage(21.5)
+    #         time.sleep(5)
+    #         assert power_supply.check_voltage(21.5)
+    #         time.sleep(1)
+    #         print(log.get_log())
+    #
+    #         # Проверяем что IN2 не вышел из-строя
+    #         if (psc24_10.check_status("IN2", "OUT1", "OUT2","ERROR_OUT1") == True) and (
+    #                 psc24_10.check_status( "ERROR_OUT2", "ERROR_BTR", "ERROR_I_OUT1","ERROR_I_OUT2") == False):
+    #             log.add("psc24-10 №1", "Устройство исправно", True)
+    #         else:
+    #             log.add("psc24-10 №1", "Устройство неисправно", True)
+    #             assert False
+    #         print(log.get_log())
+    #         time.sleep(1)
+    #
+    #         # Понижаем напряжение IN2 до порога срабатывания U MIN
+    #         power_supply.set_voltage(20)
+    #         time.sleep(5)
+    #         assert power_supply.check_voltage(20)
+    #         time.sleep(3)
+    #         print(log.get_log())
+    #
+    #         # Проверяем что IN2 неисправен и IN3 активный канал
+    #         if (psc24_10.check_status("IN3", "OUT1", "OUT2", "ERROR_OUT1", "ERROR_OUT2") == True) and (
+    #                 psc24_10.check_status("IN2", "ERROR_BTR", "ERROR_I_OUT1", "ERROR_I_OUT2") == False):
+    #             log.add("psc24-10 №1", "Устройство исправно", True)
+    #         else:
+    #             log.add("psc24-10 №1", "Устройство неисправно", True)
+    #             assert False
+    #         print(log.get_log())
+    #         time.sleep(1)
+    #
+    #         #Повышаем напряжение IN2 устройство должно быть исправно
+    #         power_supply.set_voltage(26)
+    #         time.sleep(5)
+    #         assert power_supply.check_voltage(26)
+    #         time.sleep(1)
+    #         print(log.get_log())
+    #
+    #         # Проверяем что IN2 восстановился
+    #         if (psc24_10.check_status("IN2", "OUT1", "OUT2","ERROR_OUT1",) == True) and (
+    #                 psc24_10.check_status( "ERROR_OUT2", "ERROR_BTR", "ERROR_I_OUT1","ERROR_I_OUT2") == False):
+    #             log.add("psc24-10 №1", "Устройство исправно", True)
+    #         else:
+    #             log.add("psc24-10 №1", "Устройство неисправно", True)
+    #             assert False
+    #         print(log.get_log())
+    #         time.sleep(1)
+    #
+    #         #Повышаем напряжение IN2 до порога срабатывания U MAX
+    #         power_supply.set_voltage(27)
+    #         time.sleep(5)
+    #         assert power_supply.check_voltage(27)
+    #         time.sleep(3)
+    #         print(log.get_log())
+    #
+    #         # Проверяем что IN2 неисправен и IN3 активный канал
+    #         if (psc24_10.check_status("IN3", "OUT1", "OUT2", "ERROR_OUT1", "ERROR_OUT2") == True) and (psc24_10.check_status("IN2", "ERROR_BTR", "ERROR_I_OUT1", "ERROR_I_OUT2") == False):
+    #             log.add("psc24-10 №1", "Устройство исправно", True)
+    #         else:
+    #             log.add("psc24-10 №1", "Устройство неисправно", True)
+    #             assert False
+    #         print(log.get_log())
+    #         time.sleep(1)
+    #
+    #         #Регулируем ЛБП на Uном
+    #         power_supply.set_voltage(24)
+    #         time.sleep(5)
+    #         assert power_supply.check_voltage(24)
+    #         print(log.get_log())
+    #
+    #         # Проверяем что IN2 восстановился и зарядку АКБ
+    #         if (psc24_10.check_status("IN2", "OUT1", "OUT2", "ERROR_OUT1", "PWR_BTR") == True) and (psc24_10.check_status("ERROR_OUT2", "ERROR_BTR", "ERROR_I_OUT1", "ERROR_I_OUT2") == False):
+    #             log.add("psc24-10 №1", "Устройство исправно", True)
+    #         else:
+    #             log.add("psc24-10 №1", "Устройство неисправно", True)
+    #             assert False
+    #         print(log.get_log())
+    #         time.sleep(1)
+    #
+    #         # В зависимости от конфигурации выбираем и включаем блоки питания
+    #         if (config.get('power_supply_type') == "wm24_10"):
+    #             assert dout_101.command("KL7", "ON")
+    #             assert din_201.check_voltage("KL7", "ON")
+    #             time.sleep(1)
+    #             assert dout_101.command("KL8", "ON")
+    #             assert din_201.check_voltage("KL8", "ON")
+    #             time.sleep(1)
+    #
+    #         if (config.get('power_supply_type') == "pw24_5"):
+    #             assert dout_101.command("KL15", "ON")
+    #             assert din_201.check_voltage("KL15", "ON")
+    #             time.sleep(1)
+    #             assert dout_101.command("KL16", "ON")
+    #             assert din_201.check_voltage("KL16", "ON")
+    #             time.sleep(1)
+    #
+    #         # Отключаем ЛБП
+    #             power_supply.remote("OFF")
+    #             assert power_supply.check_output("OFF")
+    #             time.sleep(1)
+    #             print(log.get_log())
+    #             print("Проверка успешно завершена, устройство исправно!")
+    #
+    #         # Проверяем запуск устройства с АКБ
+    #         if (psc24_10.check_status("IN1", "OUT1", "OUT2") == True) and\
+    #                 (psc24_10.check_status("ERROR_OUT1", "ERROR_OUT2", "ERROR_BTR", "ERROR_I_OUT1", "ERROR_I_OUT2") == False):
+    #             log.add("psc24-10 №1", "Устройство исправно", True)
+    #         else:
+    #             log.add("psc24-10 №1", "Устройство неисправно", True)
+    #             assert False
+    #         print(log.get_log())
+    #         time.sleep(1)
+    #
+    #         #Отключаем АКБ
+    #         # Отключаем АКБ на IN3
+    #         assert dout_103.command("KM1", "OFF")
+    #         assert din_202.check_voltage("KM1", "OFF")
+    #         time.sleep(1)
+    #         print(log.get_log())
+    #
+    #         # В зависимости от конфигурации выбираем и отключаем блоки питания
+    #         if (config.get('power_supply_type') == "wm24_10"):
+    #             assert dout_101.command("KL7", "OFF")
+    #             assert din_201.check_voltage("KL7", "OFF")
+    #             time.sleep(1)
+    #             assert dout_101.command("KL8", "OFF")
+    #             assert din_201.check_voltage("KL8", "OFF")
+    #             time.sleep(1)
+    #
+    #         if (config.get('power_supply_type') == "pw24_5"):
+    #             assert dout_101.command("KL15", "OFF")
+    #             assert din_201.check_voltage("KL15", "OFF")
+    #             time.sleep(1)
+    #             assert dout_101.command("KL16", "OFF")
+    #             assert din_201.check_voltage("KL16", "OFF")
+    #             time.sleep(1)
+    #
+    #             # Отключаем общий вход IN1,IN2,IN3
+    #             assert dout_103.command("KM7", "OFF")
+    #             assert din_202.check_voltage("KM7", "OFF")
+    #             time.sleep(1)
+    #             print(log.get_log())
+    #
+    #             #Отключаем ЛБП на IN2
+    #             assert dout_102.command("KL31", "OFF")
+    #             assert din_201.check_voltage("KL31", "OFF")
+    #             time.sleep(1)
+    #             print(log.get_log())
+    #
+    #             print("Проверка №"+str(i)+" успешно завершена!")
+    #             i = i + 1
+    #     except AssertionError:
+    #         print(log.get_log())
+    #         print('НУ и хорош!')
+    #         print("Устройств было проверено ",i)
+    #         break
 
 
 

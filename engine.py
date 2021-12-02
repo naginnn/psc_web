@@ -217,6 +217,23 @@ class Diagnostics:
 # расчет процента
 def percentage(percent, whole):
     return (percent * whole) / 100.0
+# расчет погрешности, передаем поданное напряжение с ЛБП и фактическое с устройства, получаем результат true/false
+def check_error_rate(u_nom, u_fact):
+    u_delta = percentage(1, u_nom)
+    print("Погрешность 1%: ", u_delta,"от ",u_nom)
+    u_max = u_nom + u_delta
+    u_min = u_nom - u_delta
+    if (u_fact >= u_min) and (u_fact <= u_max):
+        print("Максимальное значение ", u_max)
+        print("Минимальное значение ", u_min)
+        print("Фактическое значение ", u_fact)
+        print("ok")
+        return True
+    print("Максимальное значение ", u_max)
+    print("Минимальное значение ", u_min)
+    print("Фактическое значение ", u_fact)
+    print("bad")
+    return False
 # Проверка устройства psc24_10
 class Check_psc24_10:
     # создаем список с измерениями
@@ -232,7 +249,6 @@ class Check_psc24_10:
     # предполагаемое поведение
     behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 0, "error_pwr2": 0, "error_btr": 0,
                  "error_out1": 0, "error_out2": 0, "charge_btr": 0, "ten": 0, "apts": 0}
-
     # читаем web конфигурацию
     settings = Settings()
     config = settings.load("settings.cfg")
@@ -354,6 +370,7 @@ class Check_psc24_10:
 
 # главный метод используемый в web'е, перетащить его в класс checking после тестирования
 if __name__ == "__main__":
+    check_error_rate(24.0,24.24)
     # check = Checking()
     # check.main1()
     print(";a;a;")

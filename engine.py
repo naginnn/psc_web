@@ -236,6 +236,7 @@ def check_error_rate(u_nom, u_fact):
     return False
 # Проверка устройства psc24_10
 class Check_psc24_10:
+
     # создаем список с измерениями
     measurements = {"SERIAL_NUMBER" : "",
                     "IN1": {"u_nom" : 0.0, "u_fact" : 0.0, "error_rate" : 0.0},

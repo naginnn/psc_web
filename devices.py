@@ -256,8 +256,6 @@ class PowerSupply:
                 i = i + 1
                 time.sleep(i)
 
-
-
     def check_voltage(self,value):
         i = 0
         while True:

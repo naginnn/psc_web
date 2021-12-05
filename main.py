@@ -12,6 +12,10 @@ app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'protocols'
 log = engine.Log()
 main_log = engine.Log()
+# лог для управления
+control_log = engine.Log()
+# лог проверки
+main_log = engine.Log()
 #метод диагностики стенда
 def diag_worker():
     print("Начало потока")
@@ -30,7 +34,7 @@ def diag_worker():
     print("Стоп ")
 # Изменить для тестирования!
 def test_worker():
-    print("Начало потока")
+    print("Начало теста")
     log.set_finish(False)
     while True:
         print("ЕДЕМ!")

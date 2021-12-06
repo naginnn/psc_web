@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
         progressBar = new ProgressBar("my-progressbar", {'width':'auto', 'height':'12px'});
         progressBar.initialMode(true);
         var request = new XMLHttpRequest();
-        var sumbit_type = document.querySelector('#diagnostics').disabled = true; // отключаю кнопку по началу проверки
+        var sumbit_type = document.querySelector('#test').disabled = true; // отключаю кнопку по началу проверки
         var log = document.querySelector('#log').value = "";
         document.querySelector('#log').innerHTML = "Нажал!";
 

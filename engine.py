@@ -304,29 +304,29 @@ class Check_psc24_10:
     def first_start(self):
         # подаём 3 канала с ЛБП
         try:
-            self.dout_102.command("KL30", "ON")
-            self.din_201.check_voltage("KL30", "ON")
-            self.dout_102.command("KL31", "ON")
-            self.din_201.check_voltage("KL31", "ON")
-            self.dout_102.command("KL33", "ON")
-            self.din_201.check_voltage("KL33", "ON")
-            self.power_supply.connection()
-            self.power_supply.set_voltage(24)
+            assert self.dout_102.command("KL30", "ON")
+            assert self.din_201.check_voltage("KL30", "ON")
+            assert self.dout_102.command("KL31", "ON")
+            assert self.din_201.check_voltage("KL31", "ON")
+            assert self.dout_102.command("KL33", "ON")
+            assert self.din_201.check_voltage("KL33", "ON")
+            assert self.power_supply.connection()
+            assert self.power_supply.set_voltage(24)
         except:
             print("Boroda")
 
     # Проверка порогов по напряжению
     def check_voltage_thresholds(self):
         try:
-            self.dout_102.command("KL30", "ON")
-            self.din_201.check_voltage("KL30", "ON")
-            self.dout_102.command("KL31", "ON")
-            self.din_201.check_voltage("KL31", "ON")
-            self.dout_102.command("KL33", "ON")
-            self.din_201.check_voltage("KL33", "ON")
-            self.power_supply.connection()
-            self.power_supply.set_voltage(24)
-        except:
+            assert self.dout_102.command("KL30", "ON")
+            assert self.din_201.check_voltage("KL30", "ON")
+            assert self.dout_102.command("KL31", "ON")
+            assert self.din_201.check_voltage("KL31", "ON")
+            assert self.dout_102.command("KL33", "ON")
+            assert self.din_201.check_voltage("KL33", "ON")
+            assert self.power_supply.connection()
+            assert self.power_supply.set_voltage(24)
+        except AssertionError:
             print("Boroda")
 
     # переключение каналов
@@ -349,8 +349,6 @@ class Check_psc24_10:
     # главная функция
     def main1(self):
         # добавить формирование протокола
-        self.control_log = Log()
-        self.main_log = Log()
         i = 1
         while i < self.count_devices:
             try:
@@ -359,21 +357,19 @@ class Check_psc24_10:
                 psc24_10 = devices.Psc_10(modb_psc24_10, "PSC24_10", self.main_log)
                 self.control_log.add("PSC24_10 №" + str(i), "Связь с модулем установленна", True)
             except:
-                self.control_log.add("PSC24_10 №" + str(i), "Связь с модулем не установленна, дальнейшая проверка не возможна", True)
+                self.control_log.add("PSC24_10 №" + str(i), "Связь с модулем не установленна, дальнейшая проверка не возможна", False)
                 break
         # если прошел сохранять протокол
-
-
         print(self.IN1)
         print(self.IN2)
         print(self.BTR)
         print(self.count_devices)
 
 # главный метод используемый в web'е, перетащить его в класс checking после тестирования
-if __name__ == "__main__":
-    check_error_rate(24.0,24.24)
-    # check = Checking()
-    # check.main1()
-    print(";a;a;")
+# if __name__ == "__main__":
+#     check_error_rate(24.0,24.25)
+#     # check = Checking()
+#     # check.main1()
+#     print(";a;a;")
 
 

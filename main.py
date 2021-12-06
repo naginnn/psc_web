@@ -32,18 +32,19 @@ def diag_worker():
         # lock.release()
         # sleep(2)
     print("Стоп ")
+
 # Изменить для тестирования!
 def test_worker():
     print("Начало теста")
-    log.set_finish(False)
+    control_log.set_finish(False)
     while True:
-        print("ЕДЕМ!")
-        log.log_clear_data()
-        log.log_clear_result()
-        diagnostics = engine.Diagnostics("Диагностика", log)
-        diagnostics.diagnostics("ON")
+        print("ТЕСТ!")
+        control_log.log_clear_data()
+        control_log.log_clear_result()
+        psc_test = engine.Check_psc24_10("Тестирование", control_log, main_log, "com45", "com45")
+        psc_test.main1()
         # lock.acquire()
-        if log.get_finish() is True:
+        if control_log.get_finish() is True:
             break
         # lock.release()
         # sleep(2)

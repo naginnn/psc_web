@@ -16,6 +16,7 @@ main_log = engine.Log()
 control_log = engine.Log()
 # лог проверки
 main_log = engine.Log()
+
 #метод диагностики стенда
 def diag_worker():
     print("Начало потока")
@@ -41,7 +42,7 @@ def test_worker():
         print("ТЕСТ!")
         control_log.log_clear_data()
         control_log.log_clear_result()
-        psc_test = engine.Check_psc24_10("Тестирование", control_log, main_log, "com45", "com45")
+        psc_test = engine.Check_psc24_10("Тестирование", control_log, main_log, "com45", "com44", settings)
         psc_test.main1()
         # lock.acquire()
         if control_log.get_finish() is True:
@@ -70,19 +71,18 @@ def diagnostics():
             Thread(target=diag_worker).start()
         if log.get_finish():
             log.set_start(True)
-        return jsonify({"message": log.get_log_data(),"result":log.get_log_result(), "flag": log.get_finish()})
-
+        return jsonify({"message": log.get_log_data(), "result":log.get_log_result(), "flag": log.get_finish()})
     if request.method == 'GET':
         return render_template('diagnostics.html')
 
 @app.route('/test', methods=['GET', 'POST'])
 def test():
     if request.method == 'POST':
-        if main_log.get_start():
+        if control_log.get_start():
             Thread(target=test_worker).start()
-        if main_log.get_finish():
-            main_log.set_start(True)
-        return jsonify({"message": main_log.get_log_data(), "result": main_log.get_log_result(), "flag": main_log.get_finish()})
+        if control_log.get_finish():
+            control_log.set_start(True)
+        return jsonify({"message": control_log.get_log_data(), "result": control_log.get_log_result(), "flag": control_log.get_finish()})
 
     if request.method == 'GET':
         data = settings.load("settings.cfg")
@@ -94,20 +94,7 @@ def test():
             devices = devices + str(i)
             i = i + 1
 
-        if (data.get('sensor') != "false"):
-            stages.append("Обрыв связи с датчиком")
-        if (data.get('dry_contact') != "false"):
-            stages.append("Сухой контакт (ТЭН)")
-        if (data.get('voltage_thresholds') != "false"):
-            stages.append("Пороги по напряжению")
-        if (data.get('switch_channel') != "false"):
-            stages.append("Пeреключение каналов")
-        if (data.get('sc_mode') != "false"):
-            stages.append("Режим КЗ")
-        if (data.get('overload_mode') != "false"):
-            stages.append("Режим ПЕРЕГРУЗКИ")
-
-        return render_template('test.html',devices = devices, stages = stages)
+        return render_template('test.html', devices = devices, stages = stages)
 
 @app.route('/instruction')
 def instruction():

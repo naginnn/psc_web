@@ -34,7 +34,7 @@ def number_func(str):
         return float(0)
 
 class Modb:
-    def getConnection(self, name, port, slave_adress,log):
+    def getConnection(self, name, port, slave_adress, log):
         try:
             self.log = log
             self.instrument = minimalmodbus.Instrument(port, slave_adress)

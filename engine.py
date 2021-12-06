@@ -250,18 +250,7 @@ class Check_psc24_10:
     # предполагаемое поведение
     behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 0, "error_pwr2": 0, "error_btr": 0,
                  "error_out1": 0, "error_out2": 0, "charge_btr": 0, "ten": 0, "apts": 0}
-    # читаем web конфигурацию
-    settings = Settings()
-    config = settings.load("settings.cfg")
-    # определяем тип блоков питания (возможно придется перенести)
-    if config.get("power_supply_type") == "wm24_10":
-        IN1 = "KL7"
-        IN2 = "KL8"
-    if config.get("power_supply_type") == "pw24_5":
-        IN1 = "KL15"
-        IN2 = "KL16"
-    BTR = "KM1"
-    count_devices = config.get("checked_list")
+
     # объявляем модули управления
     dout_101 = ()
     dout_102 = ()
@@ -272,12 +261,13 @@ class Check_psc24_10:
     power_supply = ()
 
     # добавляем два лога и ком-порт модулям управления и psc
-    def __init__(self, name, control_log, main_log, control_com, device_com):
+    def __init__(self, name, control_log, control_com, main_log , device_com, settings):
         self.name = name
         self.control_log = control_log
         self.main_log = main_log
         self.control_com = control_com
         self.device_com = device_com
+        self.settings = settings
 
     # подготовка
     def prepare(self):
@@ -348,22 +338,33 @@ class Check_psc24_10:
 
     # главная функция
     def main1(self):
+        self.control_log.set_start(False)
+        config = self.settings.load("settings.cfg")
+        # определяем тип блоков питания (возможно придется перенести)
+        if config.get("power_supply_type") == "wm24_10":
+            IN1 = "KL7"
+            IN2 = "KL8"
+        if config.get("power_supply_type") == "pw24_5":
+            IN1 = "KL15"
+            IN2 = "KL16"
+        BTR = "KM1"
+        count_devices = int(config.get("checked_list"))
         # добавить формирование протокола
         i = 1
-        while i < self.count_devices:
-            try:
-                # внутри обернуть по три попытки
-                modb_psc24_10 = devices.Modb().getConnection("PSC24_10", self.device_com, 1, self.control_log)
-                psc24_10 = devices.Psc_10(modb_psc24_10, "PSC24_10", self.main_log)
-                self.control_log.add("PSC24_10 №" + str(i), "Связь с модулем установленна", True)
-            except:
-                self.control_log.add("PSC24_10 №" + str(i), "Связь с модулем не установленна, дальнейшая проверка не возможна", False)
+        while i <= count_devices:
+            # внутри обернуть по три попытки
+            # проблема
+            modb_psc24_10 = devices.Modb().getConnection("PSC24_10", self.device_com, 1, self.control_log)
+            psc24_10 = devices.Psc_10(modb_psc24_10, "PSC24_10", self.device_com)
+            if psc24_10 == False:
                 break
+            i = i + 1
         # если прошел сохранять протокол
-        print(self.IN1)
-        print(self.IN2)
-        print(self.BTR)
-        print(self.count_devices)
+        print(IN1)
+        print(IN2)
+        print(BTR)
+        print(count_devices)
+        self.control_log.set_finish(True)
 
 # главный метод используемый в web'е, перетащить его в класс checking после тестирования
 # if __name__ == "__main__":

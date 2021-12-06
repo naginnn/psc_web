@@ -451,6 +451,7 @@ class ReadWriteEEprom:
         ser.close()
         return val
 
+# получить версию прошивки!!!!!!!! ДОБАВИТЬ
 
 # for the future -> add to read a serial number
 if __name__ == '__main__':

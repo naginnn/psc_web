@@ -338,33 +338,41 @@ class Check_psc24_10:
 
     # главная функция
     def main1(self):
-        self.control_log.set_start(False)
-        config = self.settings.load("settings.cfg")
-        # определяем тип блоков питания (возможно придется перенести)
-        if config.get("power_supply_type") == "wm24_10":
-            IN1 = "KL7"
-            IN2 = "KL8"
-        if config.get("power_supply_type") == "pw24_5":
-            IN1 = "KL15"
-            IN2 = "KL16"
-        BTR = "KM1"
-        count_devices = int(config.get("checked_list"))
-        # добавить формирование протокола
-        i = 1
-        while i <= count_devices:
-            # внутри обернуть по три попытки
-            # проблема
-            modb_psc24_10 = devices.Modb().getConnection("PSC24_10", self.device_com, 1, self.control_log)
-            psc24_10 = devices.Psc_10(modb_psc24_10, "PSC24_10", self.device_com)
-            if psc24_10 == False:
-                break
-            i = i + 1
-        # если прошел сохранять протокол
-        print(IN1)
-        print(IN2)
-        print(BTR)
-        print(count_devices)
-        self.control_log.set_finish(True)
+        try:
+            self.control_log.set_start(False)
+            # обработать try false и добавить метод get
+            config = self.settings.load("settings.cfg")
+            # определяем тип блоков питания (возможно придется перенести)
+            if config.get("power_supply_type") == "wm24_10":
+                IN1 = "KL7"
+                IN2 = "KL8"
+            if config.get("power_supply_type") == "pw24_5":
+                IN1 = "KL15"
+                IN2 = "KL16"
+            BTR = "KM1"
+            count_devices = int(config.get("checked_list"))
+            # добавить формирование протокола
+            i = 1
+            while i <= count_devices:
+                # внутри обернуть по три попытки
+                # проблема
+                # добавить try except возвращать true false и метод get в котором возвращать объект соединения если соединение true
+                modb_psc24_10 = devices.Modb().getConnection("PSC24_10", self.device_com, 1, self.control_log)
+                assert modb_psc24_10
+                psc24_10 = devices.Psc_10(modb_psc24_10, "PSC24_10", self.device_com)
+                if psc24_10 == False:
+                    break
+                i = i + 1
+            # если прошел сохранять протокол
+            print(IN1)
+            print(IN2)
+            print(BTR)
+            print(count_devices)
+            assert False
+            self.control_log.set_finish(True)
+        except AssertionError:
+            self.control_log.add("Тестирование", "В связи с неисправностью стенда дальнейшая проверка невозможна", False)
+            self.control_log.set_finish(True)
 
 # главный метод используемый в web'е, перетащить его в класс checking после тестирования
 # if __name__ == "__main__":

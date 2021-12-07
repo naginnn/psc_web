@@ -34,6 +34,7 @@ def number_func(str):
         return float(0)
 
 class Modb:
+    instrument = ()
     def getConnection(self, name, port, slave_adress, log):
         try:
             self.log = log
@@ -46,10 +47,15 @@ class Modb:
             self.instrument.close_port_after_each_call = True
             self.instrument.clear_buffers_before_each_transaction = True
             self.log.add("Connection:", "Соединение с модулем " + name + " установлено", True)
-            return self.instrument
+            return True
         except:
             self.log.add("Connection:", "Ошибка соединения с модулем " + name, False)
             return False
+
+    # если соединение заебато
+    def getСonnectivity(self):
+        return self.instrument
+
 
 class Dout:
     def __init__(self, instrument,dout_names,name,log):

@@ -217,9 +217,15 @@ if __name__ == '__main__':
 
     # data = {'Канал, U': ['IN1', 'IN2', 'IN3', 'IN4'], 'Uном': ['', '', '', ''], 'Uфакт': ['', '', '', ''], 'Uдельта': ['', '', '', ''],
     #         'Канал, I': ['OUT1', 'OUT2', '', ''], 'Iном': ['', '', '', ''], 'Iфакт': ['', '', '', ''], 'Iдельта': ['', '', '', '']}
-
+    serial_number = {'Серийный номер': ['4710004250']}
+    label = {'Версия ПО': ['1.2.3.8']}
     data1 = {'Канал, U': ['IN1', 'IN2', 'IN3', 'IN4'], 'Uном': ['', '', '', ''], 'Uфакт': ['', '', '', ''], 'Uдельта': ['', '', '', '']}
     data2 = { 'Канал, I': ['OUT1', 'OUT2', '', ''], 'Iном': ['', '', '', ''], 'Iфакт': ['', '', '', ''], 'Iдельта': ['', '', '', '']}
+    data2.update(Iном = ['24.00','24.00','',''])
+    df = pd.DataFrame.from_dict(serial_number)
+    append_df_to_excel(filename, df, index=False)
+    df = pd.DataFrame.from_dict(label)
+    append_df_to_excel(filename, df, index=False)
     df = pd.DataFrame.from_dict(data1)
     append_df_to_excel(filename, df, index=False)
     df = pd.DataFrame.from_dict(data2)

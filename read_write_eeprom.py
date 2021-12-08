@@ -331,6 +331,28 @@ class ReadWriteEEprom:
     def __init__(self, com, braudrate):
         self.com = com
         self.braudrate = braudrate
+    # Считываем версию прошивки
+    def read_soft_version(self):
+        package = []
+        read = FrameCollector()
+        package.append([0x55, 0xAA, 0x98, 0x07, 0x03, 0x00, 0xA2]) # MAJOR 1.
+        package.append([0x55, 0xAA, 0x98, 0x07, 0x04, 0x00, 0xA3]) # MINOR 2.
+        package.append([0x55, 0xAA, 0x98, 0x07, 0x05, 0x00, 0xA4]) # PATCH 3.
+        package.append([0x55, 0xAA, 0x98, 0x07, 0x06, 0x00, 0xA5]) # BUILD 8.
+        ser = serial.Serial(self.com, self.braudrate, timeout=0.3)
+        val = 0
+        s = ""
+        for frame in package:
+            modb_frame = read.write_modbus(frame)
+            values = bytearray(modb_frame)
+            print("write: ", values)
+            ser.write(values)
+            response = ser.read(len(values))
+            print("read: ", response)
+            val = int(response[len(response) - 4])
+            s = s + str(val) + "."
+        ser.close()
+        return s[:len(s)-1]
     # Считываем настройки PSC
     def read_power_management(self):
         package = []
@@ -452,11 +474,13 @@ class ReadWriteEEprom:
         return val
 
 # получить версию прошивки!!!!!!!! ДОБАВИТЬ
-
+# добавить обработку событий!
 # for the future -> add to read a serial number
 if __name__ == '__main__':
     # создаем объект
     eeprom = ReadWriteEEprom("com1", 115200)
+    # считываем и возвращаем версию ПО
+    print("Версия ПО: ", eeprom.read_soft_version())
     # считываем серийный номер
     print(4710000000 + eeprom.read_serial_number())
     # Считываем вкладку управление питанием

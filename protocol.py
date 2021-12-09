@@ -1,3 +1,4 @@
+from datetime import datetime
 from pathlib import Path
 from copy import copy
 from typing import Union, Optional
@@ -210,29 +211,44 @@ def append_df_to_excel(
         wb.save(filename)
         wb.close()
 
+
+def create_protocol(serial_number, soft_version, voltage, current, voltage_threesolds, switching_channels, ten, emergency_modes):
+        filename = 'protocols/' + str(datetime.now().strftime('%d.%m.%Y-%H-%M')) + '.xlsx'
+        df = pd.DataFrame.from_dict(serial_number)
+        append_df_to_excel(filename, df, index=False)
+
+        df = pd.DataFrame.from_dict(soft_version)
+        append_df_to_excel(filename, df, index=False)
+
+        df = pd.DataFrame.from_dict(voltage)
+        append_df_to_excel(filename, df, index=False)
+
+        df = pd.DataFrame.from_dict(current)
+        append_df_to_excel(filename, df, index=False)
+
+        df = pd.DataFrame.from_dict(voltage_threesolds)
+        append_df_to_excel(filename, df, index=False)
+
+        df = pd.DataFrame.from_dict(switching_channels)
+        append_df_to_excel(filename, df, index=False)
+
+        df = pd.DataFrame.from_dict(ten)
+        append_df_to_excel(filename, df, index=False)
+
+        df = pd.DataFrame.from_dict(emergency_modes)
+        append_df_to_excel(filename, df, index=False)
+
+        # append_df_to_excel(filename, df, header=None, index=False)
+        # append_df_to_excel(filename, df, sheet_name='Sheet2', index=False)
+        # append_df_to_excel(filename, df, sheet_name='Sheet2', index=False, startrow=25)
+
 if __name__ == '__main__':
-    filename = 'test_12321.xlsx'
-    # data = {'IN1': [3, 2, 1, 0],
-    #         'IN2': ['a', 'b', 'c', 'd']}
-
-    # data = {'Канал, U': ['IN1', 'IN2', 'IN3', 'IN4'], 'Uном': ['', '', '', ''], 'Uфакт': ['', '', '', ''], 'Uдельта': ['', '', '', ''],
-    #         'Канал, I': ['OUT1', 'OUT2', '', ''], 'Iном': ['', '', '', ''], 'Iфакт': ['', '', '', ''], 'Iдельта': ['', '', '', '']}
-    serial_number = {'Серийный номер': ['4710004250']}
-    label = {'Версия ПО': ['1.2.3.8']}
-    data1 = {'Канал, U': ['IN1', 'IN2', 'IN3', 'IN4'], 'Uном': ['', '', '', ''], 'Uфакт': ['', '', '', ''], 'Uдельта': ['', '', '', '']}
-    data2 = { 'Канал, I': ['OUT1', 'OUT2', '', ''], 'Iном': ['', '', '', ''], 'Iфакт': ['', '', '', ''], 'Iдельта': ['', '', '', '']}
-    data2.update(Iном = ['24.00','24.00','',''])
-    df = pd.DataFrame.from_dict(serial_number)
-    append_df_to_excel(filename, df, index=False)
-    df = pd.DataFrame.from_dict(label)
-    append_df_to_excel(filename, df, index=False)
-    df = pd.DataFrame.from_dict(data1)
-    append_df_to_excel(filename, df, index=False)
-    df = pd.DataFrame.from_dict(data2)
-    append_df_to_excel(filename, df, index=False)
-
-    # append_df_to_excel(filename, df, header=None, index=False)
-
-    # append_df_to_excel(filename, df, sheet_name='Sheet2', index=False)
-    #
-    # append_df_to_excel(filename, df, sheet_name='Sheet2', index=False, startrow=25)
+    serial_number = {'Серийный номер': [' ']}
+    soft_version = {'Версия ПО': ['1.2.3.8'],'Фактическая': [' ']}
+    voltage = {'Канал, U': ['IN1', 'IN2', 'IN3', 'IN4'], 'Uном': ['', '', '', ''], 'Uфакт': ['', '', '', ''], 'Uдельта': ['', '', '', '']}
+    current = { 'Канал, I': ['OUT1', 'OUT2', '', ''], 'Iном': ['', '', '', ''], 'Iфакт': ['', '', '', ''], 'Iдельта': ['', '', '', '']}
+    voltage_threesolds = {'Пороги по напряжению': ['min', 'nom', 'max', ''], 'U': ['', '', '', ''], 'Результат': ['', '', '', '']}
+    switching_channels = {'Переключение каналов': ['Под Imin 0A', 'Под Imax 10A', '', ''], 'Канал 1': ['', '', '', ''], 'Время, t': ['', '', '', ''], 'Канал 2': ['', '', '', '']}
+    ten = {'Работа ТЭН': [' ']}
+    emergency_modes = {'Аварийные режимы': ['Режим КЗ', 'Режим перегрузки', 'Обрыв связи датчика', ''], 'Результат': ['', '', '', '']}
+    create_protocol(serial_number, soft_version, voltage, current, voltage_threesolds, switching_channels, ten, emergency_modes)

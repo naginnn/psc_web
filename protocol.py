@@ -1,3 +1,4 @@
+import time
 from datetime import datetime
 from pathlib import Path
 from copy import copy
@@ -7,6 +8,8 @@ import pandas as pd
 import openpyxl
 from openpyxl import load_workbook
 from openpyxl.utils import get_column_letter
+
+import engine
 
 
 def copy_excel_cell_range(
@@ -212,43 +215,59 @@ def append_df_to_excel(
         wb.close()
 
 
-def create_protocol(serial_number, soft_version, voltage, current, voltage_threesolds, switching_channels, ten, emergency_modes):
-        filename = 'protocols/' + str(datetime.now().strftime('%d.%m.%Y-%H-%M')) + '.xlsx'
-        df = pd.DataFrame.from_dict(serial_number)
-        append_df_to_excel(filename, df, index=False)
+def create_protocol(log, result, serial_number, soft_version, voltage, current, voltage_threesolds, switching_channels, ten, emergency_modes):
+    i = 0
+    log.add("Протокол", "Формирование протокола", True)
+    try:
+        while True:
+            filename = 'protocols/' + str(datetime.now().strftime('%d.%m.%Y-%H-%M')) + result + '.xlsx'
+            df = pd.DataFrame.from_dict(serial_number)
+            append_df_to_excel(filename, df, index=False)
 
-        df = pd.DataFrame.from_dict(soft_version)
-        append_df_to_excel(filename, df, index=False)
+            df = pd.DataFrame.from_dict(soft_version)
+            append_df_to_excel(filename, df, index=False)
 
-        df = pd.DataFrame.from_dict(voltage)
-        append_df_to_excel(filename, df, index=False)
+            df = pd.DataFrame.from_dict(voltage)
+            append_df_to_excel(filename, df, index=False)
 
-        df = pd.DataFrame.from_dict(current)
-        append_df_to_excel(filename, df, index=False)
+            df = pd.DataFrame.from_dict(current)
+            append_df_to_excel(filename, df, index=False)
 
-        df = pd.DataFrame.from_dict(voltage_threesolds)
-        append_df_to_excel(filename, df, index=False)
+            df = pd.DataFrame.from_dict(voltage_threesolds)
+            append_df_to_excel(filename, df, index=False)
 
-        df = pd.DataFrame.from_dict(switching_channels)
-        append_df_to_excel(filename, df, index=False)
+            df = pd.DataFrame.from_dict(switching_channels)
+            append_df_to_excel(filename, df, index=False)
 
-        df = pd.DataFrame.from_dict(ten)
-        append_df_to_excel(filename, df, index=False)
+            df = pd.DataFrame.from_dict(ten)
+            append_df_to_excel(filename, df, index=False)
 
-        df = pd.DataFrame.from_dict(emergency_modes)
-        append_df_to_excel(filename, df, index=False)
+            df = pd.DataFrame.from_dict(emergency_modes)
+            append_df_to_excel(filename, df, index=False)
+            log.add("Протокол", "Протокол успешно сформирован", True)
+            return True
+    except:
+        if i == 3:
+            log.add("Протокол", "Неудалось сформировать проткол", False)
+            return False
+        log.add("Протокол", "Попытка сформировать проткол №" + str(i + 1), True)
+        i = i + 1
+        time.sleep(i)
 
         # append_df_to_excel(filename, df, header=None, index=False)
         # append_df_to_excel(filename, df, sheet_name='Sheet2', index=False)
         # append_df_to_excel(filename, df, sheet_name='Sheet2', index=False, startrow=25)
 
-if __name__ == '__main__':
-    serial_number = {'Серийный номер': [' ']}
-    soft_version = {'Версия ПО': ['1.2.3.8'],'Фактическая': [' ']}
-    voltage = {'Канал, U': ['IN1', 'IN2', 'IN3', 'IN4'], 'Uном': ['', '', '', ''], 'Uфакт': ['', '', '', ''], 'Uдельта': ['', '', '', '']}
-    current = { 'Канал, I': ['OUT1', 'OUT2', '', ''], 'Iном': ['', '', '', ''], 'Iфакт': ['', '', '', ''], 'Iдельта': ['', '', '', '']}
-    voltage_threesolds = {'Пороги по напряжению': ['min', 'nom', 'max', ''], 'U': ['', '', '', ''], 'Результат': ['', '', '', '']}
-    switching_channels = {'Переключение каналов': ['Под Imin 0A', 'Под Imax 10A', '', ''], 'Канал 1': ['', '', '', ''], 'Время, t': ['', '', '', ''], 'Канал 2': ['', '', '', '']}
-    ten = {'Работа ТЭН': [' ']}
-    emergency_modes = {'Аварийные режимы': ['Режим КЗ', 'Режим перегрузки', 'Обрыв связи датчика', ''], 'Результат': ['', '', '', '']}
-    create_protocol(serial_number, soft_version, voltage, current, voltage_threesolds, switching_channels, ten, emergency_modes)
+# Пример тестирования
+# if __name__ == '__main__':
+#     log = engine.Log()
+#     serial_number = {'Серийный номер': [' ']}
+#     soft_version = {'Версия ПО': ['1.2.3.8'],'Фактическая': [' ']}
+#     voltage = {'Канал, U': ['IN1', 'IN2', 'IN3', 'IN4'], 'Uном': ['', '', '', ''], 'Uфакт': ['', '', '', ''], 'Uдельта': ['', '', '', '']}
+#     current = { 'Канал, I': ['OUT1', 'OUT2', '', ''], 'Iном': ['', '', '', ''], 'Iфакт': ['', '', '', ''], 'Iдельта': ['', '', '', '']}
+#     voltage_threesolds = {'Пороги по напряжению': ['min', 'nom', 'max', ''], 'U': ['', '', '', ''], 'Результат': ['', '', '', '']}
+#     switching_channels = {'Переключение каналов': ['Под Imin 0A', 'Под Imax 10A', '', ''], 'Канал 1': ['', '', '', ''], 'Время, t': ['', '', '', ''], 'Канал 2': ['', '', '', '']}
+#     ten = {'Работа ТЭН': [' ']}
+#     emergency_modes = {'Аварийные режимы': ['Режим КЗ', 'Режим перегрузки', 'Обрыв связи датчика', ''], 'Результат': ['', '', '', '']}
+#     create_protocol(log,'_good(3)_bad(2)', serial_number, soft_version, voltage, current, voltage_threesolds, switching_channels, ten, emergency_modes)
+#     print(log.get_log())

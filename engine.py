@@ -4,6 +4,8 @@ import devices
 import time
 from threading import Thread, Lock
 
+import read_write_eeprom
+
 dout_names_101 = {"KL1":81,"KL2":82,"KL3":83,"KL4":84,"KL5":85,"KL6":86,"KL7":87,"KL8":88,"KL9":89,"KL10":90,"KL11":91,"KL12":92,"KL13":93,"KL14":94,"KL15":95,"KL16":96}
 dout_names_102 = {"KL17":81,"KL18":82,"KL19":83,"KL20":84,"KL21":85,"KL22":86,"KL23":87,"KL24":88,"KL25":89,"KL26":90,"KL27":91,"KL28":92,"KL29":93,"KL30":94,"KL31":95,"KL32":96}
 dout_names_103 = {"KL33":81,"KM1":82,"KM2":83,"KM3":84,"KM4":85,"KM5":86,"KM6":87,"KM7":88,"KM8":89,"KM9":90,"KM10":91,"KM11":92,"KM14":93,"KM15":94,"KM16":95,"KM17":96}
@@ -251,6 +253,16 @@ class Check_psc24_10:
     behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 0, "error_pwr2": 0, "error_btr": 0,
                  "error_out1": 0, "error_out2": 0, "charge_btr": 0, "ten": 0, "apts": 0}
 
+    # списки для будущего протокола
+    serial_number = {'Серийный номер': [' ']}
+    soft_version = {'Версия ПО': ['1.2.3.8'],'Фактическая': [' ']}
+    voltage = {'Канал, U': ['IN1', 'IN2', 'IN3', 'IN4'], 'Uном': ['', '', '', ''], 'Uфакт': ['', '', '', ''], 'Uдельта': ['', '', '', '']}
+    current = { 'Канал, I': ['OUT1', 'OUT2', '', ''], 'Iном': ['', '', '', ''], 'Iфакт': ['', '', '', ''], 'Iдельта': ['', '', '', '']}
+    voltage_threesolds = {'Пороги по напряжению': ['min', 'nom', 'max', ''], 'U': ['', '', '', ''], 'Результат': ['', '', '', '']}
+    switching_channels = {'Переключение каналов': ['Под Imin 0A', 'Под Imax 10A', '', ''], 'Канал 1': ['', '', '', ''], 'Время, t': ['', '', '', ''], 'Канал 2': ['', '', '', '']}
+    ten = {'Работа ТЭН': [' ']}
+    emergency_modes = {'Аварийные режимы': ['Режим КЗ', 'Режим перегрузки', 'Обрыв связи датчика', ''], 'Результат': ['', '', '', '']}
+
     # объявляем модули управления
     dout_101 = ()
     dout_102 = ()
@@ -340,6 +352,7 @@ class Check_psc24_10:
     def main1(self):
         try:
             self.control_log.set_start(False)
+            eeprom = read_write_eeprom.ReadWriteEEprom(self.control_log, self.device_com, 115200)
             # обработать try false и добавить метод get
             config = self.settings.load("settings.cfg")
             print(config)

@@ -7,6 +7,9 @@ import struct
 import FloatToHex, cgi, sys, math
 import binascii
 
+import engine
+
+
 def serial_ports():
     ports = serial.tools.list_ports.comports()
     result = []
@@ -328,101 +331,150 @@ class FrameCollector:
         return data
 
 class ReadWriteEEprom:
-    def __init__(self, com, braudrate):
+    soft_version = ""
+    serial_number = ""
+    device_values = {}
+    def __init__(self,log, com, braudrate):
+        self.log = log
         self.com = com
         self.braudrate = braudrate
     # Считываем версию прошивки
     def read_soft_version(self):
-        try:
-            package = []
-            read = FrameCollector()
-            package.append([0x55, 0xAA, 0x98, 0x07, 0x03, 0x00, 0xA2]) # MAJOR 1.
-            package.append([0x55, 0xAA, 0x98, 0x07, 0x04, 0x00, 0xA3]) # MINOR 2.
-            package.append([0x55, 0xAA, 0x98, 0x07, 0x05, 0x00, 0xA4]) # PATCH 3.
-            package.append([0x55, 0xAA, 0x98, 0x07, 0x06, 0x00, 0xA5]) # BUILD 8.
-            ser = serial.Serial(self.com, self.braudrate, timeout=0.3)
-            val = 0
-            s = ""
-            for frame in package:
-                modb_frame = read.write_modbus(frame)
-                values = bytearray(modb_frame)
-                ser.write(values)
-                response = ser.read(len(values))
-                val = int(response[len(response) - 4])
-                s = s + str(val) + "."
-            ser.close()
-            return s[:len(s)-1]
-        except:
-            return False
+        i = 0
+        self.log.add("EEPROM", "Считываем версию прошивки", True)
+        while True:
+            try:
+                package = []
+                read = FrameCollector()
+                package.append([0x55, 0xAA, 0x98, 0x07, 0x03, 0x00, 0xA2]) # MAJOR 1.
+                package.append([0x55, 0xAA, 0x98, 0x07, 0x04, 0x00, 0xA3]) # MINOR 2.
+                package.append([0x55, 0xAA, 0x98, 0x07, 0x05, 0x00, 0xA4]) # PATCH 3.
+                package.append([0x55, 0xAA, 0x98, 0x07, 0x06, 0x00, 0xA5]) # BUILD 8.
+                ser = serial.Serial(self.com, self.braudrate, timeout=0.3)
+                val = 0
+                s = ""
+                for frame in package:
+                    modb_frame = read.write_modbus(frame)
+                    values = bytearray(modb_frame)
+                    ser.write(values)
+                    response = ser.read(len(values))
+                    val = int(response[len(response) - 4])
+                    s = s + str(val) + "."
+                ser.close()
+                s = s[:len(s)-1]
+                self.soft_version = s
+                self.log.add("EEPROM","Версия прошивки получена",True)
+                return True
+            except:
+                if i == 3:
+                    self.log.add("EEPROM", "Неудалось получить версию прошивки", False)
+                    return False
+                self.log.add("EEPROM", "Попытка получить версию прошивки №" + str(i + 1), True)
+                i = i + 1
+                time.sleep(i)
+        return False
+    # Получаем версию
+    def get_soft_version(self):
+        return self.soft_version
     # Считываем настройки PSC
     def read_power_management(self):
-        package = []
-        read = FrameCollector()
-        package.append(read.power_management(0x84, registers_pointer.get(0x04).get("pw1_u_nom"), float(0)))
-        package.append(read.power_management(0x84, registers_pointer.get(0x04).get("pw1_u_max"), float(0)))
-        package.append(read.power_management(0x84, registers_pointer.get(0x04).get("pw1_u_min"), float(0)))
-        package.append(read.power_management(0x84, registers_pointer.get(0x04).get("pw1_u_max_hyst"), float(0)))
-        package.append(read.power_management(0x84, registers_pointer.get(0x04).get("pw1_u_min_hyst"), float(0)))
-
-        package.append(read.power_management(0x85, registers_pointer.get(0x05).get("pw2_u_nom"), float(0)))
-        package.append(read.power_management(0x85, registers_pointer.get(0x05).get("pw2_u_max"), float(0)))
-        package.append(read.power_management(0x85, registers_pointer.get(0x05).get("pw2_u_min"), float(0)))
-        package.append(read.power_management(0x85, registers_pointer.get(0x05).get("pw2_u_max_hyst"), float(0)))
-        package.append(read.power_management(0x85, registers_pointer.get(0x05).get("pw2_u_min_hyst"), float(0)))
-
-        package.append(read.power_management(0x86, registers_pointer.get(0x06).get("btr_u_nom"), float(0)))
-        package.append(read.power_management(0x86, registers_pointer.get(0x06).get("btr_u_max"), float(0)))
-        package.append(read.power_management(0x86, registers_pointer.get(0x06).get("btr_u_min"), float(0)))
-        package.append(read.power_management(0x86, registers_pointer.get(0x06).get("btr_u_max_hyst"), float(0)))
-        package.append(read.power_management(0x86, registers_pointer.get(0x06).get("btr_u_min_hyst"), float(0)))
-
-        package.append(read.power_management(0x87, registers_pointer.get(0x07).get("out_i_1"), float(0)))
-        package.append(read.power_management(0x87, registers_pointer.get(0x07).get("out_i_2"), float(0)))
-
-        package.append(read.power_management(0x88, registers_pointer.get(0x08).get("charge_err_min"), float(0)))
-        package.append(read.power_management(0x88, registers_pointer.get(0x08).get("charge_u_max"), float(0)))
-        package.append(read.power_management(0x88, registers_pointer.get(0x08).get("charge_u_min"), float(0)))
-        package.append(read.power_management(0x88, registers_pointer.get(0x08).get("charge_i_stable"), float(0)))
-        package.append(read.power_management(0x88, registers_pointer.get(0x08).get("charge_u_stable"), float(0)))
-
-        # через MODBUS
-        ser = serial.Serial(self.com, self.braudrate, timeout=0.3)
-        val = []
-        for frame in package:
-            values = bytearray(read.write_modbus(frame))
-            ser.write(values)
-            response = ser.read(len(values))
-            val.append(read.hexfloat_to_float(response[:len(response) - 2]))
         i = 0
-        for key in device_values:
-            device_values[key] = val[i]
-            i = i + 1
-        ser.close()
-        return device_values
+        self.log.add("EEPROM", "Считываем настройки электропитания", True)
+        while True:
+            try:
+                package = []
+                read = FrameCollector()
+                package.append(read.power_management(0x84, registers_pointer.get(0x04).get("pw1_u_nom"), float(0)))
+                package.append(read.power_management(0x84, registers_pointer.get(0x04).get("pw1_u_max"), float(0)))
+                package.append(read.power_management(0x84, registers_pointer.get(0x04).get("pw1_u_min"), float(0)))
+                package.append(read.power_management(0x84, registers_pointer.get(0x04).get("pw1_u_max_hyst"), float(0)))
+                package.append(read.power_management(0x84, registers_pointer.get(0x04).get("pw1_u_min_hyst"), float(0)))
+
+                package.append(read.power_management(0x85, registers_pointer.get(0x05).get("pw2_u_nom"), float(0)))
+                package.append(read.power_management(0x85, registers_pointer.get(0x05).get("pw2_u_max"), float(0)))
+                package.append(read.power_management(0x85, registers_pointer.get(0x05).get("pw2_u_min"), float(0)))
+                package.append(read.power_management(0x85, registers_pointer.get(0x05).get("pw2_u_max_hyst"), float(0)))
+                package.append(read.power_management(0x85, registers_pointer.get(0x05).get("pw2_u_min_hyst"), float(0)))
+
+                package.append(read.power_management(0x86, registers_pointer.get(0x06).get("btr_u_nom"), float(0)))
+                package.append(read.power_management(0x86, registers_pointer.get(0x06).get("btr_u_max"), float(0)))
+                package.append(read.power_management(0x86, registers_pointer.get(0x06).get("btr_u_min"), float(0)))
+                package.append(read.power_management(0x86, registers_pointer.get(0x06).get("btr_u_max_hyst"), float(0)))
+                package.append(read.power_management(0x86, registers_pointer.get(0x06).get("btr_u_min_hyst"), float(0)))
+
+                package.append(read.power_management(0x87, registers_pointer.get(0x07).get("out_i_1"), float(0)))
+                package.append(read.power_management(0x87, registers_pointer.get(0x07).get("out_i_2"), float(0)))
+
+                package.append(read.power_management(0x88, registers_pointer.get(0x08).get("charge_err_min"), float(0)))
+                package.append(read.power_management(0x88, registers_pointer.get(0x08).get("charge_u_max"), float(0)))
+                package.append(read.power_management(0x88, registers_pointer.get(0x08).get("charge_u_min"), float(0)))
+                package.append(read.power_management(0x88, registers_pointer.get(0x08).get("charge_i_stable"), float(0)))
+                package.append(read.power_management(0x88, registers_pointer.get(0x08).get("charge_u_stable"), float(0)))
+
+                # через MODBUS
+                ser = serial.Serial(self.com, self.braudrate, timeout=0.3)
+                val = []
+                for frame in package:
+                    values = bytearray(read.write_modbus(frame))
+                    ser.write(values)
+                    response = ser.read(len(values))
+                    val.append(read.hexfloat_to_float(response[:len(response) - 2]))
+                i = 0
+                for key in device_values:
+                    device_values[key] = val[i]
+                    i = i + 1
+                ser.close()
+                self.device_values = device_values
+                self.log.add("EEPROM", "Настройки электропитания получены", True)
+                return True
+            except:
+                if i == 3:
+                    self.log.add("EEPROM", "Неудалось получить настройки электропитания", False)
+                    return False
+                self.log.add("EEPROM", "Попытка получить настройки электропитания №" + str(i + 1), True)
+                i = i + 1
+                time.sleep(i)
+            return False
+    # Получаем настройки электропитания
+    def get_power_management(self):
+        return self.device_values
     # включить ТЭН
     def sensor_on(self):
-        package = []
-        write = FrameCollector()
-        # считываем id датчика 1
-        package.append(write.sensor_controls(0x0B, 0x01, 0xAA))
-        package.append(write.sensor_controls(0x8A, 0x01, 0))
-        # установить температуру, через функцию power_management (там реализован FLOAT32)
-        package.append(write.power_management(0x09, 0x01, 50))
-        # управление датчиками (режим ten или fan)
-        package.append(write.sensor_controls(0x09, 0x03, "ten"))
-        # включить все датчики
-        package.append(write.sensor_controls(0x09, 0x02, 31))
-
-        ser = serial.Serial(self.com,self.braudrate, timeout=0.2)
-
-        for frame in package:
-            modb_frame = write.write_modbus(frame)
-            values = bytearray(modb_frame)
-            ser.write(values)
-            response = ser.read(len(values))
-        ser.close()
+        i = 0
+        self.log.add("EEPROM", "Включение ТЭН", True)
+        while True:
+            try:
+                package = []
+                write = FrameCollector()
+                # считываем id датчика 1
+                package.append(write.sensor_controls(0x0B, 0x01, 0xAA))
+                package.append(write.sensor_controls(0x8A, 0x01, 0))
+                # установить температуру, через функцию power_management (там реализован FLOAT32)
+                package.append(write.power_management(0x09, 0x01, 50))
+                # управление датчиками (режим ten или fan)
+                package.append(write.sensor_controls(0x09, 0x03, "ten"))
+                # включить все датчики
+                package.append(write.sensor_controls(0x09, 0x02, 31))
+                ser = serial.Serial(self.com,self.braudrate, timeout=0.2)
+                for frame in package:
+                    modb_frame = write.write_modbus(frame)
+                    values = bytearray(modb_frame)
+                    ser.write(values)
+                    response = ser.read(len(values))
+                ser.close()
+                self.log.add("EEPROM", "ТЭН включен", True)
+                return True
+            except:
+                if i == 3:
+                    self.log.add("EEPROM", "Неудалось включить ТЭН", False)
+                    return False
+                self.log.add("EEPROM", "Попытка включить ТЭН №" + str(i + 1), True)
+                i = i + 1
+                time.sleep(i)
     # выключить ТЭН
     def sensor_off(self):
+        i = 0
+        self.log.add("EEPROM", "Отключение ТЭН", True)
         try:
             package = []
             write = FrameCollector()
@@ -436,47 +488,72 @@ class ReadWriteEEprom:
             for frame in package:
                 modb_frame = write.write_modbus(frame)
                 values = bytearray(modb_frame)
-                print("write: ", values)
                 ser.write(values)
                 response = ser.read(len(values))
-                print("read: ", response)
-                if (values == response):
-                    print("ok")
-                else:
-                    print("bad")
             ser.close()
+            self.log.add("EEPROM", "ТЭН отключен", True)
+            return True
         except:
-            print("")
+            if i == 3:
+                self.log.add("EEPROM", "Неудалось отключить ТЭН", False)
+                return False
+            self.log.add("EEPROM", "Попытка отключить ТЭН №" + str(i + 1), True)
+            i = i + 1
+            time.sleep(i)
     # прочитать серийный номер
     def read_serial_number(self):
-        package = []
-        read = FrameCollector()
-        package.append(read.serial_number(0xB3, 0))
-        ser = serial.Serial(self.com, self.braudrate, timeout=0.3)
-        val = 0
-        for frame in package:
-            modb_frame = read.write_modbus(frame)
-            values = bytearray(modb_frame)
-            ser.write(values)
-            response = ser.read(len(values))
-            val = read.hex_to_float(response[:len(response) - 2])
-        ser.close()
-        return val
-
+        i = 0
+        while True:
+            try:
+                package = []
+                read = FrameCollector()
+                package.append(read.serial_number(0xB3, 0))
+                ser = serial.Serial(self.com, self.braudrate, timeout=0.3)
+                val = 0
+                for frame in package:
+                    modb_frame = read.write_modbus(frame)
+                    values = bytearray(modb_frame)
+                    ser.write(values)
+                    response = ser.read(len(values))
+                    val = read.hex_to_float(response[:len(response) - 2])
+                ser.close()
+                self.serial_number = val
+                self.log.add("EEPROM", "Серийный номер устройства получен", True)
+                return True
+            except:
+                if i == 3:
+                    self.log.add("EEPROM", "Неудалось получить серийный номер устройства", False)
+                    return False
+                self.log.add("EEPROM", "Попытка получить серийный номер устройства №" + str(i + 1), True)
+                i = i + 1
+                time.sleep(i)
+    # Получить серийный номер устройства
+    def get_serial_number(self):
+        return 4710000000 + self.serial_number
 # получить версию прошивки!!!!!!!! ДОБАВИТЬ
 # добавить обработку событий!
 # for the future -> add to read a serial number
-if __name__ == '__main__':
-    # создаем объект
-    eeprom = ReadWriteEEprom("com1", 115200)
-    # считываем и возвращаем версию ПО
-    print("Версия ПО: ", eeprom.read_soft_version())
-    # считываем серийный номер
-    print("Серийный номер: ",4710000000 + eeprom.read_serial_number())
-    # Считываем вкладку управление питанием
-    print(eeprom.read_power_management())
-    # # считываем id датчика и меняем параметры провоцируя работу ТЭНА
-    # eeprom.sensor_on()
-    # # Проверяем ТЭН и возвращаем уставки по умолчанию
-    # eeprom.sensor_off()
+# if __name__ == '__main__':
+    # log = engine.Log()
+    # # создаем объект
+    # eeprom = ReadWriteEEprom(log,"com1", 115200)
+    # eeprom.read_soft_version()
+    # print(log.get_log())
+    # print(eeprom.get_soft_version())
+    # print()
+    # eeprom.read_serial_number()
+    # print(log.get_log())
+    # print(eeprom.get_serial_number())
+
+    # # Старый тест
+    # # считываем и возвращаем версию ПО
+    # print("Версия ПО: ", eeprom.read_soft_version())
+    # # считываем серийный номер
+    # print("Серийный номер: ",4710000000 + eeprom.read_serial_number())
+    # # Считываем вкладку управление питанием
+    # print(eeprom.read_power_management())
+    # # # считываем id датчика и меняем параметры провоцируя работу ТЭНА
+    # # eeprom.sensor_on()
+    # # # Проверяем ТЭН и возвращаем уставки по умолчанию
+    # # eeprom.sensor_off()
 

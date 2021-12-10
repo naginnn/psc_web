@@ -108,15 +108,22 @@ def shemeilogic():
 def configuration():
     data = {}
     if request.method == 'POST':
+        soft_version = request.form.get('soft_version')
+        ip_adress = request.form.get('ip_adress')
+        port = request.form.get('port')
         device_name = request.form.get('device_name')
         power_supply_type = request.form.get('power_supply_type')
         checked_list = request.form.get('checked_list')
-        data.update({"device_name":device_name,"power_supply_type":power_supply_type,"checked_list":checked_list})
+        data.update({"soft_version":soft_version, "ip_adress":ip_adress, "port":port, "device_name":device_name, "power_supply_type":power_supply_type, "checked_list":checked_list})
         result = settings.save("settings.cfg",data)
         #зДЕСЬ ТО ЧТО Я МОГУ ИСПОЛЬЗОВАТЬ В js
         return jsonify({"result": result})
 
     if request.method == 'GET':
+        soft_version = "0"
+        ip_adress = "0"
+        port = "0"
+
         psc24_10 = "0"
         psc24_40 = "0"
         psc48_10 = "0"
@@ -137,6 +144,11 @@ def configuration():
         # время прогрева сделать простым параметром
         data = settings.load("settings.cfg")
         print(data)
+
+        soft_version = data.get('soft_version')
+        ip_adress = data.get('ip_adress')
+        port = data.get('port')
+
         if (data.get('device_name') == 'psc24_10'):
             psc24_10 = "selected"
         elif (data.get('device_name') == 'psc24_40'):
@@ -169,10 +181,9 @@ def configuration():
             checked_4 = "selected"
         elif (data.get('checked_list') == '5'):
             checked_5 = "selected"
-        return render_template('configuration.html', psc24_10 = psc24_10, psc24_40 = psc24_40, psc48_10 = psc48_10, psc48_40 = psc48_40,
-                               wm24_10 = wm24_10, pw24_5 = pw24_5, wm24_40 = wm24_40, mw24_67 = mw24_67, wm48_20 = wm48_20, mw48_67 = mw48_67,
-                               checked_1 = checked_1, checked_2 = checked_2, checked_3 = checked_3, checked_4 = checked_4,
-                               checked_5 = checked_5)
+        return render_template('configuration.html',soft_version = soft_version, ip_adress = ip_adress, port = port, psc24_10 = psc24_10, psc24_40 = psc24_40,
+                               psc48_10 = psc48_10, psc48_40 = psc48_40, wm24_10 = wm24_10, pw24_5 = pw24_5, wm24_40 = wm24_40, mw24_67 = mw24_67, wm48_20 = wm48_20,
+                               mw48_67 = mw48_67, checked_1 = checked_1, checked_2 = checked_2, checked_3 = checked_3, checked_4 = checked_4,checked_5 = checked_5)
 
 if __name__ == "__main__":
    app.run(debug=True)

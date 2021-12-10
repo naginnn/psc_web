@@ -261,7 +261,7 @@ class Check_psc24_10:
     power_supply = ()
 
     # добавляем два лога и ком-порт модулям управления и psc
-    def __init__(self, name, control_log, control_com, main_log , device_com, settings):
+    def __init__(self, name, control_log, control_com, main_log, device_com, settings):
         self.name = name
         self.control_log = control_log
         self.main_log = main_log
@@ -342,6 +342,10 @@ class Check_psc24_10:
             self.control_log.set_start(False)
             # обработать try false и добавить метод get
             config = self.settings.load("settings.cfg")
+            print(config)
+            soft_version = config.get("soft_version")
+            ip_adress = config.get("ip_adress")
+            port = config.get("port")
             # определяем тип блоков питания (возможно придется перенести)
             if config.get("power_supply_type") == "wm24_10":
                 IN1 = "KL7"
@@ -377,8 +381,8 @@ class Check_psc24_10:
 # главный метод используемый в web'е, перетащить его в класс checking после тестирования
 # if __name__ == "__main__":
 #     check_error_rate(24.0,24.25)
-#     # check = Checking()
-#     # check.main1()
+#     check = Check_psc24_10()
+#     check.main1()
 #     print(";a;a;")
 
 

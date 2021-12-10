@@ -333,26 +333,27 @@ class ReadWriteEEprom:
         self.braudrate = braudrate
     # Считываем версию прошивки
     def read_soft_version(self):
-        package = []
-        read = FrameCollector()
-        package.append([0x55, 0xAA, 0x98, 0x07, 0x03, 0x00, 0xA2]) # MAJOR 1.
-        package.append([0x55, 0xAA, 0x98, 0x07, 0x04, 0x00, 0xA3]) # MINOR 2.
-        package.append([0x55, 0xAA, 0x98, 0x07, 0x05, 0x00, 0xA4]) # PATCH 3.
-        package.append([0x55, 0xAA, 0x98, 0x07, 0x06, 0x00, 0xA5]) # BUILD 8.
-        ser = serial.Serial(self.com, self.braudrate, timeout=0.3)
-        val = 0
-        s = ""
-        for frame in package:
-            modb_frame = read.write_modbus(frame)
-            values = bytearray(modb_frame)
-            print("write: ", values)
-            ser.write(values)
-            response = ser.read(len(values))
-            print("read: ", response)
-            val = int(response[len(response) - 4])
-            s = s + str(val) + "."
-        ser.close()
-        return s[:len(s)-1]
+        try:
+            package = []
+            read = FrameCollector()
+            package.append([0x55, 0xAA, 0x98, 0x07, 0x03, 0x00, 0xA2]) # MAJOR 1.
+            package.append([0x55, 0xAA, 0x98, 0x07, 0x04, 0x00, 0xA3]) # MINOR 2.
+            package.append([0x55, 0xAA, 0x98, 0x07, 0x05, 0x00, 0xA4]) # PATCH 3.
+            package.append([0x55, 0xAA, 0x98, 0x07, 0x06, 0x00, 0xA5]) # BUILD 8.
+            ser = serial.Serial(self.com, self.braudrate, timeout=0.3)
+            val = 0
+            s = ""
+            for frame in package:
+                modb_frame = read.write_modbus(frame)
+                values = bytearray(modb_frame)
+                ser.write(values)
+                response = ser.read(len(values))
+                val = int(response[len(response) - 4])
+                s = s + str(val) + "."
+            ser.close()
+            return s[:len(s)-1]
+        except:
+            return False
     # Считываем настройки PSC
     def read_power_management(self):
         package = []
@@ -389,11 +390,8 @@ class ReadWriteEEprom:
         val = []
         for frame in package:
             values = bytearray(read.write_modbus(frame))
-            print("write: ", values)
             ser.write(values)
             response = ser.read(len(values))
-            print("read: ", response)
-            print(response)
             val.append(read.hexfloat_to_float(response[:len(response) - 2]))
         i = 0
         for key in device_values:
@@ -420,14 +418,8 @@ class ReadWriteEEprom:
         for frame in package:
             modb_frame = write.write_modbus(frame)
             values = bytearray(modb_frame)
-            print("write: ", values)
             ser.write(values)
             response = ser.read(len(values))
-            print("read: ", response)
-            if (values == response):
-                print("ok")
-            else:
-                print("bad")
         ser.close()
     # выключить ТЭН
     def sensor_off(self):
@@ -465,10 +457,8 @@ class ReadWriteEEprom:
         for frame in package:
             modb_frame = read.write_modbus(frame)
             values = bytearray(modb_frame)
-            print("write: ", values)
             ser.write(values)
             response = ser.read(len(values))
-            print("read: ", response)
             val = read.hex_to_float(response[:len(response) - 2])
         ser.close()
         return val
@@ -482,11 +472,11 @@ if __name__ == '__main__':
     # считываем и возвращаем версию ПО
     print("Версия ПО: ", eeprom.read_soft_version())
     # считываем серийный номер
-    print(4710000000 + eeprom.read_serial_number())
+    print("Серийный номер: ",4710000000 + eeprom.read_serial_number())
     # Считываем вкладку управление питанием
     print(eeprom.read_power_management())
-    # считываем id датчика и меняем параметры провоцируя работу ТЭНА
-    eeprom.sensor_on()
-    # Проверяем ТЭН и возвращаем уставки по умолчанию
-    eeprom.sensor_off()
+    # # считываем id датчика и меняем параметры провоцируя работу ТЭНА
+    # eeprom.sensor_on()
+    # # Проверяем ТЭН и возвращаем уставки по умолчанию
+    # eeprom.sensor_off()
 

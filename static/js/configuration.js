@@ -7,6 +7,9 @@ document.addEventListener('DOMContentLoaded', () => {
 //        var sumbit_type = document.querySelector('#save').value;
 //        var device_type = document.querySelector('#device_type').value;
 //        var device_name = document.querySelector(' #device_name').value;
+        var soft_version = document.querySelector('#soft_version').value;
+        var ip_adress = document.querySelector('#ip_adress').value;
+        var port = document.querySelector('#port').value;
         var device_name = document.querySelector(".room-selector > #device_name").value;
         var power_supply_type = document.querySelector('.room-selector > #power_supply_type').value;
         var checked_list = document.querySelector('#checked_list').value;
@@ -30,6 +33,9 @@ document.addEventListener('DOMContentLoaded', () => {
             progressBar.setPercent(100);
       }
         const data = new FormData();
+        data.append('soft_version', soft_version);
+        data.append('ip_adress', ip_adress);
+        data.append('port', port);
         data.append('device_name', device_name);
         data.append('power_supply_type', power_supply_type);
         data.append('checked_list', checked_list);

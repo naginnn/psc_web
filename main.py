@@ -82,7 +82,7 @@ def test():
             Thread(target=test_worker).start()
         if control_log.get_finish():
             control_log.set_start(True)
-        return jsonify({"message": control_log.get_log_data(), "result": control_log.get_log_result(), "flag": control_log.get_finish()})
+        return jsonify({"message": control_log.get_log_data(), "result": control_log.get_log_result(), "flag": control_log.get_finish()}) # добавить сюда номер проверяемого устройства
 
     if request.method == 'GET':
         data = settings.load("settings.cfg")

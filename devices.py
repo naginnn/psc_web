@@ -208,16 +208,22 @@ class PowerSupply:
             return False
 
     def remote(self, on_off):
-        try:
-            self.socket = socket.socket()
-            self.socket.connect((self.ip_adress, int(self.port)))
-            self.log.add(self.name, "Переключение режима ЛБП REMOTE: " + on_off, True)
-            message = "SYSTem:LOCK " + on_off + "\n"
-            self.socket.send(message.encode())
-            self.socket.close()
-            return True
-        except:
-            return False
+        i = 0
+        while True:
+            try:
+                self.socket = socket.socket()
+                self.socket.connect((self.ip_adress, int(self.port)))
+                self.log.add(self.name, "Переключение режима ЛБП REMOTE: " + on_off, True)
+                message = "SYSTem:LOCK " + on_off + "\n"
+                self.socket.send(message.encode())
+                self.socket.close()
+                return True
+            except:
+                if i == 3:
+                    self.log.add(self.name, "Невозможно переключить в режим ЛБП REMOTE" + on_off, False)
+                    return False
+                self.log.add(self.name, "Попытка переключения режима ЛБП REMOTE №: " + str(i + 1) + on_off, True)
+                i = i + 1
 
     def check_remote(self, on_off):
         try:
@@ -241,7 +247,7 @@ class PowerSupply:
             self.log.add(self.name, "Подача команды " + on_off + " на ЛБП не прошла", False)
             return False
 
-    def set_voltage(self,value):
+    def set_voltage(self, value):
         i = 0
         while True:
             try:
@@ -253,12 +259,14 @@ class PowerSupply:
                 self.socket.send(message.encode())
                 self.socket.recv(10)
                 self.socket.close()
+                self.log.add(self.name, "Команда подать напряжение успешно прошла " + voltage + " В", True)
                 return True
             except:
                 if (i == 3):
                     self.log.add(self.name, "Подача команды установить напряжение " + voltage + " В не прошла", False)
+                    self.socket.close()
                     return False
-                self.log.add(self.name, "Попытка подачи команды установить напряжение " + voltage + " В №" + str(i), True)
+                self.log.add(self.name, "Попытка подачи команды установить напряжение " + voltage + " В №" + str(i + 1), True)
                 i = i + 1
                 time.sleep(i)
 
@@ -271,21 +279,21 @@ class PowerSupply:
                 self.socket.send("MEAS:VOLT?\n".encode())
                 voltage = number_func(str(self.socket.recv(10)))
                 if ((round(float(voltage)) == round(value)) and round(float(voltage)) != 0):
-                    self.log.add(self.name, "Подача команды установить напряжение " + str(value) + " В" + " успешно прошла", True)
+                    self.log.add(self.name, "Напряжение " + str(value) + " В" + " установленно", True)
                     self.socket.close()
                     return True
                 if ((round(float(voltage)) != round(value)) and round(float(voltage)) != 0):
                     if (i == 3):
-                        self.log.add(self.name, "Подача команды установить напряжение " + str(value) + " В" + " не прошла",False)
+                        self.log.add(self.name, "Значение напряжения отличается " + str(value) + " В" + " не прошла",False)
                         self.socket.close()
                         return False
                     i = i + 1
                     time.sleep(i)
             except:
                 if (i == 3):
-                    self.log.add(self.name, "Подача команды установить напряжение " + voltage + " В не прошла", False)
+                    self.log.add(self.name, "Невозможно получить значение напряжения " + voltage + " В", False)
                     return False
-                self.log.add(self.name, "Попытка подачи команды установить напряжение " + voltage + " В №" + str(i), True)
+                self.log.add(self.name, "Попытка получить значение напряжения " + voltage + " В №" + str(i + 1), True)
                 i = i + 1
                 time.sleep(i)
 
@@ -312,7 +320,6 @@ class PowerSupply:
                 self.log.add(self.name, "Подача команды " + on_off + " на ЛБП не прошла", False)
                 self.socket.close()
                 return False
-
             i = i + 0.5
             time.sleep(i)
 

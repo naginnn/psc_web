@@ -16,6 +16,8 @@ document.addEventListener('DOMContentLoaded', () => {
         var sumbit_type = document.querySelector('#test').disabled = true; // отключаю кнопку по началу проверки
         var log = document.querySelector('#log').value = "";
         document.querySelector('#log').innerHTML = "Нажал!";
+        var colorArray = document.getElementsByClassName('primary-btn');
+        var color_flag = true;
 
         request.open('POST', '/test');
 //        document.querySelector('#result').innerHTML = text;
@@ -37,20 +39,23 @@ document.addEventListener('DOMContentLoaded', () => {
                                 scrollTop: $('#log').get(0).scrollHeight
                             }, 200);
                         });
+                            if (color_flag) {
+                              colorArray[2].style.backgroundColor = '#07ff00';
+                              color_flag = false;
+                            } else {
+                              colorArray[2].style.backgroundColor = '#ffde00';
+                              color_flag = true;
+                            }
                           for (let i = 0; i < data.message.length; i++){
                             if (data.result[i])
-//                                let div = document.createElement('div');
-//                                div.className = "alert";
-//                                div.innerHTML = "<strong>Всем привет!</strong> Вы прочитали важное сообщение.";
                                 res = res  + "<div>"+ data.message[i] + "</div>";
                             else
                                 res = res  + "<div style=\"color:red\">"+ data.message[i] + "</div>";
                             }
-//                            res = res + data.result[i] + " <br /> ";}
+                              // выводим результат
                           document.querySelector('#log').innerHTML = res;
+                          // если флаг True прекратить опрос backend'a
                             if (data.flag) {
-//                                alert("Диагностика завершена!");
-//                            delay *= 2;
                                 clearTimeout(lala);
                                 document.querySelector('#test').disabled = false;
                                 progressBar.initialMode(false);

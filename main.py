@@ -74,7 +74,7 @@ def diagnostics():
         return jsonify({"message": log.get_log_data(), "result":log.get_log_result(), "flag": log.get_finish()})
     if request.method == 'GET':
         return render_template('diagnostics.html')
-
+#ddd
 @app.route('/test', methods=['GET', 'POST'])
 def test():
     if request.method == 'POST':

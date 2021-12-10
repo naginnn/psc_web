@@ -42,7 +42,7 @@ def test_worker():
         print("ТЕСТ!")
         control_log.log_clear_data()
         control_log.log_clear_result()
-        psc_test = engine.Check_psc24_10("Тестирование", control_log, main_log, "com44", "com44", settings)
+        psc_test = engine.Check_psc24_10("Тестирование", control_log, "com44", main_log, "com44", settings)
         psc_test.main1()
         # lock.acquire()
         if control_log.get_finish() is True:
@@ -82,7 +82,9 @@ def test():
             Thread(target=test_worker).start()
         if control_log.get_finish():
             control_log.set_start(True)
-        return jsonify({"message": control_log.get_log_data(), "result": control_log.get_log_result(), "flag": control_log.get_finish()}) # добавить сюда номер проверяемого устройства
+            # добавить сюда номер проверяемого устройства
+        return jsonify({"message": control_log.get_log_data(), "result": control_log.get_log_result(), "flag": control_log.get_finish(),
+                        "device_count": main_log.get_device_count(), "device_status": main_log.get_start(), "device_finish": main_log.get_finish()})
 
     if request.method == 'GET':
         data = settings.load("settings.cfg")

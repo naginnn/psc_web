@@ -39,13 +39,22 @@ document.addEventListener('DOMContentLoaded', () => {
                                 scrollTop: $('#log').get(0).scrollHeight
                             }, 200);
                         });
-                            if (color_flag) {
-                              colorArray[2].style.backgroundColor = '#07ff00';
-                              color_flag = false;
+
+                            if (!data.device_finish){
+                                if (color_flag) {
+                                  colorArray[parseInt(data.device_count)].style.backgroundColor = '#07ff00';
+                                  color_flag = false;
+                                } else {
+                                  colorArray[parseInt(data.device_count)].style.backgroundColor = '#ffde00';
+                                  color_flag = true;
+                                }
                             } else {
-                              colorArray[2].style.backgroundColor = '#ffde00';
-                              color_flag = true;
+                                if (data.device_status)
+                                    colorArray[parseInt(data.device_count)].style.backgroundColor = '#ff0000';
+                                else
+                                    colorArray[parseInt(data.device_count)].style.backgroundColor = '#76ff00';
                             }
+
                           for (let i = 0; i < data.message.length; i++){
                             if (data.result[i])
                                 res = res  + "<div>"+ data.message[i] + "</div>";

@@ -249,11 +249,11 @@ class PowerSupply:
 
     def set_voltage(self, value):
         i = 0
+        voltage = str(value)
         while True:
             try:
                 self.socket = socket.socket()
                 self.socket.connect((self.ip_adress, int(self.port)))
-                voltage = str(value)
                 self.log.add(self.name, "Подача команды установить напряжение " + voltage + " В", True)
                 message = "SOURce:VOLTage " + voltage + "\n"
                 self.socket.send(message.encode())

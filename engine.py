@@ -68,7 +68,7 @@ class Log:
     log_result = []
     start = True
     finish = False
-
+    device_count = ()
 
     def add(self, name, event, result):
         self.log = self.log + datetime.now().strftime('%H:%M:%S.%f')[:-4] + " " + name + ":" + " " + event + "\n"
@@ -101,6 +101,15 @@ class Log:
 
     def log_clear_result(self):
         self.log_result.clear()
+
+    def set_device_count(self, device_count):
+        self.device_count = int(device_count)
+
+    def get_device_count(self):
+        return self.device_count
+
+
+
 
 # диагностика стенда (исправить, бомжатская)
 class Diagnostics:
@@ -325,6 +334,7 @@ class Check_psc24_10:
             # time.sleep(1)
 
             # Выставляем напряжение ЛБП
+            assert self.power_supply.connection()
             assert self.power_supply.set_voltage(30)
             assert self.power_supply.check_voltage(24)
             time.sleep(1)
@@ -344,7 +354,7 @@ class Check_psc24_10:
             # assert self.power_supply.connection()
             # assert self.power_supply.set_voltage(24)
             return True
-        except:
+        except AssertionError:
             return False
 
     # Проверка порогов по напряжению
@@ -380,6 +390,7 @@ class Check_psc24_10:
 
     # главная функция
     def main1(self):
+        device_status = False
         try:
             self.control_log.set_start(False)
             eeprom = read_write_eeprom.ReadWriteEEprom(self.control_log, self.device_com, 115200)
@@ -402,10 +413,29 @@ class Check_psc24_10:
             # добавить формирование протокола
             assert self.prepare()
             i = 1
+            device_status = True
             while i <= count_devices:
-               assert self.first_start()
-               print("Погнали устройство №: ", i)
-               i = i + 1
+                # ОБЯЗАТЕЛЬНО В НАЧАЛЕ ЦИКЛА
+                self.main_log.set_finish(False)
+                self.main_log.set_start(True)
+
+                self.main_log.set_device_count(i - 1)
+                # assert self.first_start()
+                self.control_log.add("Девайс номер ", str(i), True)
+                time.sleep(2)
+
+                if i == 3:
+                    self.main_log.set_start(True)
+                else:
+                    self.main_log.set_start(False)
+
+                print("Погнали устройство №: ", i)
+                i = i + 1
+
+                # ОБЯЗАТЕЛЬНО В КОНЦЕ ЦИКЛА
+                self.main_log.set_finish(True)
+                time.sleep(2)
+            # закончить опрос backend'a
             self.control_log.set_finish(True)
         except AssertionError:
             self.control_log.add("Тестирование", "В связи с неисправностью стенда или вспомогательных средств дальнейшая проверка невозможна", False)
@@ -430,9 +460,9 @@ class Check_psc24_10:
 
 # главный метод используемый в web'е, перетащить его в класс checking после тестирования
 # if __name__ == "__main__":
-#     check_error_rate(24.0,24.25)
-#     check = Check_psc24_10()
-#     check.main1()
-#     print(";a;a;")
+    # check_error_rate(24.0,24.25)
+    # check = Check_psc24_10()
+    # check.main1()
+    # print(";a;a;")
 
 

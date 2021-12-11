@@ -420,60 +420,75 @@ class Check_psc24_10:
 
     # главная функция
     def main1(self):
-        device_status = False
-        try:
-            self.control_log.set_start(False)
-            # обработать try false и добавить метод get
-            config = self.settings.load("settings.cfg")
-            print(config)
-            soft_version = config.get("soft_version")
-            # возможно передать здесь или выше в метод first_start
-            # ip_adress = config.get("ip_adress")
-            # port = config.get("port")
-            # определяем тип блоков питания (возможно придется перенести)
-            if config.get("power_supply_type") == "wm24_10":
-                IN1 = "KL7"
-                IN2 = "KL8"
-            if config.get("power_supply_type") == "pw24_5":
-                IN1 = "KL15"
-                IN2 = "KL16"
-            BTR = "KM1"
-            count_devices = int(config.get("checked_list"))
-            # добавить формирование протокола
-            # assert self.prepare()
-            i = 1
-            device_status = True
+        self.control_log.set_start(False)
+        # обработать try false и добавить метод get
+        config = self.settings.load("settings.cfg")
+        print(config)
+        soft_version = config.get("soft_version")
+        # возможно передать здесь или выше в метод first_start
+        # ip_adress = config.get("ip_adress")
+        # port = config.get("port")
+        # определяем тип блоков питания (возможно придется перенести)
+        if config.get("power_supply_type") == "wm24_10":
+            IN1 = "KL7"
+            IN2 = "KL8"
+        if config.get("power_supply_type") == "pw24_5":
+            IN1 = "KL15"
+            IN2 = "KL16"
+        BTR = "KM1"
+        count_devices = int(config.get("checked_list"))
+        # добавить формирование протокола
+        # assert self.prepare()
+        # i = 1
+        flag = False
+        i = 1
+        while True:
             while i <= count_devices:
-                self.control_log.add("Девайс номер ", str(i), True)
-                # ОБЯЗАТЕЛЬНО В НАЧАЛЕ ЦИКЛА
-                self.main_log.set_finish(False)
-                self.main_log.set_device_count(i - 1)
+                try:
+                    if i >= count_devices:
+                        flag = True
+                    self.control_log.add("Девайс номер ", str(i), True)
+                    # ОБЯЗАТЕЛЬНО В НАЧАЛЕ ЦИКЛА
+                    self.main_log.set_finish(False)
+                    self.main_log.set_device_count(i - 1)
+                    time.sleep(2)
+                    assert self.first_start()
+                    time.sleep(2)
 
-                assert self.first_start()
-                time.sleep(2)
+                    # if i == 1:
+                    #     self.main_log.set_start(True)
+                    # else:
+                    #     self.main_log.set_start(False)
 
-                # if i == 1:
-                #     self.main_log.set_start(True)
-                # else:
-                #     self.main_log.set_start(False)
 
-                i = i + 1
-                # ОБЯЗАТЕЛЬНО В КОНЦЕ ЦИКЛА
-                self.main_log.set_finish(True)
-                # если все успешно то True
-                self.main_log.set_start(True)
-                time.sleep(2)
-            # закончить опрос backend'a
-            self.control_log.set_finish(True)
-        except AssertionError:
-            if i <= count_devices:
-                co
-            self.main_log.set_start(False)
-            self.main_log.set_finish(True)
-            time.sleep(2)
-            self.control_log.add("Тестирование", "В связи с неисправностью стенда или вспомогательных средств дальнейшая проверка невозможна", False)
-            self.control_log.set_finish(True)
+                    # ОБЯЗАТЕЛЬНО В КОНЦЕ ЦИКЛА
+                    self.main_log.set_finish(True)
+                    # если все успешно то True
+                    self.main_log.set_start(True)
+                    i = i + 1
 
+                    time.sleep(2)
+                except AssertionError:
+                    self.main_log.set_start(False)
+                    self.main_log.set_finish(True)
+                    i = i + 1
+                    time.sleep(2)
+            if flag:
+                self.control_log.add("Тестирование", "Тестирование завершено", False)
+                # закончить опрос backend'a
+                self.control_log.set_finish(True)
+                # time.sleep(2)
+                break
+
+
+                # self.control_log.add("Тестирование", "Тестирование завершено", False)
+                # # закончить опрос backend'a
+                # self.control_log.set_finish(True)
+                # self.control_log.add("Тестирование",
+                #                      "В связи с неисправностью стенда или вспомогательных средств дальнейшая проверка невозможна",
+                #                      False)
+                # self.control_log.set_finish(True)
+                # break
 #     # внутри обернуть по три попытки
 #     # проблема
 #     # добавить try except возвращать true false и метод get в котором возвращать объект соединения если соединение true

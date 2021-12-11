@@ -49,7 +49,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                   color_flag = true;
                                 }
                             } else {
-                                if (!data.device_status)
+                                if (data.device_status)
                                     colorArray[parseInt(data.device_count)].style.backgroundColor = '#ff0000';
                                 else
                                     colorArray[parseInt(data.device_count)].style.backgroundColor = '#76ff00';

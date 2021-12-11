@@ -10,8 +10,8 @@ settings = engine.Settings()
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'protocols'
+# лог диагностики
 log = engine.Log()
-main_log = engine.Log()
 # лог для управления
 control_log = engine.Log()
 # лог проверки

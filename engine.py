@@ -302,7 +302,7 @@ class Check_psc24_10:
     def prepare(self):
         # Инициализируем модули управления
         try:
-            self.main_log.add(self.name, "Инициализация модулей управления", True)
+            # self.main_log.add(self.name, "Инициализация модулей управления", True)
             # modb_dout_101 = devices.Modb().getConnection("DOUT_101", self.control_com, 101, self.control_log)
             # assert modb_dout_101
             # modb_dout_102 = devices.Modb().getConnection("DOUT_102", self.control_com, 102, self.control_log)
@@ -316,15 +316,16 @@ class Check_psc24_10:
             # modb_din_202 = devices.Modb().getConnection("DIN_202", self.control_com, 202, self.control_log)
             # assert modb_din_202
 
+            config = self.settings.load("settings.cfg")
+            self.power_supply = devices.PowerSupply(config.get("ip_adress"), config.get("port"), "ЛБП",self.control_log)
+            assert self.power_supply.connection()
+
             # self.dout_101 = devices.Dout(modb_dout_101, dout_names_101, "DOUT_101", self.control_log)
             # self.dout_102 = devices.Dout(modb_dout_102, dout_names_102, "DOUT_102", self.control_log)
             # self.dout_103 = devices.Dout(modb_dout_103, dout_names_103, "DOUT_103", self.control_log)
             # self.dout_104 = devices.Dout(modb_dout_104, dout_names_104, "DOUT_104", self.control_log)
             # self.din_201 = devices.Din(modb_din_201, din_names_201, "DIN_201", self.control_log)
             # self.din_202 = devices.Din(modb_din_202, din_names_202, "DIN_202", self.control_log)
-            config = self.settings.load("settings.cfg")
-            self.power_supply = devices.PowerSupply(config.get("ip_adress"), config.get("port"), "ЛБП", self.control_log)
-            assert self.power_supply.connection()
             return True
         except:
             self.main_log.add(self.name, "Error #1: Ошибка инициализации модулей управления", False)

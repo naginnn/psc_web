@@ -18,7 +18,10 @@ document.addEventListener('DOMContentLoaded', () => {
         document.querySelector('#log').innerHTML = "Нажал!";
         var colorArray = document.getElementsByClassName('primary-btn');
         var color_flag = true;
-
+        var standart_color = '#0000ff'
+        for (i = 0; i < 5; i++){
+            colorArray[parseInt(i)].style.backgroundColor = standart_color;
+        }
         request.open('POST', '/test');
 //        document.querySelector('#result').innerHTML = text;
 

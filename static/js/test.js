@@ -19,6 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
         var colorArray = document.getElementsByClassName('primary-btn');
         var color_flag = true;
         var standart_color = '#0000ff'
+        // var device_color = new Array();
         for (i = 0; i < 5; i++){
             colorArray[parseInt(i)].style.backgroundColor = standart_color;
         }
@@ -52,11 +53,21 @@ document.addEventListener('DOMContentLoaded', () => {
                                   color_flag = true;
                                 }
                             } else {
-                                if (data.device_status)
+                                if (data.device_status) {
                                     colorArray[parseInt(data.device_count)].style.backgroundColor = '#76ff00';
-                                else
+                                    // device_color.push('#76ff00');
+                                }
+                                else {
                                     colorArray[parseInt(data.device_count)].style.backgroundColor = '#ff0000';
+                                    // device_color.push('#ff0000');
+                                }
+
                             }
+
+                            // for (i = 0; i < device_color.length - 1; i++) {
+                            //     alert(i)
+                            //     colorArray[i].style.backgroundColor = device_color[i];
+                            // }
 
                           for (let i = 0; i < data.message.length; i++){
                             if (data.result[i])

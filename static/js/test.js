@@ -50,9 +50,9 @@ document.addEventListener('DOMContentLoaded', () => {
                                 }
                             } else {
                                 if (data.device_status)
-                                    colorArray[parseInt(data.device_count)].style.backgroundColor = '#ff0000';
-                                else
                                     colorArray[parseInt(data.device_count)].style.backgroundColor = '#76ff00';
+                                else
+                                    colorArray[parseInt(data.device_count)].style.backgroundColor = '#ff0000';
                             }
 
                           for (let i = 0; i < data.message.length; i++){

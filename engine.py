@@ -75,6 +75,14 @@ class Log:
         self.log_data.append(datetime.now().strftime('%H:%M:%S.%f')[:-4] + " " +name + ":" + " " + event + "\n")
         self.log_result.append(result)
 
+    def reset_log(self):
+        self.log = str()
+        self.log_data = []
+        self.log_result = []
+        self.start = True
+        self.finish = False
+        self.device_count = 0
+
     def get_log_result(self):
         return self.log_result
 
@@ -324,15 +332,16 @@ class Check_psc24_10:
 
     # первое включение проверки погрешности измерений тока и напряжения
     def first_start(self):
+        self.main_log.add(self.name, "Подготовка к первому запуску", True)
         # подаём 3 канала с ЛБП
         try:
             # Конфигурируем ЛБП
-            # assert self.power_supply.remote("ON")
-            # assert self.power_supply.check_remote("REMOTE")
-            # time.sleep(1)
-            # assert self.power_supply.output("ON")
-            # assert self.power_supply.check_output("ON")
-            # time.sleep(1)
+            assert self.power_supply.remote("ON")
+            assert self.power_supply.check_remote("REMOTE")
+            time.sleep(1)
+            assert self.power_supply.output("ON")
+            assert self.power_supply.check_output("ON")
+            time.sleep(1)
 
             # Выставляем напряжение ЛБП
             # assert self.power_supply.connection()
@@ -356,6 +365,7 @@ class Check_psc24_10:
             # assert self.power_supply.set_voltage(24)
             return True
         except AssertionError:
+            self.main_log.add(self.name, "Error #2: Подготовка к первому запуску не прошла", False)
             return False
 
     # Проверка порогов по напряжению
@@ -416,22 +426,20 @@ class Check_psc24_10:
             i = 1
             device_status = True
             while i <= count_devices:
+                self.control_log.add("Девайс номер ", str(i), True)
                 # ОБЯЗАТЕЛЬНО В НАЧАЛЕ ЦИКЛА
                 self.main_log.set_finish(False)
-
                 self.main_log.set_device_count(i - 1)
+
                 assert self.first_start()
-                self.control_log.add("Девайс номер ", str(i), True)
-                time.sleep(2)
+                # time.sleep(2)
 
-                if i == 1:
-                    self.main_log.set_start(True)
-                else:
-                    self.main_log.set_start(False)
+                # if i == 1:
+                #     self.main_log.set_start(True)
+                # else:
+                #     self.main_log.set_start(False)
 
-                print("Погнали устройство №: ", i)
                 i = i + 1
-
                 # ОБЯЗАТЕЛЬНО В КОНЦЕ ЦИКЛА
                 self.main_log.set_finish(True)
                 # self.main_log.set_start(True)
@@ -441,6 +449,7 @@ class Check_psc24_10:
         except AssertionError:
             self.main_log.set_start(False)
             self.main_log.set_finish(True)
+            time.sleep(2)
             self.control_log.add("Тестирование", "В связи с неисправностью стенда или вспомогательных средств дальнейшая проверка невозможна", False)
             self.control_log.set_finish(True)
 

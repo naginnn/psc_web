@@ -187,16 +187,16 @@ class PowerSupply:
         self.name = name
         self.log = log
         self.socket = socket.socket()
-
+    # добавить 3 попытки
     def connection(self):
         try:
             self.log.add(self.name, "Установка соединения по адресу: " + self.ip_adress + ":" + self.port, True)
             self.socket.connect((self.ip_adress, int(self.port)))
             self.socket.send("*IDN?\n".encode())
             if (str(self.socket.recv(100)).find("Elektro-Automatik") != -1):
-                self.log.add(self.name, "Соединение по адресу: " + self.ip_adress + ":" + self.port + " установлено", True)
                 self.socket.send("SYSTem:LOCK ON\n".encode())
-                # self.socket.close()
+                self.log.add(self.name, "Соединение по адресу: " + self.ip_adress + ":" + self.port + " установлено",True)
+                self.socket.close()
                 return True
             else:
                 self.log.add(self.name, "Соединение по адресу: " + self.ip_adress + ":" + self.port + " не установлено", False)
@@ -209,52 +209,58 @@ class PowerSupply:
 
     def remote(self, on_off):
         i = 0
+        self.log.add(self.name, "Установка режима REMOTE: " + on_off, True)
         while True:
             try:
                 self.socket = socket.socket()
                 self.socket.connect((self.ip_adress, int(self.port)))
-                self.log.add(self.name, "Переключение режима ЛБП REMOTE: " + on_off, True)
                 message = "SYSTem:LOCK " + on_off + "\n"
                 self.socket.send(message.encode())
                 self.socket.close()
+                self.log.add(self.name, "Режим REMOTE: " + on_off + " установлен", True)
                 return True
             except:
                 if i == 3:
-                    self.log.add(self.name, "Невозможно переключить в режим ЛБП REMOTE" + on_off, False)
+                    self.log.add(self.name, "Неудалось установить режим REMOTE:" + on_off, False)
                     return False
-                self.log.add(self.name, "Попытка переключения режима ЛБП REMOTE №: " + str(i + 1) + on_off, True)
+                self.log.add(self.name, "Попытка установки режима REMOTE №: " + str(i + 1) + " " + on_off, True)
                 i = i + 1
 
     def check_remote(self, on_off):
-        try:
-            self.socket = socket.socket()
-            self.socket.connect((self.ip_adress, int(self.port)))
-            i = 0.5
-            while True:
+        i = 0
+        self.log.add(self.name, "Проверка установки режима REMOTE: " + on_off, True)
+        while True:
+            try:
+                self.socket = socket.socket()
+                self.socket.connect((self.ip_adress, int(self.port)))
                 self.socket.send("SYSTem:LOCK:OWNer?".encode())
                 param = str(self.socket.recv(100)).find(on_off)
                 if (param != -1):
-                    self.log.add(self.name, "Подача команды " + on_off + " на ЛБП успешно прошла", True)
+                    self.log.add(self.name, "Режим REMOTE: " + on_off + " соответствует", True)
                     self.socket.close()
                     return True
                 else:
-                    self.log.add(self.name, "Подача команды " + on_off + " на ЛБП не прошла", False)
+                    self.log.add(self.name, "Режим REMOTE: " + on_off + " не соответствует", False)
                     self.socket.close()
                     return False
                 i = i + 0.5
                 time.sleep(i)
-        except:
-            self.log.add(self.name, "Подача команды " + on_off + " на ЛБП не прошла", False)
-            return False
+            except:
+                if i == 3:
+                    self.log.add(self.name, "Неудалось проверить установку режима REMOTE " + on_off, False)
+                    return False
+                self.log.add(self.name, "Попытка проверки установки режима REMOTE: " + on_off + " № " + str(i + 1), True)
+                i = i + 1
+                time.sleep(i)
 
     def set_voltage(self, value):
         i = 0
         voltage = str(value)
         while True:
             try:
+                self.log.add(self.name, "Подача команды установить напряжение " + voltage + " В", True)
                 self.socket = socket.socket()
                 self.socket.connect((self.ip_adress, int(self.port)))
-                self.log.add(self.name, "Подача команды установить напряжение " + voltage + " В", True)
                 message = "SOURce:VOLTage " + voltage + "\n"
                 self.socket.send(message.encode())
                 self.socket.recv(10)
@@ -274,54 +280,75 @@ class PowerSupply:
         i = 0
         while True:
             try:
+                self.log.add(self.name, "Проверка установленно напряжения " + str(value) + " В", True)
                 self.socket = socket.socket()
                 self.socket.connect((self.ip_adress, int(self.port)))
                 self.socket.send("MEAS:VOLT?\n".encode())
                 voltage = number_func(str(self.socket.recv(10)))
                 if ((round(float(voltage)) == round(value)) and round(float(voltage)) != 0):
-                    self.log.add(self.name, "Напряжение " + str(value) + " В" + " установленно", True)
                     self.socket.close()
+                    self.log.add(self.name, "Установленное напряжение " + str(value) + " В" + " соответствует", True)
                     return True
                 if ((round(float(voltage)) != round(value)) and round(float(voltage)) != 0):
                     if (i == 3):
-                        self.log.add(self.name, "Значение напряжения отличается " + str(value) + " В" + " не прошла",False)
                         self.socket.close()
+                        self.log.add(self.name, "Значение установленного и фактического напряжения отличаются " + str(value) + " В", False)
                         return False
                     i = i + 1
                     time.sleep(i)
             except:
                 if (i == 3):
-                    self.log.add(self.name, "Невозможно получить значение напряжения " + voltage + " В", False)
+                    self.log.add(self.name, "Невозможно получить значение установленного напряжения " + voltage + " В", False)
                     return False
-                self.log.add(self.name, "Попытка получить значение напряжения " + voltage + " В №" + str(i + 1), True)
+                self.log.add(self.name, "Попытка получить значение установленного напряжения " + voltage + " В № " + str(i + 1), True)
                 i = i + 1
                 time.sleep(i)
 
     def output(self, on_off):
-        self.socket = socket.socket()
-        self.socket.connect((self.ip_adress, int(self.port)))
-        self.log.add(self.name, "Подача команды на включение выхода ЛБП", True)
-        message = "OUTPut " + on_off + "\n"
-        self.socket.send(message.encode())
-        self.socket.close()
+        i = 0
+        self.log.add(self.name, "Установка режима OUTPUT: " + on_off, True)
+        while True:
+            try:
+                self.socket = socket.socket()
+                self.socket.connect((self.ip_adress, int(self.port)))
+                message = "OUTPut " + on_off + "\n"
+                self.socket.send(message.encode())
+                self.socket.close()
+                self.log.add(self.name, "Режим OUTPUT: " + on_off + " установлен", True)
+                return True
+            except:
+                if i == 3:
+                    self.log.add(self.name, "Неудалось установить режим OUTPUT:" + on_off, False)
+                    return False
+                self.log.add(self.name, "Попытка установки режима OUTPUT №: " + str(i + 1) + " " + on_off, True)
+                i = i + 1
+                time.sleep(i)
 
     def check_output(self, on_off):
-        self.socket = socket.socket()
-        self.socket.connect((self.ip_adress, int(self.port)))
-        i = 0.5
+        i = 0
+        self.log.add(self.name, "Проверка установки режима OUTPUT: " + on_off, True)
         while True:
-            self.socket.send("OUTPut?".encode())
-            param = str(self.socket.recv(100)).find(on_off)
-            if (param != -1):
-                self.log.add(self.name, "Подача команды " + on_off + " на ЛБП успешно прошла", True)
-                self.socket.close()
-                return True
-            else:
-                self.log.add(self.name, "Подача команды " + on_off + " на ЛБП не прошла", False)
-                self.socket.close()
-                return False
-            i = i + 0.5
-            time.sleep(i)
+            try:
+                self.socket = socket.socket()
+                self.socket.connect((self.ip_adress, int(self.port)))
+                self.socket.send("OUTPut?".encode())
+                param = str(self.socket.recv(100)).find(on_off)
+                if (param != -1):
+                    self.log.add(self.name, "Режим OUTPUT: " + on_off + " соответствует", True)
+                    self.socket.close()
+                    return True
+                else:
+                    self.socket.close()
+                    self.log.add(self.name, "Режим OUTPUT: " + on_off + " не соответствует", False)
+                    return False
+            except:
+                if i == 3:
+                    self.log.add(self.name, "Неудалось проверить установку режима OUTPUT: " + on_off, False)
+                    return False
+                self.log.add(self.name, "Попытка проверки установки режима OUTPUT: " + on_off + " № " + str(i + 1), True)
+                i = i + 1
+                time.sleep(i)
+
 
 
 

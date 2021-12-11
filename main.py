@@ -40,8 +40,10 @@ def test_worker():
     control_log.set_finish(False)
     while True:
         print("ТЕСТ!")
-        control_log.log_clear_data()
-        control_log.log_clear_result()
+        # control_log.log_clear_data()
+        # control_log.log_clear_result()
+        control_log.reset_log()
+        main_log.reset_log()
         psc_test = engine.Check_psc24_10("Тестирование", control_log, "com44", main_log, "com44", settings)
         psc_test.main1()
         # lock.acquire()

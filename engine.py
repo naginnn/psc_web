@@ -119,7 +119,8 @@ class Log:
 
 
 
-# диагностика стенда (исправить, бомжатская)
+# диагностика стенда (исправить, бомжатская) не будет работать другая инициализация модулей управления
+# изменить цикл включения отключения
 class Diagnostics:
     def __init__(self,name, log):
         self.name = name
@@ -268,7 +269,7 @@ class Check_psc24_10:
                     }
     # предполагаемое поведение
     behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 0, "error_pwr2": 0, "error_btr": 0,
-                 "error_out1": 0, "error_out2": 0, "charge_btr": 0, "ten": 0, "apts": 0}
+                 "error_out1": 0, "error_out2": 0, "charge_btr": 1, "ten": 0, "apts": 0}
 
     # списки для будущего протокола
     serial_number = {'Серийный номер': [' ']}
@@ -287,6 +288,7 @@ class Check_psc24_10:
     dout_104 = ()
     dout_201 = ()
     dout_202 = ()
+    psc24_10 = ()
     power_supply = ()
 
     # добавляем два лога и ком-порт модулям управления и psc
@@ -302,60 +304,50 @@ class Check_psc24_10:
     def prepare(self):
         # Инициализируем модули управления
         try:
-            # self.main_log.add(self.name, "Инициализация модулей управления", True)
-            # modb_dout_101 = devices.Modb().getConnection("DOUT_101", self.control_com, 101, self.control_log)
-            # assert modb_dout_101
-            # modb_dout_102 = devices.Modb().getConnection("DOUT_102", self.control_com, 102, self.control_log)
-            # assert modb_dout_102
-            # modb_dout_103 = devices.Modb().getConnection("DOUT_103", self.control_com, 103, self.control_log)
-            # assert modb_dout_103
-            # modb_dout_104 = devices.Modb().getConnection("DOUT_104", self.control_com, 104, self.control_log)
-            # assert modb_dout_104
-            # modb_din_201 = devices.Modb().getConnection("DIN_201", self.control_com, 201, self.control_log)
-            # assert modb_din_201
-            # modb_din_202 = devices.Modb().getConnection("DIN_202", self.control_com, 202, self.control_log)
-            # assert modb_din_202
+            self.control_log.add(self.name, "Инициализация модулей управления", True)
+            modb_dout_101 = devices.Modb()
+            assert modb_dout_101.getConnection("DOUT_101", self.control_com, 101, self.control_log)
+            modb_dout_102 = devices.Modb()
+            assert modb_dout_102.getConnection("DOUT_102", self.control_com, 102, self.control_log)
+            modb_dout_103 = devices.Modb()
+            assert modb_dout_103.getConnection("DOUT_103", self.control_com, 103, self.control_log)
+            modb_dout_104 = devices.Modb()
+            assert modb_dout_104.getConnection("DOUT_104", self.control_com, 104, self.control_log)
+            modb_din_201 = devices.Modb()
+            assert modb_din_201.getConnection("DIN_201", self.control_com, 201, self.control_log)
+            modb_din_202 = devices.Modb()
+            assert modb_din_202.getConnection("DIN_202", self.control_com, 202, self.control_log)
 
             config = self.settings.load("settings.cfg")
             self.power_supply = devices.PowerSupply(config.get("ip_adress"), config.get("port"), "ЛБП",self.control_log)
             assert self.power_supply.connection()
 
-            # self.dout_101 = devices.Dout(modb_dout_101, dout_names_101, "DOUT_101", self.control_log)
-            # self.dout_102 = devices.Dout(modb_dout_102, dout_names_102, "DOUT_102", self.control_log)
-            # self.dout_103 = devices.Dout(modb_dout_103, dout_names_103, "DOUT_103", self.control_log)
-            # self.dout_104 = devices.Dout(modb_dout_104, dout_names_104, "DOUT_104", self.control_log)
-            # self.din_201 = devices.Din(modb_din_201, din_names_201, "DIN_201", self.control_log)
-            # self.din_202 = devices.Din(modb_din_202, din_names_202, "DIN_202", self.control_log)
+            self.dout_101 = devices.Dout(modb_dout_101.getСonnectivity(), dout_names_101, "DOUT_101", self.control_log)
+            self.dout_102 = devices.Dout(modb_dout_102.getСonnectivity(), dout_names_102, "DOUT_102", self.control_log)
+            self.dout_103 = devices.Dout(modb_dout_103.getСonnectivity(), dout_names_103, "DOUT_103", self.control_log)
+            self.dout_104 = devices.Dout(modb_dout_104.getСonnectivity(), dout_names_104, "DOUT_104", self.control_log)
+            self.din_201 = devices.Din(modb_din_201.getСonnectivity(), din_names_201, "DIN_201", self.control_log)
+            self.din_202 = devices.Din(modb_din_202.getСonnectivity(), din_names_202, "DIN_202", self.control_log)
             return True
         except:
-            self.main_log.add(self.name, "Error #1: Ошибка инициализации модулей управления", False)
+            self.control_log.add(self.name, "Error #1: Ошибка инициализации модулей управления", False)
             return False
 
     # первое включение проверки погрешности измерений тока и напряжения
+    # работаем здесь
     def first_start(self):
-        self.main_log.add(self.name, "Подготовка к первому запуску", True)
+        self.control_log.add(self.name, "Подготовка к первому запуску", True)
         # подаём 3 канала с ЛБП
         try:
-            # Конфигурируем ЛБП
-            assert self.power_supply.remote("ON")
-            assert self.power_supply.check_remote("REMOTE")
-            time.sleep(1)
-            assert self.power_supply.output("ON")
-            assert self.power_supply.check_output("ON")
-            time.sleep(1)
-
-            # Выставляем напряжение ЛБП
-            # assert self.power_supply.connection()
-            assert self.power_supply.set_voltage(30)
-            assert self.power_supply.check_voltage(30)
-            time.sleep(1)
-
-            # # Подаём IN1 с ЛБП
-            # assert self.dout_102.command("KL30", "ON")
-            # assert self.din_201.check_voltage("KL30", "ON")
+            # # Конфигурируем ЛБП
+            # assert self.power_supply.remote("ON")
+            # assert self.power_supply.check_remote("REMOTE")
             # time.sleep(1)
-
-            # Подключаем входа
+            # assert self.power_supply.output("ON")
+            # assert self.power_supply.check_output("ON")
+            # time.sleep(1)
+            #
+            # # Подключаем входа
             # assert self.dout_102.command("KL30", "ON")
             # assert self.din_201.check_voltage("KL30", "ON")
             # assert self.dout_102.command("KL31", "ON")
@@ -364,8 +356,36 @@ class Check_psc24_10:
             # assert self.din_201.check_voltage("KL33", "ON")
             # assert self.power_supply.connection()
             # assert self.power_supply.set_voltage(24)
+            # ждем включения
+            # получаем системное время и пытаемся прочитать с утройства
+            # правильная инициализация modbus
+            modb_psc24_10 = devices.Modb()
+            assert modb_psc24_10.getConnection("PSC24_10", "com2", 1, self.control_log)
+            self.psc24_10 = devices.Psc_10(modb_psc24_10.getСonnectivity(), "PSC24_10", self.control_log)
+
+            # for _ in range(60):
+            #     if self.psc24_10.check_behaviour(self.behaviour):
+            #         self.control_log.add(self.name, "Устройтво успешно включилось", True)
+            #         break
+            #     else:
+            #         self.control_log.add(self.name, "Ожидание включения устройства", True)
+            #     time.sleep(1 - time.time() % 1)
+
+            # time.sleep(60)
+            assert self.psc24_10.check_behaviour(self.behaviour)
+            eeprom = read_write_eeprom.ReadWriteEEprom(self.control_log, self.device_com, 115200)
+            assert eeprom.read_soft_version()
+            config = self.settings.load("settings.cfg")
+            soft_version = config.get("soft_version")
+            if eeprom.get_soft_version() == soft_version:
+                self.soft_version['Фактическая'] = [eeprom.get_soft_version()]
+                self.control_log.add(self.name, "Версия прошивки совпадает с актуальной: " + eeprom.get_soft_version() + " = " + soft_version, True)
+            else:
+                self.soft_version['Фактическая'] = [eeprom.get_soft_version()]
+                self.control_log.add(self.name, "Не актуальная версия прошивки: " + eeprom.get_soft_version() + " != " + soft_version, False)
+                assert False
             return True
-        except AssertionError:
+        except:
             self.main_log.add(self.name, "Error #2: Подготовка к первому запуску не прошла", False)
             return False
 
@@ -378,8 +398,6 @@ class Check_psc24_10:
             assert self.din_201.check_voltage("KL31", "ON")
             assert self.dout_102.command("KL33", "ON")
             assert self.din_201.check_voltage("KL33", "ON")
-            assert self.power_supply.connection()
-            assert self.power_supply.set_voltage(24)
         except AssertionError:
             print("Boroda")
 
@@ -405,7 +423,6 @@ class Check_psc24_10:
         device_status = False
         try:
             self.control_log.set_start(False)
-            eeprom = read_write_eeprom.ReadWriteEEprom(self.control_log, self.device_com, 115200)
             # обработать try false и добавить метод get
             config = self.settings.load("settings.cfg")
             print(config)
@@ -423,7 +440,7 @@ class Check_psc24_10:
             BTR = "KM1"
             count_devices = int(config.get("checked_list"))
             # добавить формирование протокола
-            assert self.prepare()
+            # assert self.prepare()
             i = 1
             device_status = True
             while i <= count_devices:
@@ -433,7 +450,7 @@ class Check_psc24_10:
                 self.main_log.set_device_count(i - 1)
 
                 assert self.first_start()
-                # time.sleep(2)
+                time.sleep(2)
 
                 # if i == 1:
                 #     self.main_log.set_start(True)
@@ -443,7 +460,8 @@ class Check_psc24_10:
                 i = i + 1
                 # ОБЯЗАТЕЛЬНО В КОНЦЕ ЦИКЛА
                 self.main_log.set_finish(True)
-                # self.main_log.set_start(True)
+                # если все успешно то True
+                self.main_log.set_start(True)
                 time.sleep(2)
             # закончить опрос backend'a
             self.control_log.set_finish(True)

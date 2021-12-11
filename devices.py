@@ -34,7 +34,7 @@ def number_func(str):
         return float(0)
 
 class Modb:
-    instrument = ()
+    connect = ()
     def getConnection(self, name, port, slave_adress, log):
         try:
             self.log = log
@@ -47,6 +47,7 @@ class Modb:
             self.instrument.close_port_after_each_call = True
             self.instrument.clear_buffers_before_each_transaction = True
             self.log.add("Connection:", "Соединение с модулем " + name + " установлено", True)
+            self.connect = self.instrument
             return True
         except:
             self.log.add("Connection:", "Ошибка соединения с модулем " + name, False)
@@ -54,7 +55,7 @@ class Modb:
 
     # если соединение заебато
     def getСonnectivity(self):
-        return self.instrument
+        return self.connect
 
 
 class Dout:
@@ -392,24 +393,29 @@ class Psc_10:
                     return False
                 i = i + 1
                 time.sleep(i)
-
+    # вероятно необходимо разделить
     def check_behaviour(self, behaviour):
+        self.log.add(self.name, "Запрос состояния устройства", True)
         dict = self.get_all_ts()
         i = 0
         if (dict != False):
             for key in behaviour:
                 if behaviour[key] != dict[i]:
-                    self.log.add(self.name, "Состояние устройства не соответствует действительности", True)
+                    self.log.add(self.name, "Состояние устройства не соответствует действительности", False)
                     return False
                 i = i + 1
             self.log.add(self.name, "Состояние устройства соответствует", True)
             return True
+        else:
+            self.log.add(self.name, "Устройство недоступно", False)
+            return False
+
 
     def get_all_ts(self):
         i = 0
         while True:
             try:
-                dict = self.instrument.read_registers(1, 13, 4)
+                dict = self.instrument.read_registers(1, 13, 3)
                 if (len(dict) == 13):
                     self.log.add(self.name, "Состояние получено", True)
                     return dict
@@ -532,6 +538,7 @@ if __name__ == '__main__':
     #         din_202 = Din(modb_din_202, din_names_202, "DIN_202", log)
     #         # instrument.read_float
     #         power_supply = PowerSupply("192.168.0.5", "5025", "ЛБП", log)
+    #         modb_psc24_10 = Modb().getConnection("PSC24_10", 'com1', 1, log)
     #         psc24_10 = Psc_10(modb_psc24_10, "PSC24_10", log)
     #
     #         print(log.get_log())

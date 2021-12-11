@@ -20,8 +20,8 @@ document.addEventListener('DOMContentLoaded', () => {
         var color_flag = true;
         var standart_color = '#0000ff'
         // var device_color = new Array();
-        for (i = 0; i < 5; i++){
-            colorArray[parseInt(i)].style.backgroundColor = standart_color;
+        for (i = 0; i < 4; i++){
+            colorArray[i].style.backgroundColor = standart_color;
         }
         request.open('POST', '/test');
 //        document.querySelector('#result').innerHTML = text;

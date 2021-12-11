@@ -466,6 +466,8 @@ class Check_psc24_10:
             # закончить опрос backend'a
             self.control_log.set_finish(True)
         except AssertionError:
+            if i <= count_devices:
+                co
             self.main_log.set_start(False)
             self.main_log.set_finish(True)
             time.sleep(2)

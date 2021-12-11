@@ -68,7 +68,7 @@ class Log:
     log_result = []
     start = True
     finish = False
-    device_count = ()
+    device_count = 0
 
     def add(self, name, event, result):
         self.log = self.log + datetime.now().strftime('%H:%M:%S.%f')[:-4] + " " + name + ":" + " " + event + "\n"
@@ -294,26 +294,26 @@ class Check_psc24_10:
     def prepare(self):
         # Инициализируем модули управления
         try:
-            # self.main_log.add(self.name, "Инициализация модулей управления", True)
-            # modb_dout_101 = devices.Modb().getConnection("DOUT_101", self.control_com, 101, self.control_log)
-            # assert modb_dout_101
-            # modb_dout_102 = devices.Modb().getConnection("DOUT_102", self.control_com, 102, self.control_log)
-            # assert modb_dout_102
-            # modb_dout_103 = devices.Modb().getConnection("DOUT_103", self.control_com, 103, self.control_log)
-            # assert modb_dout_103
-            # modb_dout_104 = devices.Modb().getConnection("DOUT_104", self.control_com, 104, self.control_log)
-            # assert modb_dout_104
-            # modb_din_201 = devices.Modb().getConnection("DIN_201", self.control_com, 201, self.control_log)
-            # assert modb_din_201
-            # modb_din_202 = devices.Modb().getConnection("DIN_202", self.control_com, 202, self.control_log)
-            # assert modb_din_202
-            #
-            # self.dout_101 = devices.Dout(modb_dout_101, dout_names_101, "DOUT_101", self.control_log)
-            # self.dout_102 = devices.Dout(modb_dout_102, dout_names_102, "DOUT_102", self.control_log)
-            # self.dout_103 = devices.Dout(modb_dout_103, dout_names_103, "DOUT_103", self.control_log)
-            # self.dout_104 = devices.Dout(modb_dout_104, dout_names_104, "DOUT_104", self.control_log)
-            # self.din_201 = devices.Din(modb_din_201, din_names_201, "DIN_201", self.control_log)
-            # self.din_202 = devices.Din(modb_din_202, din_names_202, "DIN_202", self.control_log)
+            self.main_log.add(self.name, "Инициализация модулей управления", True)
+            modb_dout_101 = devices.Modb().getConnection("DOUT_101", self.control_com, 101, self.control_log)
+            assert modb_dout_101
+            modb_dout_102 = devices.Modb().getConnection("DOUT_102", self.control_com, 102, self.control_log)
+            assert modb_dout_102
+            modb_dout_103 = devices.Modb().getConnection("DOUT_103", self.control_com, 103, self.control_log)
+            assert modb_dout_103
+            modb_dout_104 = devices.Modb().getConnection("DOUT_104", self.control_com, 104, self.control_log)
+            assert modb_dout_104
+            modb_din_201 = devices.Modb().getConnection("DIN_201", self.control_com, 201, self.control_log)
+            assert modb_din_201
+            modb_din_202 = devices.Modb().getConnection("DIN_202", self.control_com, 202, self.control_log)
+            assert modb_din_202
+
+            self.dout_101 = devices.Dout(modb_dout_101, dout_names_101, "DOUT_101", self.control_log)
+            self.dout_102 = devices.Dout(modb_dout_102, dout_names_102, "DOUT_102", self.control_log)
+            self.dout_103 = devices.Dout(modb_dout_103, dout_names_103, "DOUT_103", self.control_log)
+            self.dout_104 = devices.Dout(modb_dout_104, dout_names_104, "DOUT_104", self.control_log)
+            self.din_201 = devices.Din(modb_din_201, din_names_201, "DIN_201", self.control_log)
+            self.din_202 = devices.Din(modb_din_202, din_names_202, "DIN_202", self.control_log)
             config = self.settings.load("settings.cfg")
             self.power_supply = devices.PowerSupply(config.get("ip_adress"), config.get("port"), "ЛБП", self.control_log)
             return True
@@ -438,6 +438,8 @@ class Check_psc24_10:
             # закончить опрос backend'a
             self.control_log.set_finish(True)
         except AssertionError:
+            self.main_log.set_start(False)
+            self.main_log.set_finish(True)
             self.control_log.add("Тестирование", "В связи с неисправностью стенда или вспомогательных средств дальнейшая проверка невозможна", False)
             self.control_log.set_finish(True)
 

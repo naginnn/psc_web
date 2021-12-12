@@ -116,9 +116,6 @@ class Log:
     def get_device_count(self):
         return self.device_count
 
-
-
-
 # диагностика стенда (исправить, бомжатская) не будет работать другая инициализация модулей управления
 # изменить цикл включения отключения
 class Diagnostics:
@@ -254,12 +251,12 @@ def check_error_rate(u_nom, u_fact):
     print("Фактическое значение ", u_fact)
     print("bad")
     return False
+
 # Проверка устройства psc24_10
 class Check_psc24_10:
 
     # создаем список с измерениями
-    measurements = {"SERIAL_NUMBER" : "",
-                    "IN1": {"u_nom" : 0.0, "u_fact" : 0.0, "error_rate" : 0.0},
+    measurements = {"IN1": {"u_nom" : 0.0, "u_fact" : 0.0, "error_rate" : 0.0},
                     "IN2": {"u_nom": 0.0, "u_fact": 0.0, "error_rate": 0.0},
                     "IN3": {"u_nom": 0.0, "u_fact": 0.0, "error_rate": 0.0},
                     "U_OUT1": {"u_nom": 0.0, "u_fact": 0.0, "error_rate": 0.0},
@@ -274,8 +271,8 @@ class Check_psc24_10:
     # списки для будущего протокола
     serial_number = {'Серийный номер': [' ']}
     soft_version = {'Версия ПО': ['1.2.3.8'],'Фактическая': [' ']}
-    voltage = {'Канал, U': ['IN1', 'IN2', 'IN3', 'IN4'], 'Uном': ['', '', '', ''], 'Uфакт': ['', '', '', ''], 'Uдельта': ['', '', '', '']}
-    current = { 'Канал, I': ['OUT1', 'OUT2', '', ''], 'Iном': ['', '', '', ''], 'Iфакт': ['', '', '', ''], 'Iдельта': ['', '', '', '']}
+    voltage = {'Канал, U': ['IN1', 'IN2', 'IN3', 'IN4'], 'Unom': ['', '', '', ''], 'Ufact': ['', '', '', ''], 'Uerror_rate': ['', '', '', '']}
+    current = { 'Канал, I': ['OUT1', 'OUT2', '', ''], 'Inom': ['', '', '', ''], 'Ifact': ['', '', '', ''], 'Ierror_rate': ['', '', '', '']}
     voltage_threesolds = {'Пороги по напряжению': ['min', 'nom', 'max', ''], 'U': ['', '', '', ''], 'Результат': ['', '', '', '']}
     switching_channels = {'Переключение каналов': ['Под Imin 0A', 'Под Imax 10A', '', ''], 'Канал 1': ['', '', '', ''], 'Время, t': ['', '', '', ''], 'Канал 2': ['', '', '', '']}
     ten = {'Работа ТЭН': [' ']}
@@ -290,6 +287,9 @@ class Check_psc24_10:
     dout_202 = ()
     psc24_10 = ()
     power_supply = ()
+    IN1 = ""
+    IN2 = ""
+    BTR = "KM1"
 
     # добавляем два лога и ком-порт модулям управления и psc
     def __init__(self, name, control_log, control_com, main_log, device_com, settings):
@@ -333,8 +333,7 @@ class Check_psc24_10:
             self.control_log.add(self.name, "Error #1: Ошибка инициализации модулей управления", False)
             return False
 
-    # первое включение проверки погрешности измерений тока и напряжения
-    # работаем здесь
+    # первое включение проверка состояния
     def first_start(self):
         self.control_log.add(self.name, "Stage 2 Подготовка к первому запуску", True)
         # подаём 3 канала с ЛБП
@@ -368,7 +367,7 @@ class Check_psc24_10:
         except:
             self.control_log.add(self.name, "Error #2: Подготовка к первому запуску не прошла", False)
             return False
-
+    #  считывание и проверка конфигурации # работаем здесь
     def configurate_check(self):
         self.control_log.add(self.name, "Stage 3 Проверка и запись конфигурации", True)
         try:
@@ -390,6 +389,19 @@ class Check_psc24_10:
             # считываем серийный номер
             assert eeprom.read_serial_number()
             self.serial_number['Серийный номер'] = [eeprom.get_serial_number()]
+            # читаем конфигурацию assert/ получать setting getter'ом
+            config = self.settings.load("settings.cfg")
+            # выбираем блоки
+            if config.get("power_supply_type") == "wm24_10":
+                self.IN1 = "KL7"
+                self.IN2 = "KL8"
+            if config.get("power_supply_type") == "pw24_5":
+                self.IN1 = "KL15"
+                self.IN2 = "KL16"
+
+            assert self.psc24_10.check_ti("U_IN1")
+            self.control_log.add(self.name, "Напряжение IN1 " + str(self.psc24_10.get_ti()), True)
+
             return True
         except:
             self.control_log.add(self.name, "Error #3: Ошибка при проверке и записи конфигурации", False)
@@ -420,28 +432,12 @@ class Check_psc24_10:
     def crash_mode(self):
         print("Режим перегрузки")
 
-    # проверка состояния устройства
-    def check_device(self, psc24_10):
-        print("Проверка устройства")
 
     # главная функция
     def main1(self):
         self.control_log.set_start(False)
         # обработать try false и добавить метод get
         config = self.settings.load("settings.cfg")
-        print(config)
-        soft_version = config.get("soft_version")
-        # возможно передать здесь или выше в метод first_start
-        # ip_adress = config.get("ip_adress")
-        # port = config.get("port")
-        # определяем тип блоков питания (возможно придется перенести)
-        if config.get("power_supply_type") == "wm24_10":
-            IN1 = "KL7"
-            IN2 = "KL8"
-        if config.get("power_supply_type") == "pw24_5":
-            IN1 = "KL15"
-            IN2 = "KL16"
-        BTR = "KM1"
         count_devices = int(config.get("checked_list"))
         # добавить формирование протокола
         # assert self.prepare()
@@ -458,7 +454,6 @@ class Check_psc24_10:
                     self.main_log.set_finish(False)
                     self.main_log.set_device_count(i - 1)
                     time.sleep(2)
-
                     assert self.first_start()
                     time.sleep(2)
                     assert self.configurate_check()

@@ -5,7 +5,6 @@ import minimalmodbus
 import engine
 import time
 from datetime import datetime
-from accessify import implements, private
 
 dout_names_101 = {"KL1":81,"KL2":82,"KL3":83,"KL4":84,"KL5":85,"KL6":86,"KL7":87,"KL8":88,"KL9":89,"KL10":90,"KL11":91,"KL12":92,"KL13":93,"KL14":94,"KL15":95,"KL16":96}
 dout_names_102 = {"KL17":81,"KL18":82,"KL19":83,"KL20":84,"KL21":85,"KL22":86,"KL23":87,"KL24":88,"KL25":89,"KL26":90,"KL27":91,"KL28":92,"KL29":93,"KL30":94,"KL31":95,"KL32":96}
@@ -25,6 +24,8 @@ din_names_202 = {"KL33":"ЛБП U4 - U на IN4","KM1":"АКБ #1 - IN 3,4","KM2
                  "KM18": "Коротокое замыкание на R1(реостат)", "KM19": "Коротокое замыкание на R2(коммутаторы)","KM12": "Прибавить 5А(коммутаторы)", "KM13": "Прибавить 10А(коммутаторы)",
                  "SF4": "Цепь IN1", "SF5": "Цепь IN2", "SF6": "Цепь IN3", "SF7": "Цепь IN4","KM20": "Прибавить 20А(реостат)", "KM21": "Прибавить 40А(реостат)", "KM22": "Прибавить 40А(реостат)", "KM23": "Прибавить 80А(реостат)",
                  "KL34": "Обрыв связи с датчиком"}
+psc10_numbers_ti = {"U_IN1":257, "U_IN2":259, "U_IN3":261, "U_OUT1":263, "U_OUT2":265, "I_OUT1":267, "I_OUT2":269, "I_PWR_BTR":271, "U_PWR_BTR":273, "T1":275,
+                      "T2":277, "T3":279, "T4":281, "T5":283}
 
 
 def number_func(str):
@@ -34,7 +35,7 @@ def number_func(str):
         return float(num[0])
     except:
         return float(0)
-
+# соединение modbus
 class Modb:
     connect = ()
     def getConnection(self, name, port, slave_adress, log):
@@ -58,8 +59,7 @@ class Modb:
     # если соединение заебато
     def getСonnectivity(self):
         return self.connect
-
-
+# функции DOUT
 class Dout:
     def __init__(self, instrument,dout_names,name,log):
         self.instrument = instrument
@@ -139,7 +139,8 @@ class Dout:
                 self.log.add(self.name, "Попытка подать команду " + status + " №" + str(i + 1), True)
                 time.sleep(i)
                 i = i + 1
-# переделать функционал повторения при неудачной попытки подачи команды
+# переделать функционал повторения при неудачной попытки подачи
+# функции DIN
 class Din:
     def __init__(self, instrument, din_names, name, log):
         self.instrument = instrument
@@ -182,7 +183,7 @@ class Din:
                 return False
             i = i + 1
             time.sleep(i)
-
+# функции ЛБП
 class PowerSupply:
     def __init__(self, ip_adress, port, name, log):
         self.ip_adress = ip_adress
@@ -364,12 +365,15 @@ class PowerSupply:
     # OUTPut OFF // отключить выход
     # MEAS:CURR? // текущий ток блока питания
     # SOUR:VOLTAGE 25 // текущее напряжение блока питания
-# задать предполагаемое поведение
+# функции проверяемого устройства
 class Psc_10:
     psc10_names_ts = ["IN1", "IN2", "IN3", "OUT1", "OUT2", "ERROR_OUT1", "ERROR_OUT2", "ERROR_BTR", "ERROR_I_OUT1",
                       "ERROR_I_OUT2", "PWR_BTR", "TEN", "APTC"]
-    psc10_names_ti = {"U_IN1":257, "U_IN2":259, "U_IN3":261, "U_OUT1":263, "U_OUT2":265, "I_OUT1":267, "I_OUT2":269, "I_PWR_BTR":271, "U_PWR_BTR":273, "T1":275,
-                      "T2":277, "T3":279, "T4":281, "T5":283}
+
+    psc10_measurements = {"U_IN1": 0.0, "U_IN2": 0.0, "U_IN3": 0.0, "U_OUT1": 0.0, "U_OUT2": 0.0, "I_OUT1": 0.0,
+                          "I_OUT2": 0.0, "I_PWR_BTR": 0.0, "U_PWR_BTR": 0.0, "T1": 0.0,
+                          "T2": 0.0, "T3": 0.0, "T4": 0.0, "T5": 0.0}
+    measurement = 0.0
     device_status = False
 
     def __init__(self, instrument, name, log):
@@ -377,29 +381,83 @@ class Psc_10:
         self.name = name
         self.log = log
 
-    def get_ti(self,name_signal):
-        i = 0
-        while True:
+    # расчет процента
+    def percentage(self, percent, whole):
+        return (percent * whole) / 100.0
+    # рассчитываем погрешности
+    def check_error_rate(self, u_nom, u_fact):
+        u_delta = self.percentage(1, u_nom)
+        print("Погрешность 1%: ", u_delta, "от ", u_nom)
+        u_max = u_nom + u_delta
+        u_min = u_nom - u_delta
+        if (u_fact >= u_min) and (u_fact <= u_max):
+            print("Максимальное значение ", u_max)
+            print("Минимальное значение ", u_min)
+            print("Фактическое значение ", u_fact)
+            print("ok")
+            return True
+        print("Максимальное значение ", u_max)
+        print("Минимальное значение ", u_min)
+        print("Фактическое значение ", u_fact)
+        print("bad")
+        return False
+
+
+    def get_ti(self):
+        return round(self.measurement, 2)
+
+    def check_ti(self, name):
+        time_sec = datetime.now().strftime('%H:%M:%S.%f')[:-4]
+        self.log.add(self.name,time_sec + " Попытка получить телеизмерения ", True)
+        for t in range(10):
             try:
-                value = self.instrument.read_float(self.psc10_names_ti.get(name_signal), 4)
-                if (value != None):
-                    self.log.add(self.name, "Телеизмерение " + name_signal + " = " + str(round(value, 2)) + " получено", True)
-                    return round(value, 2)
-                else:
-                    if i == 3:
-                        self.log.add(self.name, "Ошибка при попытке получения телеизмерения " + name_signal, False)
-                        return False
-                    i = i + 1
-            except:
-                if i == 3:
-                    self.log.add(self.name, "Критическая ошибка при попытке получения телеизмерения " + name_signal, False)
+                self.measurement = self.instrument.read_float(psc10_numbers_ti.get(name), 4)
+                if (self.measurement != None):
+                    self.log.add(self.name, "Телеизмерение " + name + " получено", True)
+                    return True
+                self.log.log_data[len(self.log.log_data) - 1] = \
+                    time_sec + " " + self.name + \
+                    ": Попытка получить телеизмерение " + str(t + 1) + " сек"
+                time.sleep(1 - time.time() % 1)
+                if t >= 9:
+                    self.log.add(self.name, "Неудалось получить телеизмерение с устройства", False)
                     return False
-                i = i + 1
-                time.sleep(i)
+            except:
+                self.log.log_data[len(self.log.log_data) - 1] = \
+                    time_sec + " " + self.name + \
+                    ": Попытка получить телеизмерения " + str(t + 1) + " сек"
+                time.sleep(1 - time.time() % 1)
+                if t >= 9:
+                    self.log.add(self.name, "Неудалось получить телеизмерение с устройства", False)
+                    return False
+
+
+
+
+
+    # def get_ti(self,name_signal):
+    #     i = 0
+    #     while True:
+    #         try:
+    #             value = self.instrument.read_float(self.psc10_names_ti.get(name_signal), 4)
+    #             if (value != None):
+    #                 self.log.add(self.name, "Телеизмерение " + name_signal + " = " + str(round(value, 2)) + " получено", True)
+    #                 return round(value, 2)
+    #             else:
+    #                 if i == 3:
+    #                     self.log.add(self.name, "Ошибка при попытке получения телеизмерения " + name_signal, False)
+    #                     return False
+    #                 i = i + 1
+    #         except:
+    #             if i == 3:
+    #                 self.log.add(self.name, "Критическая ошибка при попытке получения телеизмерения " + name_signal, False)
+    #                 return False
+    #             i = i + 1
+    #             time.sleep(i)
     # вероятно необходимо разделить
     def check_behaviour(self, behav):
         time_sec = datetime.now().strftime('%H:%M:%S.%f')[:-4]
-
+        self.log.add(self.name, time_sec + " Ожидание включения устройства ", True)
         for t in range(10):
             behaviour = self.get_all_ts()
             if (behaviour != False):
@@ -419,7 +477,6 @@ class Psc_10:
                 self.log.add(self.name, "Неудалось получить состояние устройства", True)
                 return False
 
-
     def get_all_ts(self):
         try:
             behaviour = self.instrument.read_registers(1, 13, 3)
@@ -428,7 +485,7 @@ class Psc_10:
                 return behaviour
         except:
             return False
-
+# функции проверяемого устройства
 class Psc_40:
     psc40_names_ts = ["IN1", "IN2", "IN3", "IN4", "U_OUT1", "U_OUT2", "ERROR_KEY1", "ERROR_KEY2", "ERROR_KEY3",
                       "ERROR_KEY4", "PWR_BTR", "TEN", "OVERLOAD_I", "SHORT_I", "BTR_DISCHARGED", "U_IN1", "U_IN2",
@@ -477,37 +534,15 @@ class Psc_40:
         except:
             self.log.add(self.name, "Критическая ошибка при попытке получения телесигнала " + name_signal, False)
             return False
-# проверяем состояние устройства на соответствие
-
-# расчет процента (только для теста, удалить отсюда)
-def percentage(percent, whole):
-    return (percent * whole) / 100.0
 
 if __name__ == '__main__':
-    # instrument.read_float
+
     log = engine.Log()
-    modb_psc24_10 = Modb().getConnection("PSC24_10", 'com1', 1, log)
-    # power_supply = PowerSupply("192.168.0.5", "5025", "ЛБП", log)
-    # power_supply.connection()
-    psc24_10 = Psc_10(modb_psc24_10, "PSC24_10", log)
-
-    behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 0, "error_pwr2": 0, "error_btr": 0,
-                 "error_out1": 0, "error_out2": 0, "charge_btr": 1, "ten": 0, "apts": 0}
-
-    print(psc24_10.check_behaviour(behaviour))
-    print(log.get_log())
-
-    u_nom = psc24_10.get_ti("U_IN1")
-    u_min = u_nom - percentage(1,24)
-    u_max = u_nom + percentage(1,24)
-    print(24, " номинальное значение")
-    print(u_nom, " измеренное значение")
-    print(u_min, " минимальное значение")
-    print(u_max, " максимальное значение")
-    if (u_nom < u_max and u_nom > u_min):
-        print("нет погрешности")
-    else:
-        print("есть погрешности")
+    modb_psc24_10 = Modb()
+    lala = modb_psc24_10.getConnection("PSC24_10", "com2", 1, log)
+    print(lala)
+    psc24_10 = Psc_10(modb_psc24_10.getСonnectivity(), "PSC24_10", log)
+    psc24_10.check_ti()
 
 
     #

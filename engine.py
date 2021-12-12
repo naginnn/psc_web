@@ -363,16 +363,20 @@ class Check_psc24_10:
             assert modb_psc24_10.getConnection("PSC24_10", "com2", 1, self.control_log)
             self.psc24_10 = devices.Psc_10(modb_psc24_10.getСonnectivity(), "PSC24_10", self.control_log)
 
-            # for _ in range(60):
-            #     if self.psc24_10.check_behaviour(self.behaviour):
-            #         self.control_log.add(self.name, "Устройтво успешно включилось", True)
-            #         break
-            #     else:
-            #         self.control_log.add(self.name, "Ожидание включения устройства", True)
+            # for t in range(30):
+            #     # self.control_log.log_data[len(self.control_log.log_data)-1] = \
+            #     #     datetime.now().strftime('%H:%M:%S.%f')[:-4] + " " + self.name +\
+            #     #     ": Ожидание включения устройства " + str(t + 1) + " сек"
+            #     # self.control_log.add(self.name, "Ожидание включения устройства " + str(t) + " сек", True)
             #     time.sleep(1 - time.time() % 1)
 
-            # time.sleep(60)
+            # сделано блеа
             assert self.psc24_10.check_behaviour(self.behaviour)
+
+
+
+            # time.sleep(60)
+
             eeprom = read_write_eeprom.ReadWriteEEprom(self.control_log, self.device_com, 115200)
             assert eeprom.read_soft_version()
             config = self.settings.load("settings.cfg")
@@ -384,6 +388,8 @@ class Check_psc24_10:
                 self.soft_version['Фактическая'] = [eeprom.get_soft_version()]
                 self.control_log.add(self.name, "Не актуальная версия прошивки: " + eeprom.get_soft_version() + " != " + soft_version, False)
                 assert False
+
+
             return True
         except:
             self.main_log.add(self.name, "Error #2: Подготовка к первому запуску не прошла", False)
@@ -452,6 +458,7 @@ class Check_psc24_10:
                     self.main_log.set_finish(False)
                     self.main_log.set_device_count(i - 1)
                     time.sleep(2)
+
                     assert self.first_start()
                     time.sleep(2)
 

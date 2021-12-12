@@ -1,8 +1,10 @@
+import datetime
 import socket
 import re
 import minimalmodbus
 import engine
 import time
+from datetime import datetime
 from accessify import implements, private
 
 dout_names_101 = {"KL1":81,"KL2":82,"KL3":83,"KL4":84,"KL5":85,"KL6":86,"KL7":87,"KL8":88,"KL9":89,"KL10":90,"KL11":91,"KL12":92,"KL13":93,"KL14":94,"KL15":95,"KL16":96}
@@ -368,6 +370,7 @@ class Psc_10:
                       "ERROR_I_OUT2", "PWR_BTR", "TEN", "APTC"]
     psc10_names_ti = {"U_IN1":257, "U_IN2":259, "U_IN3":261, "U_OUT1":263, "U_OUT2":265, "I_OUT1":267, "I_OUT2":269, "I_PWR_BTR":271, "U_PWR_BTR":273, "T1":275,
                       "T2":277, "T3":279, "T4":281, "T5":283}
+    device_status = False
 
     def __init__(self, instrument, name, log):
         self.instrument = instrument
@@ -394,42 +397,36 @@ class Psc_10:
                 i = i + 1
                 time.sleep(i)
     # вероятно необходимо разделить
-    def check_behaviour(self, behaviour):
-        self.log.add(self.name, "Запрос состояния устройства", True)
-        dict = self.get_all_ts()
-        i = 0
-        if (dict != False):
-            for key in behaviour:
-                if behaviour[key] != dict[i]:
-                    self.log.add(self.name, "Состояние устройства не соответствует действительности", False)
-                    return False
-                i = i + 1
-            self.log.add(self.name, "Состояние устройства соответствует", True)
-            return True
-        else:
-            self.log.add(self.name, "Устройство недоступно", False)
-            return False
+    def check_behaviour(self, behav):
+        time_sec = datetime.now().strftime('%H:%M:%S.%f')[:-4]
+        for t in range(10):
+            self.log.log_data[len(self.log.log_data) - 1] = \
+                time_sec + " " + self.name + \
+                ": Ожидание включения устройства " + str(t + 1) + " сек"
+            behaviour = self.get_all_ts()
+            if (behaviour != False):
+                i = 0
+                for key in behav:
+                    if behav[key] != behaviour[i]:
+                        self.log.add(self.name, "Состояние устройства не соответствует действительности", False)
+                        return False
+                    i = i + 1
+                self.log.add(self.name, "Состояние устройства соответствует", True)
+                return True
+            time.sleep(1 - time.time() % 1)
+            if t >= 9:
+                self.log.add(self.name, "Неудалось получить состояние устройства", True)
+                return False
 
 
     def get_all_ts(self):
-        i = 0
-        while True:
-            try:
-                dict = self.instrument.read_registers(1, 13, 3)
-                if (len(dict) == 13):
-                    self.log.add(self.name, "Состояние получено", True)
-                    return dict
-                if i == 3:
-                    self.log.add(self.name, "Попытка получить состояние устройства №" + str(i + 1), True)
-                    return False
-                i = i + 1
-            except:
-                if i == 3:
-                    self.log.add(self.name, "Невозможно получить состояние устройства", False)
-                    return False
-                self.log.add(self.name, "Попытка получить состояние устройства №" + str(i + 1), True)
-                i = i + 1
-                time.sleep(i)
+        try:
+            behaviour = self.instrument.read_registers(1, 13, 3)
+            if (len(behaviour) == 13):
+                self.log.add(self.name, "Состояние устройства получено", True)
+                return behaviour
+        except:
+            return False
 
 class Psc_40:
     psc40_names_ts = ["IN1", "IN2", "IN3", "IN4", "U_OUT1", "U_OUT2", "ERROR_KEY1", "ERROR_KEY2", "ERROR_KEY3",

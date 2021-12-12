@@ -399,10 +399,8 @@ class Psc_10:
     # вероятно необходимо разделить
     def check_behaviour(self, behav):
         time_sec = datetime.now().strftime('%H:%M:%S.%f')[:-4]
+
         for t in range(10):
-            self.log.log_data[len(self.log.log_data) - 1] = \
-                time_sec + " " + self.name + \
-                ": Ожидание включения устройства " + str(t + 1) + " сек"
             behaviour = self.get_all_ts()
             if (behaviour != False):
                 i = 0
@@ -413,6 +411,9 @@ class Psc_10:
                     i = i + 1
                 self.log.add(self.name, "Состояние устройства соответствует", True)
                 return True
+            self.log.log_data[len(self.log.log_data) - 1] = \
+                time_sec + " " + self.name + \
+                ": Ожидание включения устройства " + str(t + 1) + " сек"
             time.sleep(1 - time.time() % 1)
             if t >= 9:
                 self.log.add(self.name, "Неудалось получить состояние устройства", True)

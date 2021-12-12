@@ -363,7 +363,7 @@ class ReadWriteEEprom:
                 ser.close()
                 s = s[:len(s)-1]
                 self.soft_version = s
-                self.log.add("EEPROM","Версия прошивки получена",True)
+                self.log.add("EEPROM","Версия прошивки получена: " + self.soft_version ,True)
                 return True
             except:
                 if i == 3:
@@ -517,8 +517,8 @@ class ReadWriteEEprom:
                     response = ser.read(len(values))
                     val = read.hex_to_float(response[:len(response) - 2])
                 ser.close()
-                self.serial_number = val
-                self.log.add("EEPROM", "Серийный номер устройства получен", True)
+                self.serial_number = 4710000000 + val
+                self.log.add("EEPROM", "Серийный номер устройства получен: " + str(self.serial_number), True)
                 return True
             except:
                 if i == 3:

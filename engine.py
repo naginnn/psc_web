@@ -304,7 +304,7 @@ class Check_psc24_10:
     def prepare(self):
         # Инициализируем модули управления
         try:
-            self.control_log.add(self.name, "Инициализация модулей управления", True)
+            self.control_log.add(self.name, "Stage 1: Инициализация модулей управления", True)
             modb_dout_101 = devices.Modb()
             assert modb_dout_101.getConnection("DOUT_101", self.control_com, 101, self.control_log)
             modb_dout_102 = devices.Modb()
@@ -336,7 +336,7 @@ class Check_psc24_10:
     # первое включение проверки погрешности измерений тока и напряжения
     # работаем здесь
     def first_start(self):
-        self.control_log.add(self.name, "Подготовка к первому запуску", True)
+        self.control_log.add(self.name, "Stage 2 Подготовка к первому запуску", True)
         # подаём 3 канала с ЛБП
         try:
             # # Конфигурируем ЛБП
@@ -356,43 +356,43 @@ class Check_psc24_10:
             # assert self.din_201.check_voltage("KL33", "ON")
             # assert self.power_supply.connection()
             # assert self.power_supply.set_voltage(24)
-            # ждем включения
-            # получаем системное время и пытаемся прочитать с утройства
+
             # правильная инициализация modbus
             modb_psc24_10 = devices.Modb()
             assert modb_psc24_10.getConnection("PSC24_10", "com2", 1, self.control_log)
             self.psc24_10 = devices.Psc_10(modb_psc24_10.getСonnectivity(), "PSC24_10", self.control_log)
 
-            # for t in range(30):
-            #     # self.control_log.log_data[len(self.control_log.log_data)-1] = \
-            #     #     datetime.now().strftime('%H:%M:%S.%f')[:-4] + " " + self.name +\
-            #     #     ": Ожидание включения устройства " + str(t + 1) + " сек"
-            #     # self.control_log.add(self.name, "Ожидание включения устройства " + str(t) + " сек", True)
-            #     time.sleep(1 - time.time() % 1)
-
-            # сделано блеа
+            # ждем включения устройства и передаем предполагаемое поведение
             assert self.psc24_10.check_behaviour(self.behaviour)
+            return True
+        except:
+            self.control_log.add(self.name, "Error #2: Подготовка к первому запуску не прошла", False)
+            return False
 
-
-
-            # time.sleep(60)
-
+    def configurate_check(self):
+        self.control_log.add(self.name, "Stage 3 Проверка и запись конфигурации", True)
+        try:
             eeprom = read_write_eeprom.ReadWriteEEprom(self.control_log, self.device_com, 115200)
             assert eeprom.read_soft_version()
             config = self.settings.load("settings.cfg")
             soft_version = config.get("soft_version")
             if eeprom.get_soft_version() == soft_version:
                 self.soft_version['Фактическая'] = [eeprom.get_soft_version()]
-                self.control_log.add(self.name, "Версия прошивки совпадает с актуальной: " + eeprom.get_soft_version() + " = " + soft_version, True)
+                self.control_log.add(self.name,
+                                     "Версия прошивки совпадает с актуальной: " + eeprom.get_soft_version() + " = " + soft_version,
+                                     True)
             else:
                 self.soft_version['Фактическая'] = [eeprom.get_soft_version()]
-                self.control_log.add(self.name, "Не актуальная версия прошивки: " + eeprom.get_soft_version() + " != " + soft_version, False)
+                self.control_log.add(self.name,
+                                     "Не актуальная версия прошивки: " + eeprom.get_soft_version() + " != " + soft_version,
+                                     False)
                 assert False
-
-
+            # считываем серийный номер
+            assert eeprom.read_serial_number()
+            self.serial_number['Серийный номер'] = [eeprom.get_serial_number()]
             return True
         except:
-            self.main_log.add(self.name, "Error #2: Подготовка к первому запуску не прошла", False)
+            self.control_log.add(self.name, "Error #3: Ошибка при проверке и записи конфигурации", False)
             return False
 
     # Проверка порогов по напряжению
@@ -460,6 +460,8 @@ class Check_psc24_10:
                     time.sleep(2)
 
                     assert self.first_start()
+                    time.sleep(2)
+                    assert self.configurate_check()
                     time.sleep(2)
 
                     # if i == 1:

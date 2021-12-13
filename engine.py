@@ -254,6 +254,7 @@ class Check_psc24_10:
     u_in3_fact = 0.0
     i_out1_fact = 0.0
     i_out2_fact = 0.0
+    i_out1_delta_i_out2 = 0.0
     # списки для будущего протокола
     serial_number = {'Серийный номер': [' ']}
     soft_version = {'Версия ПО': ['1.2.3.8'],'Фактическая': [' ']}
@@ -325,9 +326,9 @@ class Check_psc24_10:
             assert modb_din_202.getConnection("DIN_202", self.control_com, 202, 115200, self.control_log)
             modb_ammeter_out1 = devices.Modb()
             # амперметры
-            assert modb_ammeter_out1 .getConnection("Амперметр", self.control_com, 5, 19200, self.control_log)
+            assert modb_ammeter_out1 .getConnection("Амперметр OUT1", self.control_com, 5, 19200, self.control_log)
             modb_ammeter_out2 = devices.Modb()
-            assert modb_ammeter_out2 .getConnection("Амперметр", self.control_com, 6, 19200, self.control_log)
+            assert modb_ammeter_out2 .getConnection("Амперметр OUT2", self.control_com, 6, 19200, self.control_log)
 
             config = self.settings.load("settings.cfg")
             self.power_supply = devices.PowerSupply(config.get("ip_adress"), config.get("port"), "ЛБП",self.control_log)
@@ -350,28 +351,28 @@ class Check_psc24_10:
         self.control_log.add(self.name, "Stage 2 Подготовка к первому запуску", True)
         # подаём 3 канала с ЛБП
         try:
-            # # Конфигурируем ЛБП
-            # assert self.power_supply.remote("ON")
-            # assert self.power_supply.check_remote("REMOTE")
-            # time.sleep(1)
-            # assert self.power_supply.output("ON")
-            # assert self.power_supply.check_output("ON")
-            # time.sleep(1)
-            #
-            # # Подключаем входа
-            # assert self.dout_102.command("KL30", "ON")
-            # assert self.din_201.check_voltage("KL30", "ON")
-            # assert self.dout_102.command("KL31", "ON")
-            # assert self.din_201.check_voltage("KL31", "ON")
-            # assert self.dout_102.command("KL33", "ON")
-            # assert self.din_201.check_voltage("KL33", "ON")
-            # assert self.power_supply.connection()
-            # assert self.power_supply.set_voltage(24)
+            # Конфигурируем ЛБП
+            assert self.power_supply.remote("ON")
+            assert self.power_supply.check_remote("REMOTE")
+            time.sleep(1)
+            assert self.power_supply.output("ON")
+            assert self.power_supply.check_output("ON")
+            time.sleep(1)
+
+            # Подключаем входа
+            assert self.dout_102.command("KL30", "ON")
+            assert self.din_201.check_voltage("KL30", "ON")
+            assert self.dout_102.command("KL31", "ON")
+            assert self.din_201.check_voltage("KL31", "ON")
+            assert self.dout_102.command("KL33", "ON")
+            assert self.din_201.check_voltage("KL33", "ON")
+            assert self.power_supply.connection()
+            assert self.power_supply.set_voltage(24)
 
             # правильная инициализация modbus
             modb_psc24_10 = devices.Modb()
             assert modb_psc24_10.getConnection("PSC24_10", self.device_com, 1, 115200, self.control_log)
-            self.psc24_10 = devices.Psc_10(modb_psc24_10.getСonnectivity(), "PSC24_10", self.control_log, 30)
+            self.psc24_10 = devices.Psc_10(modb_psc24_10.getСonnectivity(), "PSC24_10", self.control_log, 60)
 
             # ждем включения устройства и передаем предполагаемое поведение
             assert self.psc24_10.check_behaviour(self.behaviour)
@@ -412,6 +413,7 @@ class Check_psc24_10:
                 self.IN2 = "KL16"
             assert self.eeprom.read_power_management()
             self.power_management = self.eeprom.get_power_management()
+            assert self.psc24_10.check_behaviour(self.behaviour)
             return True
         except:
             self.control_log.add(self.name, "Error #3: Ошибка при проверке и записи конфигурации", False)
@@ -421,8 +423,8 @@ class Check_psc24_10:
     def measurements_check(self):
         self.control_log.add(self.name, "Stage 4 Проверка измерений", True)
         try:
-            # подать нагрузку
             # проверяем на погрешности
+            # можно убрать assert с check error rate и просто записывать результаты! НО НЕ СТОИТ!
             assert self.psc24_10.check_ti("U_IN1")
             self.u_in1_fact = self.psc24_10.get_ti()
             assert self.check_error_rate(self.u_nom, self.u_in1_fact, 5)
@@ -451,26 +453,92 @@ class Check_psc24_10:
                                  True)
 
             # подать токи на выхода
-            # и добавить второй датчик
+            # подключаем OUT1
+            assert self.dout_103.command("KM14", "ON")
+            assert self.din_202.check_voltage("KM14", "ON")
+            # проверяем состояние
+            assert self.psc24_10.check_behaviour(self.behaviour)
+            # подключаем коммутатор #1
+            assert self.dout_102.command("KL18", "ON")
+            assert self.din_201.check_voltage("KL18", "ON")
+            # проверяем состояние
+            assert self.psc24_10.check_behaviour(self.behaviour)
+            # подключаем коммутатор #2
+            assert self.dout_102.command("KL19", "ON")
+            assert self.din_201.check_voltage("KL19", "ON")
+            # проверяем состояние
+            assert self.psc24_10.check_behaviour(self.behaviour)
+            # подключаем коммутатор #3
+            assert self.dout_102.command("KL20", "ON")
+            assert self.din_201.check_voltage("KL20", "ON")
+            # проверяем состояние
+            assert self.psc24_10.check_behaviour(self.behaviour)
+            # подключаем коммутатор #4
+            assert self.dout_102.command("KL21", "ON")
+            assert self.din_201.check_voltage("KL21", "ON")
+            # проверяем состояние
+            assert self.psc24_10.check_behaviour(self.behaviour)
+
+            # получаем и рассчитываем измерения OUT1
             assert self.psc24_10.check_ti("I_OUT1")
             self.i_out1_fact = self.psc24_10.get_ti()
-            assert self.ammeter.check_ti()
-            self.i_nom = self.ammeter.get_ti()
+            assert self.ammeter_out1.check_ti()
+            self.i_nom = self.ammeter_out1.get_ti()
             assert self.check_error_rate(self.i_nom, self.i_out1_fact, 15)
             self.current['Inom'][0] = self.i_nom
             self.current['Ifact'][0] = self.i_out1_fact
             self.control_log.add(self.name,
                                  "OUT1: Номинальный ток " + str(self.i_nom) + " Фактический " + str(self.i_out1_fact), True)
 
+            # отключаем OUT1
+            assert self.dout_103.command("KM14", "OFF")
+            assert self.din_202.check_voltage("KM14", "OFF")
+
+            # проверяем состояние
+            assert self.psc24_10.check_behaviour(self.behaviour)
+
+            # включаем OUT2
+            assert self.dout_103.command("KM15", "ON")
+            assert self.din_202.check_voltage("KM15", "ON")
+
+            # проверяем состояние
+            assert self.psc24_10.check_behaviour(self.behaviour)
+
+            # получаем и рассчитываем измерения OUT2
             assert self.psc24_10.check_ti("I_OUT2")
             self.i_out2_fact = self.psc24_10.get_ti()
-            assert self.ammeter.check_ti()
-            self.i_nom = self.ammeter.get_ti()
+            assert self.ammeter_out2.check_ti()
+            self.i_nom = self.ammeter_out2.get_ti()
             assert self.check_error_rate(self.i_nom, self.i_out2_fact, 15)
             self.current['Inom'][1] = self.i_nom
             self.current['Ifact'][1] = self.i_out2_fact
             self.control_log.add(self.name,
                                  "OUT1: Номинальный ток " + str(self.i_nom) + " Фактический " + str(self.i_out2_fact), True)
+
+            # проверяем состояние
+            assert self.psc24_10.check_behaviour(self.behaviour)
+
+            # подключаем OUT1 и параллелим с OUT2
+            assert self.dout_103.command("KM14", "ON")
+            assert self.din_202.check_voltage("KM14", "ON")
+
+            # проверяем состояние
+            assert self.psc24_10.check_behaviour(self.behaviour)
+
+            # получаем измерения OUT1
+            assert self.psc24_10.check_ti("I_OUT1")
+            self.i_out1_fact = self.psc24_10.get_ti()
+
+            # получаем измерения OUT2
+            assert self.psc24_10.check_ti("I_OUT2")
+            self.i_out2_fact = self.psc24_10.get_ti()
+
+            # проверяем разницу между OUT1 и OUT2
+            self.i_out1_delta_i_out2 = abs(self.i_out1_fact - self.i_out2_fact)
+            if (self.i_out1_delta_i_out2 > 0.5):
+                self.control_log.add(self.name, "Разница между каналами OUT1 и OUT2 больше 500mA", False)
+                assert False
+
         except:
             self.control_log.add(self.name, "Error #4: Ошибка при проверке измерений", False)
             return False

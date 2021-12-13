@@ -8,7 +8,6 @@ import pandas as pd
 import openpyxl
 from openpyxl import load_workbook
 from openpyxl.utils import get_column_letter
-
 import engine
 
 
@@ -257,17 +256,17 @@ def create_protocol(log, result, serial_number, soft_version, voltage, current, 
         # append_df_to_excel(filename, df, header=None, index=False)
         # append_df_to_excel(filename, df, sheet_name='Sheet2', index=False)
         # append_df_to_excel(filename, df, sheet_name='Sheet2', index=False, startrow=25)
-
+# разобраться с протоколом"!!!
 # Пример тестирования
-# if __name__ == '__main__':
-#     log = engine.Log()
-#     serial_number = {'Серийный номер': [' ']}
-#     soft_version = {'Версия ПО': ['1.2.3.8'],'Фактическая': [' ']}
-#     voltage = {'Канал, U': ['IN1', 'IN2', 'IN3', 'IN4'], 'Uном': ['', '', '', ''], 'Uфакт': ['', '', '', ''], 'Uдельта': ['', '', '', '']}
-#     current = { 'Канал, I': ['OUT1', 'OUT2', '', ''], 'Iном': ['', '', '', ''], 'Iфакт': ['', '', '', ''], 'Iдельта': ['', '', '', '']}
-#     voltage_threesolds = {'Пороги по напряжению': ['min', 'nom', 'max', ''], 'U': ['', '', '', ''], 'Результат': ['', '', '', '']}
-#     switching_channels = {'Переключение каналов': ['Под Imin 0A', 'Под Imax 10A', '', ''], 'Канал 1': ['', '', '', ''], 'Время, t': ['', '', '', ''], 'Канал 2': ['', '', '', '']}
-#     ten = {'Работа ТЭН': [' ']}
-#     emergency_modes = {'Аварийные режимы': ['Режим КЗ', 'Режим перегрузки', 'Обрыв связи датчика', ''], 'Результат': ['', '', '', '']}
-#     create_protocol(log,'_good(3)_bad(2)', serial_number, soft_version, voltage, current, voltage_threesolds, switching_channels, ten, emergency_modes)
-#     print(log.get_log())
+if __name__ == '__main__':
+     log = engine.Log()
+     serial_number = {'Серийный номер': [' ']}
+     soft_version = {'Версия ПО': ['1.2.3.8'],'Фактическая': [' ']}
+     voltage = {'Канал, U': ['IN1', 'IN2', 'IN3', 'IN4'], 'Uном': ['', '', '', ''], 'Uфакт': ['', '', '', ''], 'Uдельта': ['', '', '', '']}
+     current = { 'Канал, I': ['OUT1', 'OUT2', '', ''], 'Iном': ['', '', '', ''], 'Iфакт': ['', '', '', ''], 'Iдельта': ['', '', '', '']}
+     voltage_threesolds = {'Пороги по напряжению': ['min', 'nom', 'max', ''], 'U': ['', '', '', ''], 'Результат': ['', '', '', '']}
+     switching_channels = {'Переключение каналов': ['Под Imin 0A', 'Под Imax 10A', '', ''], 'Канал 1': ['', '', '', ''], 'Время, t': ['', '', '', ''], 'Канал 2': ['', '', '', '']}
+     ten = {'Работа ТЭН': [' ']}
+     emergency_modes = {'Аварийные режимы': ['Режим КЗ', 'Режим перегрузки', 'Обрыв связи датчика', ''], 'Результат': ['', '', '', '']}
+     create_protocol(log,'_good(3)_bad(2)', serial_number, soft_version, voltage, current, voltage_threesolds, switching_channels, ten, emergency_modes)
+     print(log.get_log())

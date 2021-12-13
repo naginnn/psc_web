@@ -61,11 +61,12 @@ class Modb:
         return self.connect
 # функции DOUT
 class Dout:
-    def __init__(self, instrument,dout_names,name,log):
+    def __init__(self, instrument, dout_names, name, log, timeout):
         self.instrument = instrument
         self.dout_names = dout_names
         self.name = name
         self.log = log
+        self.timeout = timeout
 
     def get_key(self,value):
         for k, v in self.dout_names.items():
@@ -87,66 +88,51 @@ class Dout:
 
     def get_status(self):
         try:
-            dict = self.instrument.read_registers(1, 16, 3)
-            if len(dict) > 0:
-                self.log.add(self.name, "Телесигналы получены", True)
-                return dict
-            self.log.add(self.name, "Неудалось получить телесигналы", False)
-            return False
+            signals = self.instrument.read_registers(1, 16, 3)
+            if (len(signals) == 16):
+                self.log.add(self.name, "Состояние устройства получено", True)
+                return signals
         except:
-            self.log.add(self.name,"Ошибка при попытке получить телесигналы", False)
             return False
 
     def command(self, relay, status):
-        i = 0
+        time_sec = datetime.now().strftime('%H:%M:%S.%f')[:-4]
+        command = ""
         if status == "ON":
-            self.log.add(self.name, "Команда включить на " + relay, True)
+            command = "включить "
         if status == "OFF":
-            self.log.add(self.name, "Команда отключить на " + relay, True)
-        while True:
+            command = "отключить "
+        self.log.add(self.name, "Попытка подачи команды " + command + relay, True)
+        for t in range(self.timeout):
             try:
                 if status == "ON":
                     self.instrument.write_register(self.dout_names.get(relay), 1, 4)
                     if (self.check_tu_ti(relay,status)):
-                        self.log.add(self.name, "Команда включить на " + relay + " успешно подана", True)
+                        self.log.add(self.name, "Команда включить " + relay + " успешно подана", True)
                         return True
-                    else:
-                        # Прекратить попытки
-                        if i == 3:
-                            self.log.add(self.name, "Команда включить на " + relay + " не прошла", False)
-                            return False
-                        self.log.add(self.name, "Попытка подать команду " + status + " №" + str(i + 1), True)
-                        time.sleep(i)
-                        i = i + 1
+
                 if status == "OFF":
                     self.instrument.write_register(self.dout_names.get(relay), 0, 4)
                     if (self.check_tu_ti(relay,status)):
-                        self.log.add(self.name, "Команда отключить на " + relay + " успешно подана", True)
+                        self.log.add(self.name, "Команда отключить " + relay + " успешно подана", True)
                         return True
-                    else:
-                        # Прекратить попытки
-                        if i == 3:
-                            self.log.add(self.name, "Команда отключить на " + relay + " не прошла", False)
-                            return False
-                        self.log.add(self.name, "Попытка подать команду " + status + " №" + str(i + 1), True)
-                        time.sleep(i)
-                        i = i + 1
             except:
-                if i == 3:
-                    # Прекратить попытки
-                    self.log.add(self.name, "Фатальная ошибка при подачи команды: " + status + "  на " + relay, False)
+                self.log.log_data[len(self.log.log_data) - 1] = \
+                    time_sec + " " + self.name + \
+                    ": Попытка подачи команды " + command + relay + " " + str(t + 1) + " сек"
+                time.sleep(1 - time.time() % 1)
+                if t >= self.timeout - 1:
+                    self.log.add(self.name, "Неудалось получить телеизмерение с устройства", False)
                     return False
-                self.log.add(self.name, "Попытка подать команду " + status + " №" + str(i + 1), True)
-                time.sleep(i)
-                i = i + 1
 # переделать функционал повторения при неудачной попытки подачи
 # функции DIN
 class Din:
-    def __init__(self, instrument, din_names, name, log):
+    def __init__(self, instrument, din_names, name, log, timeout):
         self.instrument = instrument
         self.din_names = din_names
         self.name = name
         self.log = log
+        self.timeout = timeout
 
     def get_key(self, value):
         for k, v in self.impact.items():
@@ -154,43 +140,42 @@ class Din:
                 return k
 
     def check_voltage(self, signal, status):
-        din_signals = self.get_status()
-        if (din_signals != False):
-            if ((din_signals[list(self.din_names).index(signal)] == 1) and (status == "ON")):
-                self.log.add(self.name, "Напряжение на " + self.din_names.get(signal) + " подано", True)
-                return True
-            if ((din_signals[list(self.din_names).index(signal)] == 0) and (status == "OFF")):
-                self.log.add(self.name, "Напряжение с " + self.din_names.get(signal) + " снято", True)
-                return True
-            return False
-        return False
+        time_sec = datetime.now().strftime('%H:%M:%S.%f')[:-4]
+        self.log.add(self.name,"Попытка проверить состояние " + signal + " " + status, True)
+        for t in range(self.timeout):
+            din_signals = self.get_status()
+            if (din_signals != False):
+                if ((din_signals[list(self.din_names).index(signal)] == 1) and (status == "ON")):
+                    self.log.add(self.name, "Напряжение на " + self.din_names.get(signal) + " подано", True)
+                    return True
+                if ((din_signals[list(self.din_names).index(signal)] == 0) and (status == "OFF")):
+                    self.log.add(self.name, "Напряжение с " + self.din_names.get(signal) + " снято", True)
+                    return True
+                self.log.log_data[len(self.log.log_data) - 1] = \
+                    time_sec + " " + self.name + \
+                    ": Попытка проверить состояние " + signal + " " + status + str(t + 1) + " сек"
+                time.sleep(1 - time.time() % 1)
+                if t >= self.timeout - 1:
+                    self.log.add(self.name, "Неудалось получить телеизмерение с устройства", False)
+                    return False
 
     def get_status(self):
-        i = 0
         try:
-            while True:
-                dict = self.instrument.read_registers(1, 32, 3)
-                if len(dict) > 0:
-                    self.log.add(self.name, "Телесигналы получены", True)
-                    return dict
-                if i == 3:
-                    self.log.add(self.name, "Неудалось получить телесигналы", False)
-                    return False
-                i = i + 1
+            signals = self.instrument.read_registers(1, 32, 3)
+            if (len(signals) == 32):
+                self.log.add(self.name, "Состояние устройства получено", True)
+                return signals
         except:
-            if i == 3:
-                self.log.add(self.name, "Попытка получить телесигналы №" + str(i + 1), True)
-                return False
-            i = i + 1
-            time.sleep(i)
+            return False
 # функции ЛБП
 class PowerSupply:
-    def __init__(self, ip_adress, port, name, log):
+    def __init__(self, ip_adress, port, name, log, timeout):
         self.ip_adress = ip_adress
         self.port = port
         self.name = name
         self.log = log
         self.socket = socket.socket()
+        self.timeout = timeout
     # добавить 3 попытки
     def connection(self):
         try:
@@ -362,12 +347,13 @@ class PowerSupply:
     # OUTPut OFF // отключить выход
     # MEAS:CURR? // текущий ток блока питания
     # SOUR:VOLTAGE 25 // текущее напряжение блока питания
-
+# функции амперметра
 class Ammeter:
-    def __init__(self, instrument, name, log):
+    def __init__(self, instrument, name, log, timeout):
         self.instrument = instrument
         self.name = name
         self.log = log
+        self.timeout = timeout
 
     current = 0.0
     # получить
@@ -376,8 +362,8 @@ class Ammeter:
 
     def check_ti(self):
         time_sec = datetime.now().strftime('%H:%M:%S.%f')[:-4]
-        self.log.add(self.name, time_sec + " Попытка получить телеизмерения ", True)
-        for t in range(10):
+        self.log.add(self.name,"Попытка получить телеизмерения", True)
+        for t in range(self.timeout):
             try:
                 self.current = self.instrument.read_float(18, 3)
                 if (self.current != None):
@@ -395,7 +381,7 @@ class Ammeter:
                     time_sec + " " + self.name + \
                     ": Попытка получить телеизмерения " + str(t + 1) + " сек"
                 time.sleep(1 - time.time() % 1)
-                if t >= 9:
+                if t >= self.timeout - 1:
                     self.log.add(self.name, "Неудалось получить телеизмерение с устройства", False)
                     return False
 # функции проверяемого устройства
@@ -409,10 +395,11 @@ class Psc_10:
     measurement = 0.0
     device_status = False
 
-    def __init__(self, instrument, name, log):
+    def __init__(self, instrument, name, log, timeout):
         self.instrument = instrument
         self.name = name
         self.log = log
+        self.timeout = timeout
 
     # получить
     def get_ti(self):
@@ -420,8 +407,8 @@ class Psc_10:
 
     def check_ti(self, name):
         time_sec = datetime.now().strftime('%H:%M:%S.%f')[:-4]
-        self.log.add(self.name,time_sec + " Попытка получить телеизмерения ", True)
-        for t in range(10):
+        self.log.add(self.name,"Попытка получить телеизмерения", True)
+        for t in range(self.timeout):
             try:
                 self.measurement = self.instrument.read_float(psc10_numbers_ti.get(name), 4)
                 if (self.measurement != None):
@@ -431,7 +418,7 @@ class Psc_10:
                     time_sec + " " + self.name + \
                     ": Попытка получить телеизмерение " + str(t + 1) + " сек"
                 time.sleep(1 - time.time() % 1)
-                if t >= 9:
+                if t >= self.timeout - 1:
                     self.log.add(self.name, "Неудалось получить телеизмерение с устройства", False)
                     return False
             except:
@@ -439,14 +426,14 @@ class Psc_10:
                     time_sec + " " + self.name + \
                     ": Попытка получить телеизмерения " + str(t + 1) + " сек"
                 time.sleep(1 - time.time() % 1)
-                if t >= 9:
+                if t >= self.timeout - 1:
                     self.log.add(self.name, "Неудалось получить телеизмерение с устройства", False)
                     return False
 
     def check_behaviour(self, behav):
         time_sec = datetime.now().strftime('%H:%M:%S.%f')[:-4]
-        self.log.add(self.name, time_sec + " Ожидание включения устройства ", True)
-        for t in range(10):
+        self.log.add(self.name, "Ожидание включения устройства ", True)
+        for t in range(self.timeout):
             behaviour = self.get_all_ts()
             if (behaviour != False):
                 i = 0
@@ -461,7 +448,7 @@ class Psc_10:
                 time_sec + " " + self.name + \
                 ": Ожидание включения устройства " + str(t + 1) + " сек"
             time.sleep(1 - time.time() % 1)
-            if t >= 9:
+            if t >= self.timeout - 1:
                 self.log.add(self.name, "Неудалось получить состояние устройства", True)
                 return False
 
@@ -482,10 +469,11 @@ class Psc_40:
     psc40_names_ti = {"U_IN1":257, "U_IN2":259, "U_IN3":261, "U_IN4":263, "U_OUT1":265, "U_OUT2":267, "I_PWR_BTR":269, "U_OUT":271, "I_OUT":273, "T1":275, "T2":277,
                       "T3":279, "T4":281, "T5":283, "T6":285, "T7":287, "T8":289, "U_PWR_BTR":291}
 
-    def __init__(self, instrument, name, log):
+    def __init__(self, instrument, name, log, timeout):
         self.instrument = instrument
         self.name = name
         self.log = log
+        self.timeout = timeout
 
     def get_ti(self,name_signal):
         try:

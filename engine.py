@@ -273,13 +273,14 @@ class Check_psc24_10:
     dout_202 = ()
     psc24_10 = ()
     power_supply = ()
-    ammeter = ()
+    ammeter_out1 = ()
+    ammeter_out2 = ()
     IN1 = ""
     IN2 = ""
     BTR = "KM1"
 
     eeprom = ()
-
+    power_management = ()
     # добавляем два лога и ком-порт модулям управления и psc
     def __init__(self, name, control_log, control_com, main_log, device_com, settings):
         self.name = name
@@ -303,43 +304,48 @@ class Check_psc24_10:
             return True
         return False
 
-    # подготовка
+    # подготовка Stage 1
     def prepare(self):
         # Инициализируем модули управления
         try:
-            # self.control_log.add(self.name, "Stage 1: Инициализация модулей управления", True)
-            # modb_dout_101 = devices.Modb()
-            # assert modb_dout_101.getConnection("DOUT_101", self.control_com, 101, 115200, self.control_log)
-            # modb_dout_102 = devices.Modb()
-            # assert modb_dout_102.getConnection("DOUT_102", self.control_com, 102, 115200, self.control_log)
-            # modb_dout_103 = devices.Modb()
-            # assert modb_dout_103.getConnection("DOUT_103", self.control_com, 103, 115200, self.control_log)
-            # modb_dout_104 = devices.Modb()
-            # assert modb_dout_104.getConnection("DOUT_104", self.control_com, 104, 115200, self.control_log)
-            # modb_din_201 = devices.Modb()
-            # assert modb_din_201.getConnection("DIN_201", self.control_com, 201, 115200, self.control_log)
-            # modb_din_202 = devices.Modb()
-            # assert modb_din_202.getConnection("DIN_202", self.control_com, 202, 115200, self.control_log)
-            # modb_ammeter = devices.Modb()
-            # assert modb_ammeter.getConnection("Амперметр", self.control_com, 5, 19200, self.control_log)
-            #
-            # config = self.settings.load("settings.cfg")
-            # self.power_supply = devices.PowerSupply(config.get("ip_adress"), config.get("port"), "ЛБП",self.control_log)
-            # assert self.power_supply.connection()
-            #
-            # self.dout_101 = devices.Dout(modb_dout_101.getСonnectivity(), dout_names_101, "DOUT_101", self.control_log)
-            # self.dout_102 = devices.Dout(modb_dout_102.getСonnectivity(), dout_names_102, "DOUT_102", self.control_log)
-            # self.dout_103 = devices.Dout(modb_dout_103.getСonnectivity(), dout_names_103, "DOUT_103", self.control_log)
-            # self.dout_104 = devices.Dout(modb_dout_104.getСonnectivity(), dout_names_104, "DOUT_104", self.control_log)
-            # self.din_201 = devices.Din(modb_din_201.getСonnectivity(), din_names_201, "DIN_201", self.control_log)
-            # self.din_202 = devices.Din(modb_din_202.getСonnectivity(), din_names_202, "DIN_202", self.control_log)
-            # self.ammeter = devices.Ammeter(modb_ammeter.getСonnectivity(), "Амперметр", self.control_log)
+            self.control_log.add(self.name, "Stage 1: Инициализация модулей управления", True)
+            # модули DOUT
+            modb_dout_101 = devices.Modb()
+            assert modb_dout_101.getConnection("DOUT_101", self.control_com, 101, 115200, self.control_log)
+            modb_dout_102 = devices.Modb()
+            assert modb_dout_102.getConnection("DOUT_102", self.control_com, 102, 115200, self.control_log)
+            modb_dout_103 = devices.Modb()
+            assert modb_dout_103.getConnection("DOUT_103", self.control_com, 103, 115200, self.control_log)
+            modb_dout_104 = devices.Modb()
+            assert modb_dout_104.getConnection("DOUT_104", self.control_com, 104, 115200, self.control_log)
+            modb_din_201 = devices.Modb()
+            # модули DIN
+            assert modb_din_201.getConnection("DIN_201", self.control_com, 201, 115200, self.control_log)
+            modb_din_202 = devices.Modb()
+            assert modb_din_202.getConnection("DIN_202", self.control_com, 202, 115200, self.control_log)
+            modb_ammeter_out1 = devices.Modb()
+            # амперметры
+            assert modb_ammeter_out1 .getConnection("Амперметр", self.control_com, 5, 19200, self.control_log)
+            modb_ammeter_out2 = devices.Modb()
+            assert modb_ammeter_out2 .getConnection("Амперметр", self.control_com, 6, 19200, self.control_log)
+
+            config = self.settings.load("settings.cfg")
+            self.power_supply = devices.PowerSupply(config.get("ip_adress"), config.get("port"), "ЛБП",self.control_log)
+            assert self.power_supply.connection()
+
+            self.dout_101 = devices.Dout(modb_dout_101.getСonnectivity(), dout_names_101, "DOUT_101", self.control_log, 10)
+            self.dout_102 = devices.Dout(modb_dout_102.getСonnectivity(), dout_names_102, "DOUT_102", self.control_log, 10)
+            self.dout_103 = devices.Dout(modb_dout_103.getСonnectivity(), dout_names_103, "DOUT_103", self.control_log, 10)
+            self.dout_104 = devices.Dout(modb_dout_104.getСonnectivity(), dout_names_104, "DOUT_104", self.control_log, 10)
+            self.din_201 = devices.Din(modb_din_201.getСonnectivity(), din_names_201, "DIN_201", self.control_log, 10)
+            self.din_202 = devices.Din(modb_din_202.getСonnectivity(), din_names_202, "DIN_202", self.control_log, 10)
+            self.ammeter_out1 = devices.Ammeter(modb_ammeter_out1.getСonnectivity(), "Амперметр OUT1", self.control_log, 10)
+            self.ammeter_out2 = devices.Ammeter(modb_ammeter_out2.getСonnectivity(), "Амперметр OUT2", self.control_log, 10)
             return True
         except:
             self.control_log.add(self.name, "Error #1: Ошибка инициализации модулей управления", False)
             return False
-
-    # первое включение проверка состояния
+    # первое включение проверка состояния Stage 2
     def first_start(self):
         self.control_log.add(self.name, "Stage 2 Подготовка к первому запуску", True)
         # подаём 3 канала с ЛБП
@@ -362,14 +368,10 @@ class Check_psc24_10:
             # assert self.power_supply.connection()
             # assert self.power_supply.set_voltage(24)
 
-            # амперметр перенести в prepare()
-            modb_ammeter = devices.Modb()
-            assert modb_ammeter.getConnection("Амперметр", self.control_com, 5, 19200, self.control_log)
-            self.ammeter = devices.Ammeter(modb_ammeter.getСonnectivity(), "Амперметр", self.control_log)
             # правильная инициализация modbus
             modb_psc24_10 = devices.Modb()
             assert modb_psc24_10.getConnection("PSC24_10", self.device_com, 1, 115200, self.control_log)
-            self.psc24_10 = devices.Psc_10(modb_psc24_10.getСonnectivity(), "PSC24_10", self.control_log)
+            self.psc24_10 = devices.Psc_10(modb_psc24_10.getСonnectivity(), "PSC24_10", self.control_log, 30)
 
             # ждем включения устройства и передаем предполагаемое поведение
             assert self.psc24_10.check_behaviour(self.behaviour)
@@ -377,11 +379,11 @@ class Check_psc24_10:
         except:
             self.control_log.add(self.name, "Error #2: Подготовка к первому запуску не прошла", False)
             return False
-    #  считывание и проверка конфигурации # работаем здесь
+    #  считывание и проверка конфигурации Stage 3
     def configurate_check(self):
         self.control_log.add(self.name, "Stage 3 Проверка и запись конфигурации", True)
         try:
-            self.eeprom = read_write_eeprom.ReadWriteEEprom(self.control_log, self.device_com, 115200)
+            self.eeprom = read_write_eeprom.ReadWriteEEprom("EEPROM", self.control_log, self.device_com, 115200, 30)
             assert self.eeprom.read_soft_version()
             config = self.settings.load("settings.cfg")
             soft_version = config.get("soft_version")
@@ -408,32 +410,47 @@ class Check_psc24_10:
             if config.get("power_supply_type") == "pw24_5":
                 self.IN1 = "KL15"
                 self.IN2 = "KL16"
+            assert self.eeprom.read_power_management()
+            self.power_management = self.eeprom.get_power_management()
+            return True
+        except:
+            self.control_log.add(self.name, "Error #3: Ошибка при проверке и записи конфигурации", False)
+            return False
 
+    # проверка телеизмерения Stage 4
+    def measurements_check(self):
+        self.control_log.add(self.name, "Stage 4 Проверка измерений", True)
+        try:
             # подать нагрузку
-
-            #проверяем на погрешности
+            # проверяем на погрешности
             assert self.psc24_10.check_ti("U_IN1")
             self.u_in1_fact = self.psc24_10.get_ti()
             assert self.check_error_rate(self.u_nom, self.u_in1_fact, 5)
             self.voltage['Unom'][0] = self.u_nom
             self.voltage['Ufact'][0] = self.u_in1_fact
-            self.control_log.add(self.name, "IN1: Номинальное напряжение " + str(self.u_nom) + " Фактическое " + str(self.u_in1_fact), True)
+            self.control_log.add(self.name,
+                                 "IN1: Номинальное напряжение " + str(self.u_nom) + " Фактическое " + str(self.u_in1_fact),
+                                 True)
 
             assert self.psc24_10.check_ti("U_IN2")
             self.u_in2_fact = self.psc24_10.get_ti()
             assert self.check_error_rate(self.u_nom, self.u_in2_fact, 5)
             self.voltage['Unom'][1] = self.u_nom
             self.voltage['Ufact'][1] = self.u_in2_fact
-            self.control_log.add(self.name, "IN2: Номинальное напряжение " + str(self.u_nom) + " Фактическое " + str(self.u_in2_fact), True)
+            self.control_log.add(self.name,
+                                 "IN2: Номинальное напряжение " + str(self.u_nom) + " Фактическое " + str(self.u_in2_fact),
+                                 True)
 
             assert self.psc24_10.check_ti("U_IN3")
             self.u_in3_fact = self.psc24_10.get_ti()
             assert self.check_error_rate(self.u_nom, self.u_in3_fact, 5)
             self.voltage['Unom'][2] = self.u_nom
             self.voltage['Ufact'][2] = self.u_in3_fact
-            self.control_log.add(self.name, "IN3: Номинальное напряжение " + str(self.u_nom) + " Фактическое " + str(self.u_in3_fact), True)
+            self.control_log.add(self.name,
+                                 "IN3: Номинальное напряжение " + str(self.u_nom) + " Фактическое " + str(self.u_in3_fact),
+                                 True)
 
-            # подавать разные токи на выхода
+            # подать токи на выхода
             # и добавить второй датчик
             assert self.psc24_10.check_ti("I_OUT1")
             self.i_out1_fact = self.psc24_10.get_ti()
@@ -442,7 +459,8 @@ class Check_psc24_10:
             assert self.check_error_rate(self.i_nom, self.i_out1_fact, 15)
             self.current['Inom'][0] = self.i_nom
             self.current['Ifact'][0] = self.i_out1_fact
-            self.control_log.add(self.name,"OUT1: Номинальный ток " + str(self.i_nom) + " Фактический " + str(self.i_out1_fact), True)
+            self.control_log.add(self.name,
+                                 "OUT1: Номинальный ток " + str(self.i_nom) + " Фактический " + str(self.i_out1_fact), True)
 
             assert self.psc24_10.check_ti("I_OUT2")
             self.i_out2_fact = self.psc24_10.get_ti()
@@ -451,14 +469,13 @@ class Check_psc24_10:
             assert self.check_error_rate(self.i_nom, self.i_out2_fact, 15)
             self.current['Inom'][1] = self.i_nom
             self.current['Ifact'][1] = self.i_out2_fact
-            self.control_log.add(self.name, "OUT1: Номинальный ток " + str(self.i_nom) + " Фактический " + str(self.i_out2_fact), True)
-            # если токовые каналы в параллель то проверить, что разница между ними
-            # не более 500mA
-            return True
+            self.control_log.add(self.name,
+                                 "OUT1: Номинальный ток " + str(self.i_nom) + " Фактический " + str(self.i_out2_fact), True)
         except:
-            self.control_log.add(self.name, "Error #3: Ошибка при проверке и записи конфигурации", False)
+            self.control_log.add(self.name, "Error #4: Ошибка при проверке измерений", False)
             return False
-
+        # если токовые каналы в параллель то проверить, что разница между ними
+        # не более 500mA
     # Проверка порогов по напряжению
     def check_voltage_thresholds(self):
         try:
@@ -484,6 +501,15 @@ class Check_psc24_10:
     def crash_mode(self):
         print("Режим перегрузки")
 
+    def for_test(self):
+        try:
+            modb_dout_101 = devices.Modb()
+            assert modb_dout_101.getConnection("DOUT_101", self.control_com, 101, 115200, self.control_log)
+            self.dout_101 = devices.Dout(modb_dout_101.getСonnectivity(), dout_names_101, "DOUT_101", self.control_log, 10)
+            self.dout_101.command("KL1", "ON")
+
+        except:
+            return False
     # главная функция
     def main1(self):
         self.control_log.set_start(False)
@@ -509,6 +535,7 @@ class Check_psc24_10:
                     time.sleep(2)
                     assert self.configurate_check()
                     time.sleep(2)
+                    # assert self.for_test()
 
                     # if i == 1:
                     #     self.main_log.set_start(True)

@@ -44,7 +44,7 @@ def test_worker():
         # control_log.log_clear_result()
         control_log.reset_log()
         main_log.reset_log()
-        psc_test = engine.Check_psc24_10("Тестирование", control_log, "com45", main_log, "com1", settings)
+        psc_test = engine.Check_psc24_10("Тестирование", control_log, "com2", main_log, "com2", settings)
         psc_test.main1()
         # lock.acquire()
         if control_log.get_finish() is True:

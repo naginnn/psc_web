@@ -6,6 +6,8 @@ import time
 import struct
 import FloatToHex, cgi, sys, math
 import binascii
+import time
+from datetime import datetime
 
 import engine
 
@@ -334,15 +336,17 @@ class ReadWriteEEprom:
     soft_version = ""
     serial_number = ""
     device_values = {}
-    def __init__(self,log, com, braudrate):
+    def __init__(self, name, log, com, braudrate, timeout):
         self.log = log
         self.com = com
         self.braudrate = braudrate
+        self.name = name
+        self.timeout = timeout
     # Считываем версию прошивки
     def read_soft_version(self):
-        i = 0
-        self.log.add("EEPROM", "Считываем версию прошивки", True)
-        while True:
+        time_sec = datetime.now().strftime('%H:%M:%S.%f')[:-4]
+        self.log.add(self.name,"Попытка получить версию прошивки", True)
+        for t in range(self.timeout):
             try:
                 package = []
                 read = FrameCollector()
@@ -351,13 +355,14 @@ class ReadWriteEEprom:
                 package.append([0x55, 0xAA, 0x98, 0x07, 0x05, 0x00, 0xA4]) # PATCH 3.
                 package.append([0x55, 0xAA, 0x98, 0x07, 0x06, 0x00, 0xA5]) # BUILD 8.
                 ser = serial.Serial(self.com, self.braudrate, timeout=0.3)
-                val = 0
                 s = ""
                 for frame in package:
                     modb_frame = read.write_modbus(frame)
                     values = bytearray(modb_frame)
                     ser.write(values)
                     response = ser.read(len(values))
+                    if (len(response) == 0):
+                        assert False
                     val = int(response[len(response) - 4])
                     s = s + str(val) + "."
                 ser.close()
@@ -366,21 +371,23 @@ class ReadWriteEEprom:
                 self.log.add("EEPROM","Версия прошивки получена: " + self.soft_version ,True)
                 return True
             except:
-                if i == 3:
-                    self.log.add("EEPROM", "Неудалось получить версию прошивки", False)
+                ser.close()
+                self.log.log_data[len(self.log.log_data) - 1] = \
+                    time_sec + " " + self.name + \
+                    ": Попытка получить версию прошивки " + str(t + 1) + " сек"
+                time.sleep(1 - time.time() % 1)
+                if t >= self.timeout - 1:
+                    self.log.add(self.name, "Неудалось получить версию прошивки", False)
                     return False
-                self.log.add("EEPROM", "Попытка получить версию прошивки №" + str(i + 1), True)
-                i = i + 1
-                time.sleep(i)
         return False
     # Получаем версию
     def get_soft_version(self):
         return self.soft_version
     # Считываем настройки PSC
     def read_power_management(self):
-        i = 0
-        self.log.add("EEPROM", "Считываем настройки электропитания", True)
-        while True:
+        time_sec = datetime.now().strftime('%H:%M:%S.%f')[:-4]
+        self.log.add(self.name,"Попытка получить настройки электропитания", True)
+        for t in range(self.timeout):
             try:
                 package = []
                 read = FrameCollector()
@@ -418,6 +425,8 @@ class ReadWriteEEprom:
                     values = bytearray(read.write_modbus(frame))
                     ser.write(values)
                     response = ser.read(len(values))
+                    if (len(response) == 0):
+                        assert False
                     val.append(read.hexfloat_to_float(response[:len(response) - 2]))
                 i = 0
                 for key in device_values:
@@ -428,21 +437,22 @@ class ReadWriteEEprom:
                 self.log.add("EEPROM", "Настройки электропитания получены", True)
                 return True
             except:
-                if i == 3:
-                    self.log.add("EEPROM", "Неудалось получить настройки электропитания", False)
+                ser.close()
+                self.log.log_data[len(self.log.log_data) - 1] = \
+                    time_sec + " " + self.name + \
+                    ": Попытка получить настройки электропитания " + str(t + 1) + " сек"
+                time.sleep(1 - time.time() % 1)
+                if t >= self.timeout - 1:
+                    self.log.add(self.name, "Неудалось получить настройки электропитания", False)
                     return False
-                self.log.add("EEPROM", "Попытка получить настройки электропитания №" + str(i + 1), True)
-                i = i + 1
-                time.sleep(i)
-            return False
     # Получаем настройки электропитания
     def get_power_management(self):
         return self.device_values
     # включить ТЭН
     def sensor_on(self):
-        i = 0
-        self.log.add("EEPROM", "Включение ТЭН", True)
-        while True:
+        time_sec = datetime.now().strftime('%H:%M:%S.%f')[:-4]
+        self.log.add(self.name,"Попытка включить ТЭН", True)
+        for t in range(self.timeout):
             try:
                 package = []
                 write = FrameCollector()
@@ -461,49 +471,59 @@ class ReadWriteEEprom:
                     values = bytearray(modb_frame)
                     ser.write(values)
                     response = ser.read(len(values))
+                    if (len(response) == 0):
+                        assert False
                 ser.close()
                 self.log.add("EEPROM", "ТЭН включен", True)
                 return True
             except:
-                if i == 3:
-                    self.log.add("EEPROM", "Неудалось включить ТЭН", False)
+                ser.close()
+                self.log.log_data[len(self.log.log_data) - 1] = \
+                    time_sec + " " + self.name + \
+                    ": Попытка включить ТЭН " + str(t + 1) + " сек"
+                time.sleep(1 - time.time() % 1)
+                if t >= self.timeout - 1:
+                    self.log.add(self.name, "Неудалось включить ТЭН", False)
                     return False
-                self.log.add("EEPROM", "Попытка включить ТЭН №" + str(i + 1), True)
-                i = i + 1
-                time.sleep(i)
     # выключить ТЭН
     def sensor_off(self):
-        i = 0
-        self.log.add("EEPROM", "Отключение ТЭН", True)
-        try:
-            package = []
-            write = FrameCollector()
-            # установить температуру, через функцию power_management (там реализован FLOAT32)
-            package.append(write.power_management(0x09, 0x01, -20))
-            # выключить все датчики
-            package.append(write.sensor_controls(0x09, 0x02, 0))
-            # linux port
-            ser = serial.Serial(self.com, self.braudrate, timeout=0.3)
+        time_sec = datetime.now().strftime('%H:%M:%S.%f')[:-4]
+        self.log.add(self.name,"Попытка отключить ТЭН", True)
+        for t in range(self.timeout):
+            try:
+                package = []
+                write = FrameCollector()
+                # установить температуру, через функцию power_management (там реализован FLOAT32)
+                package.append(write.power_management(0x09, 0x01, -20))
+                # выключить все датчики
+                package.append(write.sensor_controls(0x09, 0x02, 0))
+                # linux port
+                ser = serial.Serial(self.com, self.braudrate, timeout=0.3)
 
-            for frame in package:
-                modb_frame = write.write_modbus(frame)
-                values = bytearray(modb_frame)
-                ser.write(values)
-                response = ser.read(len(values))
-            ser.close()
-            self.log.add("EEPROM", "ТЭН отключен", True)
-            return True
-        except:
-            if i == 3:
-                self.log.add("EEPROM", "Неудалось отключить ТЭН", False)
-                return False
-            self.log.add("EEPROM", "Попытка отключить ТЭН №" + str(i + 1), True)
-            i = i + 1
-            time.sleep(i)
+                for frame in package:
+                    modb_frame = write.write_modbus(frame)
+                    values = bytearray(modb_frame)
+                    ser.write(values)
+                    response = ser.read(len(values))
+                    if (len(response) == 0):
+                        assert False
+                ser.close()
+                self.log.add("EEPROM", "ТЭН отключен", True)
+                return True
+            except:
+                ser.close()
+                self.log.log_data[len(self.log.log_data) - 1] = \
+                    time_sec + " " + self.name + \
+                    ": Попытка включить ТЭН " + str(t + 1) + " сек"
+                time.sleep(1 - time.time() % 1)
+                if t >= self.timeout - 1:
+                    self.log.add(self.name, "Неудалось включить ТЭН", False)
+                    return False
     # прочитать серийный номер
     def read_serial_number(self):
-        i = 0
-        while True:
+        time_sec = datetime.now().strftime('%H:%M:%S.%f')[:-4]
+        self.log.add(self.name, "Попытка получить серийный номер", True)
+        for t in range(self.timeout):
             try:
                 package = []
                 read = FrameCollector()
@@ -515,18 +535,22 @@ class ReadWriteEEprom:
                     values = bytearray(modb_frame)
                     ser.write(values)
                     response = ser.read(len(values))
+                    if (len(response) == 0):
+                        assert False
                     val = read.hex_to_float(response[:len(response) - 2])
                 ser.close()
                 self.serial_number = 4710000000 + val
-                self.log.add("EEPROM", "Серийный номер устройства получен: " + str(self.serial_number), True)
+                self.log.add(self.name, "Серийный номер устройства получен: " + str(self.serial_number), True)
                 return True
             except:
-                if i == 3:
-                    self.log.add("EEPROM", "Неудалось получить серийный номер устройства", False)
+                ser.close()
+                self.log.log_data[len(self.log.log_data) - 1] = \
+                    time_sec + " " + self.name + \
+                    ": Попытка получить серийный номер " + str(t + 1) + " сек"
+                time.sleep(1 - time.time() % 1)
+                if t >= self.timeout - 1:
+                    self.log.add(self.name, "Неудалось получить серийный номер", False)
                     return False
-                self.log.add("EEPROM", "Попытка получить серийный номер устройства №" + str(i + 1), True)
-                i = i + 1
-                time.sleep(i)
     # Получить серийный номер устройства
     def get_serial_number(self):
         return 4710000000 + self.serial_number

@@ -17,7 +17,7 @@ control_log = engine.Log()
 # лог проверки
 main_log = engine.Log()
 
-#метод диагностики стенда
+#метод диагностики стенда#
 def diag_worker():
     print("Начало потока")
     log.set_finish(False)

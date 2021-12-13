@@ -294,10 +294,11 @@ class Check_psc24_10:
         return (percent * whole) / 100.0
 
     # расчет погрешности, передаем поданное напряжение с ЛБП и фактическое с устройства, получаем результат true/false
-    def check_error_rate(self, nom, fact):
-        delta = self.percentage(10, nom)
-        max = nom + delta
-        min = nom - delta
+    # Для напряжения percent = 5%, для тока percent = 15%
+    def check_error_rate(self, nom, fact, percent):
+        delta = self.percentage(percent, nom)
+        max = round(nom + delta, 2)
+        min = round(nom - delta, 2)
         if (fact >= min) and (fact <= max):
             return True
         return False
@@ -413,30 +414,32 @@ class Check_psc24_10:
             #проверяем на погрешности
             assert self.psc24_10.check_ti("U_IN1")
             self.u_in1_fact = self.psc24_10.get_ti()
-            assert self.check_error_rate(self.u_nom, self.u_in1_fact)
+            assert self.check_error_rate(self.u_nom, self.u_in1_fact, 5)
             self.voltage['Unom'][0] = self.u_nom
             self.voltage['Ufact'][0] = self.u_in1_fact
             self.control_log.add(self.name, "IN1: Номинальное напряжение " + str(self.u_nom) + " Фактическое " + str(self.u_in1_fact), True)
 
             assert self.psc24_10.check_ti("U_IN2")
             self.u_in2_fact = self.psc24_10.get_ti()
-            assert self.check_error_rate(self.u_nom, self.u_in2_fact)
+            assert self.check_error_rate(self.u_nom, self.u_in2_fact, 5)
             self.voltage['Unom'][1] = self.u_nom
             self.voltage['Ufact'][1] = self.u_in2_fact
             self.control_log.add(self.name, "IN2: Номинальное напряжение " + str(self.u_nom) + " Фактическое " + str(self.u_in2_fact), True)
 
             assert self.psc24_10.check_ti("U_IN3")
             self.u_in3_fact = self.psc24_10.get_ti()
-            assert self.check_error_rate(self.u_nom, self.u_in3_fact)
+            assert self.check_error_rate(self.u_nom, self.u_in3_fact, 5)
             self.voltage['Unom'][2] = self.u_nom
             self.voltage['Ufact'][2] = self.u_in3_fact
             self.control_log.add(self.name, "IN3: Номинальное напряжение " + str(self.u_nom) + " Фактическое " + str(self.u_in3_fact), True)
 
+            # подавать разные токи на выхода
+            # и добавить второй датчик
             assert self.psc24_10.check_ti("I_OUT1")
             self.i_out1_fact = self.psc24_10.get_ti()
             assert self.ammeter.check_ti()
             self.i_nom = self.ammeter.get_ti()
-            assert self.check_error_rate(self.i_nom, self.i_out1_fact)
+            assert self.check_error_rate(self.i_nom, self.i_out1_fact, 15)
             self.current['Inom'][0] = self.i_nom
             self.current['Ifact'][0] = self.i_out1_fact
             self.control_log.add(self.name,"OUT1: Номинальный ток " + str(self.i_nom) + " Фактический " + str(self.i_out1_fact), True)
@@ -445,11 +448,12 @@ class Check_psc24_10:
             self.i_out2_fact = self.psc24_10.get_ti()
             assert self.ammeter.check_ti()
             self.i_nom = self.ammeter.get_ti()
-            assert self.check_error_rate(self.i_nom, self.i_out2_fact)
+            assert self.check_error_rate(self.i_nom, self.i_out2_fact, 15)
             self.current['Inom'][1] = self.i_nom
             self.current['Ifact'][1] = self.i_out2_fact
             self.control_log.add(self.name, "OUT1: Номинальный ток " + str(self.i_nom) + " Фактический " + str(self.i_out2_fact), True)
-
+            # если токовые каналы в параллель то проверить, что разница между ними
+            # не более 500mA
             return True
         except:
             self.control_log.add(self.name, "Error #3: Ошибка при проверке и записи конфигурации", False)

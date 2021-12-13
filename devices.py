@@ -38,11 +38,11 @@ def number_func(str):
 # соединение modbus
 class Modb:
     connect = ()
-    def getConnection(self, name, port, slave_adress, log):
+    def getConnection(self, name, port, slave_adress, baudrate, log):
         try:
             self.log = log
             self.instrument = minimalmodbus.Instrument(port, slave_adress)
-            self.instrument.serial.baudrate = 115200  # Baud
+            self.instrument.serial.baudrate = baudrate  # Baud
             self.instrument.serial.bytesize = 8
             self.instrument.serial.stopbits = 1
             # self.instrument.serial.timeout = 0.05 # seconds
@@ -353,9 +353,6 @@ class PowerSupply:
                 i = i + 1
                 time.sleep(i)
 
-
-
-
     # *IDN?
     # MEAS:VOLT? // текущее напряжение блока питания
     # VOLTage?
@@ -365,6 +362,42 @@ class PowerSupply:
     # OUTPut OFF // отключить выход
     # MEAS:CURR? // текущий ток блока питания
     # SOUR:VOLTAGE 25 // текущее напряжение блока питания
+
+class Ammeter:
+    def __init__(self, instrument, name, log):
+        self.instrument = instrument
+        self.name = name
+        self.log = log
+
+    current = 0.0
+    # получить
+    def get_ti(self):
+        return round(self.current, 2)
+
+    def check_ti(self):
+        time_sec = datetime.now().strftime('%H:%M:%S.%f')[:-4]
+        self.log.add(self.name, time_sec + " Попытка получить телеизмерения ", True)
+        for t in range(10):
+            try:
+                self.current = self.instrument.read_float(18, 3)
+                if (self.current != None):
+                    self.log.add(self.name, "Телеизмерение получено", True)
+                    return True
+                self.log.log_data[len(self.log.log_data) - 1] = \
+                    time_sec + " " + self.name + \
+                    ": Попытка получить телеизмерение " + str(t + 1) + " сек"
+                time.sleep(1 - time.time() % 1)
+                if t >= 9:
+                    self.log.add(self.name, "Неудалось получить телеизмерение с устройства", False)
+                    return False
+            except:
+                self.log.log_data[len(self.log.log_data) - 1] = \
+                    time_sec + " " + self.name + \
+                    ": Попытка получить телеизмерения " + str(t + 1) + " сек"
+                time.sleep(1 - time.time() % 1)
+                if t >= 9:
+                    self.log.add(self.name, "Неудалось получить телеизмерение с устройства", False)
+                    return False
 # функции проверяемого устройства
 class Psc_10:
     psc10_names_ts = ["IN1", "IN2", "IN3", "OUT1", "OUT2", "ERROR_OUT1", "ERROR_OUT2", "ERROR_BTR", "ERROR_I_OUT1",
@@ -381,28 +414,7 @@ class Psc_10:
         self.name = name
         self.log = log
 
-    # расчет процента
-    def percentage(self, percent, whole):
-        return (percent * whole) / 100.0
-    # рассчитываем погрешности
-    def check_error_rate(self, u_nom, u_fact):
-        u_delta = self.percentage(1, u_nom)
-        print("Погрешность 1%: ", u_delta, "от ", u_nom)
-        u_max = u_nom + u_delta
-        u_min = u_nom - u_delta
-        if (u_fact >= u_min) and (u_fact <= u_max):
-            print("Максимальное значение ", u_max)
-            print("Минимальное значение ", u_min)
-            print("Фактическое значение ", u_fact)
-            print("ok")
-            return True
-        print("Максимальное значение ", u_max)
-        print("Минимальное значение ", u_min)
-        print("Фактическое значение ", u_fact)
-        print("bad")
-        return False
-
-
+    # получить
     def get_ti(self):
         return round(self.measurement, 2)
 
@@ -431,30 +443,6 @@ class Psc_10:
                     self.log.add(self.name, "Неудалось получить телеизмерение с устройства", False)
                     return False
 
-
-
-
-
-    # def get_ti(self,name_signal):
-    #     i = 0
-    #     while True:
-    #         try:
-    #             value = self.instrument.read_float(self.psc10_names_ti.get(name_signal), 4)
-    #             if (value != None):
-    #                 self.log.add(self.name, "Телеизмерение " + name_signal + " = " + str(round(value, 2)) + " получено", True)
-    #                 return round(value, 2)
-    #             else:
-    #                 if i == 3:
-    #                     self.log.add(self.name, "Ошибка при попытке получения телеизмерения " + name_signal, False)
-    #                     return False
-    #                 i = i + 1
-    #         except:
-    #             if i == 3:
-    #                 self.log.add(self.name, "Критическая ошибка при попытке получения телеизмерения " + name_signal, False)
-    #                 return False
-    #             i = i + 1
-    #             time.sleep(i)
-    # вероятно необходимо разделить
     def check_behaviour(self, behav):
         time_sec = datetime.now().strftime('%H:%M:%S.%f')[:-4]
         self.log.add(self.name, time_sec + " Ожидание включения устройства ", True)
@@ -535,15 +523,16 @@ class Psc_40:
             self.log.add(self.name, "Критическая ошибка при попытке получения телесигнала " + name_signal, False)
             return False
 
-if __name__ == '__main__':
-
-    log = engine.Log()
-    modb_psc24_10 = Modb()
-    lala = modb_psc24_10.getConnection("PSC24_10", "com2", 1, log)
-    print(lala)
-    psc24_10 = Psc_10(modb_psc24_10.getСonnectivity(), "PSC24_10", log)
-    psc24_10.check_ti()
-
+# if __name__ == '__main__':
+#
+#     log = engine.Log()
+#     modb_ammeter = Modb()
+#     lala = modb_ammeter.getConnection("Амперметр", "com1", 5, 19200, log)
+#     print(lala)
+#     ammeter = Ammeter(modb_ammeter.getСonnectivity(), "Амперметр", log)
+#     lala = ammeter.check_ti()
+#     print(lala)
+#     print(ammeter.get_ti())
 
     #
     # i = 0

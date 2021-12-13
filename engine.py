@@ -231,26 +231,6 @@ class Diagnostics:
         else:
             self.log.add(self.name, "Диагностика завершена, нет ошибок", True)
         self.log.set_finish(True)
-# расчет процента
-def percentage(percent, whole):
-    return (percent * whole) / 100.0
-# расчет погрешности, передаем поданное напряжение с ЛБП и фактическое с устройства, получаем результат true/false
-def check_error_rate(u_nom, u_fact):
-    u_delta = percentage(1, u_nom)
-    print("Погрешность 1%: ", u_delta,"от ",u_nom)
-    u_max = u_nom + u_delta
-    u_min = u_nom - u_delta
-    if (u_fact >= u_min) and (u_fact <= u_max):
-        print("Максимальное значение ", u_max)
-        print("Минимальное значение ", u_min)
-        print("Фактическое значение ", u_fact)
-        print("ok")
-        return True
-    print("Максимальное значение ", u_max)
-    print("Минимальное значение ", u_min)
-    print("Фактическое значение ", u_fact)
-    print("bad")
-    return False
 
 # Проверка устройства psc24_10
 class Check_psc24_10:
@@ -267,11 +247,17 @@ class Check_psc24_10:
     # предполагаемое поведение
     behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 0, "error_pwr2": 0, "error_btr": 0,
                  "error_out1": 0, "error_out2": 0, "charge_btr": 1, "ten": 0, "apts": 0}
-
+    u_nom = 25.14
+    i_nom = 0.0
+    u_in1_fact = 0.0
+    u_in2_fact = 0.0
+    u_in3_fact = 0.0
+    i_out1_fact = 0.0
+    i_out2_fact = 0.0
     # списки для будущего протокола
     serial_number = {'Серийный номер': [' ']}
     soft_version = {'Версия ПО': ['1.2.3.8'],'Фактическая': [' ']}
-    voltage = {'Канал, U': ['IN1', 'IN2', 'IN3', 'IN4'], 'Unom': ['', '', '', ''], 'Ufact': ['', '', '', ''], 'Uerror_rate': ['', '', '', '']}
+    voltage = {'Канал, U': ['IN1', 'IN2', 'IN3'], 'Unom': ['', '', ''], 'Ufact': ['', '', ''], 'Uerror_rate': ['', '', '']}
     current = { 'Канал, I': ['OUT1', 'OUT2', '', ''], 'Inom': ['', '', '', ''], 'Ifact': ['', '', '', ''], 'Ierror_rate': ['', '', '', '']}
     voltage_threesolds = {'Пороги по напряжению': ['min', 'nom', 'max', ''], 'U': ['', '', '', ''], 'Результат': ['', '', '', '']}
     switching_channels = {'Переключение каналов': ['Под Imin 0A', 'Под Imax 10A', '', ''], 'Канал 1': ['', '', '', ''], 'Время, t': ['', '', '', ''], 'Канал 2': ['', '', '', '']}
@@ -287,9 +273,12 @@ class Check_psc24_10:
     dout_202 = ()
     psc24_10 = ()
     power_supply = ()
+    ammeter = ()
     IN1 = ""
     IN2 = ""
     BTR = "KM1"
+
+    eeprom = ()
 
     # добавляем два лога и ком-порт модулям управления и psc
     def __init__(self, name, control_log, control_com, main_log, device_com, settings):
@@ -300,34 +289,50 @@ class Check_psc24_10:
         self.device_com = device_com
         self.settings = settings
 
+    # расчет процента
+    def percentage(self, percent, whole):
+        return (percent * whole) / 100.0
+
+    # расчет погрешности, передаем поданное напряжение с ЛБП и фактическое с устройства, получаем результат true/false
+    def check_error_rate(self, nom, fact):
+        delta = self.percentage(10, nom)
+        max = nom + delta
+        min = nom - delta
+        if (fact >= min) and (fact <= max):
+            return True
+        return False
+
     # подготовка
     def prepare(self):
         # Инициализируем модули управления
         try:
-            self.control_log.add(self.name, "Stage 1: Инициализация модулей управления", True)
-            modb_dout_101 = devices.Modb()
-            assert modb_dout_101.getConnection("DOUT_101", self.control_com, 101, self.control_log)
-            modb_dout_102 = devices.Modb()
-            assert modb_dout_102.getConnection("DOUT_102", self.control_com, 102, self.control_log)
-            modb_dout_103 = devices.Modb()
-            assert modb_dout_103.getConnection("DOUT_103", self.control_com, 103, self.control_log)
-            modb_dout_104 = devices.Modb()
-            assert modb_dout_104.getConnection("DOUT_104", self.control_com, 104, self.control_log)
-            modb_din_201 = devices.Modb()
-            assert modb_din_201.getConnection("DIN_201", self.control_com, 201, self.control_log)
-            modb_din_202 = devices.Modb()
-            assert modb_din_202.getConnection("DIN_202", self.control_com, 202, self.control_log)
-
-            config = self.settings.load("settings.cfg")
-            self.power_supply = devices.PowerSupply(config.get("ip_adress"), config.get("port"), "ЛБП",self.control_log)
-            assert self.power_supply.connection()
-
-            self.dout_101 = devices.Dout(modb_dout_101.getСonnectivity(), dout_names_101, "DOUT_101", self.control_log)
-            self.dout_102 = devices.Dout(modb_dout_102.getСonnectivity(), dout_names_102, "DOUT_102", self.control_log)
-            self.dout_103 = devices.Dout(modb_dout_103.getСonnectivity(), dout_names_103, "DOUT_103", self.control_log)
-            self.dout_104 = devices.Dout(modb_dout_104.getСonnectivity(), dout_names_104, "DOUT_104", self.control_log)
-            self.din_201 = devices.Din(modb_din_201.getСonnectivity(), din_names_201, "DIN_201", self.control_log)
-            self.din_202 = devices.Din(modb_din_202.getСonnectivity(), din_names_202, "DIN_202", self.control_log)
+            # self.control_log.add(self.name, "Stage 1: Инициализация модулей управления", True)
+            # modb_dout_101 = devices.Modb()
+            # assert modb_dout_101.getConnection("DOUT_101", self.control_com, 101, 115200, self.control_log)
+            # modb_dout_102 = devices.Modb()
+            # assert modb_dout_102.getConnection("DOUT_102", self.control_com, 102, 115200, self.control_log)
+            # modb_dout_103 = devices.Modb()
+            # assert modb_dout_103.getConnection("DOUT_103", self.control_com, 103, 115200, self.control_log)
+            # modb_dout_104 = devices.Modb()
+            # assert modb_dout_104.getConnection("DOUT_104", self.control_com, 104, 115200, self.control_log)
+            # modb_din_201 = devices.Modb()
+            # assert modb_din_201.getConnection("DIN_201", self.control_com, 201, 115200, self.control_log)
+            # modb_din_202 = devices.Modb()
+            # assert modb_din_202.getConnection("DIN_202", self.control_com, 202, 115200, self.control_log)
+            # modb_ammeter = devices.Modb()
+            # assert modb_ammeter.getConnection("Амперметр", self.control_com, 5, 19200, self.control_log)
+            #
+            # config = self.settings.load("settings.cfg")
+            # self.power_supply = devices.PowerSupply(config.get("ip_adress"), config.get("port"), "ЛБП",self.control_log)
+            # assert self.power_supply.connection()
+            #
+            # self.dout_101 = devices.Dout(modb_dout_101.getСonnectivity(), dout_names_101, "DOUT_101", self.control_log)
+            # self.dout_102 = devices.Dout(modb_dout_102.getСonnectivity(), dout_names_102, "DOUT_102", self.control_log)
+            # self.dout_103 = devices.Dout(modb_dout_103.getСonnectivity(), dout_names_103, "DOUT_103", self.control_log)
+            # self.dout_104 = devices.Dout(modb_dout_104.getСonnectivity(), dout_names_104, "DOUT_104", self.control_log)
+            # self.din_201 = devices.Din(modb_din_201.getСonnectivity(), din_names_201, "DIN_201", self.control_log)
+            # self.din_202 = devices.Din(modb_din_202.getСonnectivity(), din_names_202, "DIN_202", self.control_log)
+            # self.ammeter = devices.Ammeter(modb_ammeter.getСonnectivity(), "Амперметр", self.control_log)
             return True
         except:
             self.control_log.add(self.name, "Error #1: Ошибка инициализации модулей управления", False)
@@ -356,9 +361,13 @@ class Check_psc24_10:
             # assert self.power_supply.connection()
             # assert self.power_supply.set_voltage(24)
 
+            # амперметр перенести в prepare()
+            modb_ammeter = devices.Modb()
+            assert modb_ammeter.getConnection("Амперметр", self.control_com, 5, 19200, self.control_log)
+            self.ammeter = devices.Ammeter(modb_ammeter.getСonnectivity(), "Амперметр", self.control_log)
             # правильная инициализация modbus
             modb_psc24_10 = devices.Modb()
-            assert modb_psc24_10.getConnection("PSC24_10", "com2", 1, self.control_log)
+            assert modb_psc24_10.getConnection("PSC24_10", self.device_com, 1, 115200, self.control_log)
             self.psc24_10 = devices.Psc_10(modb_psc24_10.getСonnectivity(), "PSC24_10", self.control_log)
 
             # ждем включения устройства и передаем предполагаемое поведение
@@ -371,24 +380,24 @@ class Check_psc24_10:
     def configurate_check(self):
         self.control_log.add(self.name, "Stage 3 Проверка и запись конфигурации", True)
         try:
-            eeprom = read_write_eeprom.ReadWriteEEprom(self.control_log, self.device_com, 115200)
-            assert eeprom.read_soft_version()
+            self.eeprom = read_write_eeprom.ReadWriteEEprom(self.control_log, self.device_com, 115200)
+            assert self.eeprom.read_soft_version()
             config = self.settings.load("settings.cfg")
             soft_version = config.get("soft_version")
-            if eeprom.get_soft_version() == soft_version:
-                self.soft_version['Фактическая'] = [eeprom.get_soft_version()]
+            if self.eeprom.get_soft_version() == soft_version:
+                self.soft_version['Фактическая'] = [self.eeprom.get_soft_version()]
                 self.control_log.add(self.name,
-                                     "Версия прошивки совпадает с актуальной: " + eeprom.get_soft_version() + " = " + soft_version,
+                                     "Версия прошивки совпадает с актуальной: " + self.eeprom.get_soft_version() + " = " + soft_version,
                                      True)
             else:
-                self.soft_version['Фактическая'] = [eeprom.get_soft_version()]
+                self.soft_version['Фактическая'] = [self.eeprom.get_soft_version()]
                 self.control_log.add(self.name,
-                                     "Не актуальная версия прошивки: " + eeprom.get_soft_version() + " != " + soft_version,
+                                     "Не актуальная версия прошивки: " + self.eeprom.get_soft_version() + " != " + soft_version,
                                      False)
                 assert False
             # считываем серийный номер
-            assert eeprom.read_serial_number()
-            self.serial_number['Серийный номер'] = [eeprom.get_serial_number()]
+            assert self.eeprom.read_serial_number()
+            self.serial_number['Серийный номер'] = [self.eeprom.get_serial_number()]
             # читаем конфигурацию assert/ получать setting getter'ом
             config = self.settings.load("settings.cfg")
             # выбираем блоки
@@ -399,8 +408,47 @@ class Check_psc24_10:
                 self.IN1 = "KL15"
                 self.IN2 = "KL16"
 
+            # подать нагрузку
+
+            #проверяем на погрешности
             assert self.psc24_10.check_ti("U_IN1")
-            self.control_log.add(self.name, "Напряжение IN1 " + str(self.psc24_10.get_ti()), True)
+            self.u_in1_fact = self.psc24_10.get_ti()
+            assert self.check_error_rate(self.u_nom, self.u_in1_fact)
+            self.voltage['Unom'][0] = self.u_nom
+            self.voltage['Ufact'][0] = self.u_in1_fact
+            self.control_log.add(self.name, "IN1: Номинальное напряжение " + str(self.u_nom) + " Фактическое " + str(self.u_in1_fact), True)
+
+            assert self.psc24_10.check_ti("U_IN2")
+            self.u_in2_fact = self.psc24_10.get_ti()
+            assert self.check_error_rate(self.u_nom, self.u_in2_fact)
+            self.voltage['Unom'][1] = self.u_nom
+            self.voltage['Ufact'][1] = self.u_in2_fact
+            self.control_log.add(self.name, "IN2: Номинальное напряжение " + str(self.u_nom) + " Фактическое " + str(self.u_in2_fact), True)
+
+            assert self.psc24_10.check_ti("U_IN3")
+            self.u_in3_fact = self.psc24_10.get_ti()
+            assert self.check_error_rate(self.u_nom, self.u_in3_fact)
+            self.voltage['Unom'][2] = self.u_nom
+            self.voltage['Ufact'][2] = self.u_in3_fact
+            self.control_log.add(self.name, "IN3: Номинальное напряжение " + str(self.u_nom) + " Фактическое " + str(self.u_in3_fact), True)
+
+            assert self.psc24_10.check_ti("I_OUT1")
+            self.i_out1_fact = self.psc24_10.get_ti()
+            assert self.ammeter.check_ti()
+            self.i_nom = self.ammeter.get_ti()
+            assert self.check_error_rate(self.i_nom, self.i_out1_fact)
+            self.current['Inom'][0] = self.i_nom
+            self.current['Ifact'][0] = self.i_out1_fact
+            self.control_log.add(self.name,"OUT1: Номинальный ток " + str(self.i_nom) + " Фактический " + str(self.i_out1_fact), True)
+
+            assert self.psc24_10.check_ti("I_OUT2")
+            self.i_out2_fact = self.psc24_10.get_ti()
+            assert self.ammeter.check_ti()
+            self.i_nom = self.ammeter.get_ti()
+            assert self.check_error_rate(self.i_nom, self.i_out2_fact)
+            self.current['Inom'][1] = self.i_nom
+            self.current['Ifact'][1] = self.i_out2_fact
+            self.control_log.add(self.name, "OUT1: Номинальный ток " + str(self.i_nom) + " Фактический " + str(self.i_out2_fact), True)
 
             return True
         except:
@@ -431,7 +479,6 @@ class Check_psc24_10:
     # аварийные режимы работы
     def crash_mode(self):
         print("Режим перегрузки")
-
 
     # главная функция
     def main1(self):

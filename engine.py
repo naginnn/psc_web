@@ -19,12 +19,67 @@ din_names_201 = {"KL1":"MW1 - MeanWell 24-67","KL2":"MW2 - MeanWell 24-67","KL3"
                  "KL26": "A15 - Коммутатор #9","KL27": "A16 - Коммутатор #10", "KL28": "A17 - Коммутатор #11", "KL29": "A18 - Коммутатор #12","KL30": "ЛБП U1 - U на IN1",
                  "KL31": "ЛБП U2 - U на IN2", "KL32": "ЛБП U3 - U на IN3"
                  }
-din_names_202 = {"KL33":"ЛБП U4 - U на IN4","KM1":"АКБ #1 - IN 3,4","KM2":"АКБ #2 - IN 3,4","KM3":"АКБ #3 - IN 3,4","KM4":"АКБ #4 - IN 3,4",
-                 "KM5":"АКБ #5 - IN 3,4","KM6":"АКБ #6 - IN 3,4","KM7":"PSC 1 - входные каналы","KM8":"PSC 2 - входные каналы","KM9":"PSC 3 - входные каналы",
-                 "KM10":"PSC 4 - входные каналы","KM11":"PSC 5 - входные каналы","KM14":"OUT1  - R(реостат)","KM15":"OUT2  - R(реостат)","KM16":"OUT1  - Коммутаторы","KM17":"OUT2 - Коммутаторы",
-                 "KM18": "Коротокое замыкание на R1(реостат)", "KM19": "Коротокое замыкание на R2(коммутаторы)","KM12": "Прибавить 5А(коммутаторы)", "KM13": "Прибавить 10А(коммутаторы)",
-                 "SF4": "Цепь IN1", "SF5": "Цепь IN2", "SF6": "Цепь IN3", "SF7": "Цепь IN4","KM20": "Прибавить 20А(реостат)", "KM21": "Прибавить 40А(реостат)", "KM22": "Прибавить 40А(реостат)", "KM23": "Прибавить 80А(реостат)",
-                 "KL34": "Обрыв связи с датчиком"}
+# din_names_202 = {"KL33":"ЛБП U4 - U на IN4",
+#                  "KM1":"АКБ #1 - IN 3,4",
+#                  "KM2":"АКБ #2 - IN 3,4",
+#                  "KM3":"АКБ #3 - IN 3,4",
+#                  "KM4":"АКБ #4 - IN 3,4",
+#                  "KM5":"АКБ #5 - IN 3,4",
+#                  "KM6":"АКБ #6 - IN 3,4",
+#                  "KM7":"PSC 1 - входные каналы",
+#                  "KM8":"PSC 2 - входные каналы",
+#                  "KM9":"PSC 3 - входные каналы",
+#                  "KM10":"PSC 4 - входные каналы",
+#                  "KM11":"PSC 5 - входные каналы",
+#                  "KM14":"OUT1  - Коммутаторы",
+#                  "KM15":"OUT2  - R(реостат)",
+#                  "KM16":"OUT1  - Коммутаторы",
+#                  "KM17":"OUT2 - R(реостат)",
+#                  "KM18": "Коротокое замыкание на R1(реостат)",
+#                  "KM19": "Коротокое замыкание на R2(коммутаторы)",
+#                  "KM12": "Прибавить 5А(коммутаторы)",
+#                  "KM13": "Прибавить 10А(коммутаторы)",
+#                  "SF4": "Цепь IN1",
+#                  "SF5": "Цепь IN2",
+#                  "SF6": "Цепь IN3",
+#                  "SF7": "Цепь IN4",
+#                  "KM20": "Прибавить 20А(реостат)",
+#                  "KM21": "Прибавить 40А(реостат)",
+#                  "KM22": "Прибавить 40А(реостат)",
+#                  "KM23": "Прибавить 80А(реостат)",
+#                  "KL34": "Обрыв связи с датчиком"}
+din_names_202 = {"KL33":"ЛБП U4 - U на IN4",
+                 "KM1":"АКБ #1 - IN 3,4",
+                 "KM2":"АКБ #2 - IN 3,4",
+                 "KM3":"АКБ #3 - IN 3,4",
+                 "KM4":"АКБ #4 - IN 3,4",
+                 "KM5":"АКБ #5 - IN 3,4",
+                 "KM6":"АКБ #6 - IN 3,4",
+                 "KM7":"PSC 1 - входные каналы",
+                 "KM8":"PSC 2 - входные каналы",
+                 "KM9":"PSC 3 - входные каналы",
+                 "KM10":"PSC 4 - входные каналы",
+                 "KM11":"PSC 5 - входные каналы",
+                 "KM12":"PSC 5 - входные каналы",
+                 "KM13": "Прибавить 10А(коммутаторы)",
+                 "KM14":"OUT1  - Коммутаторы",
+                 "KM15":"OUT2  - R(реостат)",
+                 "KM16":"OUT1  - Коммутаторы",
+                 "KM17":"OUT2 - R(реостат)",
+                 "KM18": "Коротокое замыкание на R1(реостат)",
+                 "KM19": "Коротокое замыкание на R2(коммутаторы)",
+                 "SF4": "Цепь IN1",
+                 "SF5": "Цепь IN2",
+                 "SF6": "Цепь IN3",
+                 "SF7": "Цепь IN4",
+                 "Reserved": "Reserved",
+                 "Reserved": "Reserved",
+                 "Reserved": "Reserved",
+                 "KM20": "Прибавить 20А(реостат)",
+                 "KM21": "Прибавить 40А(реостат)",
+                 "KM22": "Прибавить 40А(реостат)",
+                 "KM23": "Прибавить 80А(реостат)",
+                 }
 
 # чтение web конфигурации (добавить лог)
 class Settings:
@@ -264,7 +319,7 @@ class Check_psc24_10:
     # списки для будущего протокола
     serial_number = {'Серийный номер': [' ']}
     soft_version = {'Версия ПО': ['1.2.3.8'],'Фактическая': [' ']}
-    voltage = {'Канал, U': ['IN1', 'IN2', 'IN3'], 'Uном': ['', '', ''], 'Uфакт': ['', '', ''], 'Uдельта': ['', '', '']}
+    voltage = {'Канал, U': ['IN1', 'IN2', 'IN3'], 'Unom': ['', '', ''], 'Ufact': ['', '', ''], 'Uerror_rate': ['', '', '']}
     current = { 'Канал, I': ['OUT1', 'OUT2', '', ''], 'Inom': ['', '', '', ''], 'Ifact': ['', '', '', ''], 'Ierror_rate': ['', '', '', '']}
     current_difference = {'OUT1/OUT2, A': [' ']}
     voltage_threesolds = {'Пороги, U': ['min, U', 'nom, U', 'max, U', ''], 'U_IN1': ['', '', '', ''], 'U_IN2': ['', '', '', ''], 'U_IN3': ['', '', '', ''], 'Результат': ['', '', '', '']}
@@ -339,7 +394,7 @@ class Check_psc24_10:
             assert modb_ammeter_out2 .getConnection("Амперметр OUT2", self.ammeter_com, 6, 19200, self.control_log)
 
             config = self.settings.load("settings.cfg")
-            self.power_supply = devices.PowerSupply(config.get("ip_adress"), config.get("port"), "ЛБП",self.control_log)
+            self.power_supply = devices.PowerSupply(config.get("ip_adress"), config.get("port"), "ЛБП",self.control_log,1)
             assert self.power_supply.connection()
 
             self.dout_101 = devices.Dout(modb_dout_101.getСonnectivity(), dout_names_101, "DOUT_101", self.control_log, 10)
@@ -350,6 +405,8 @@ class Check_psc24_10:
             self.din_202 = devices.Din(modb_din_202.getСonnectivity(), din_names_202, "DIN_202", self.control_log, 10)
             self.ammeter_out1 = devices.Ammeter(modb_ammeter_out1.getСonnectivity(), "Амперметр OUT1", self.control_log, 10)
             self.ammeter_out2 = devices.Ammeter(modb_ammeter_out2.getСonnectivity(), "Амперметр OUT2", self.control_log, 10)
+            assert self.dout_103.command("KM7", "ON")
+            assert self.din_202.check_voltage("KM7", "ON")
             return True
         except:
             self.control_log.add(self.name, "Error #1: Ошибка инициализации модулей управления", False)
@@ -372,9 +429,8 @@ class Check_psc24_10:
             assert self.din_201.check_voltage("KL30", "ON")
             assert self.dout_102.command("KL31", "ON")
             assert self.din_201.check_voltage("KL31", "ON")
-            assert self.dout_102.command("KL33", "ON")
-            assert self.din_201.check_voltage("KL33", "ON")
-            assert self.power_supply.connection()
+            assert self.dout_103.command("KL33", "ON")
+            assert self.din_202.check_voltage("KL33", "ON")
             assert self.power_supply.set_voltage(24)
             assert self.power_supply.check_voltage(24)
 
@@ -475,7 +531,7 @@ class Check_psc24_10:
                                  True)
 
             # получаем номинальное напряжение канала на устройстве
-            self.u_nom = float(self.power_management.get("pw3_u_nom"))
+            self.u_nom = float(self.power_management.get("btr_u_nom"))
             # устанавливаем номинальное напряжение на ЛБП
             assert self.power_supply.set_voltage(self.u_nom)
             assert self.power_supply.check_voltage(self.u_nom)
@@ -496,8 +552,8 @@ class Check_psc24_10:
 
             # подать токи на выхода
             # подключаем OUT1
-            assert self.dout_103.command("KM14", "ON")
-            assert self.din_202.check_voltage("KM14", "ON")
+            assert self.dout_103.command("KM16", "ON")
+            assert self.din_202.check_voltage("KM16", "ON")
             # проверяем состояние
             assert self.psc24_10.check_behaviour(self.behaviour)
             # подключаем коммутатор #1
@@ -521,6 +577,8 @@ class Check_psc24_10:
             # проверяем состояние
             assert self.psc24_10.check_behaviour(self.behaviour)
 
+            # time.sleep(10)
+
             # получаем и рассчитываем измерения OUT1
             # получаем ТИ с OUT1
             assert self.psc24_10.check_ti("I_OUT1")
@@ -541,15 +599,15 @@ class Check_psc24_10:
                                  "OUT1: Номинальный ток " + self.current['Ierror_rate'][0], True)
 
             # отключаем OUT1
-            assert self.dout_103.command("KM14", "OFF")
-            assert self.din_202.check_voltage("KM14", "OFF")
+            assert self.dout_103.command("KM16", "OFF")
+            assert self.din_202.check_voltage("KM16", "OFF")
 
             # проверяем состояние
             assert self.psc24_10.check_behaviour(self.behaviour)
 
             # включаем OUT2
-            assert self.dout_103.command("KM15", "ON")
-            assert self.din_202.check_voltage("KM15", "ON")
+            assert self.dout_103.command("KM17", "ON")
+            assert self.din_202.check_voltage("KM17", "ON")
 
             # проверяем состояние
             assert self.psc24_10.check_behaviour(self.behaviour)
@@ -577,8 +635,8 @@ class Check_psc24_10:
             assert self.psc24_10.check_behaviour(self.behaviour)
 
             # подключаем OUT1 и параллелим с OUT2
-            assert self.dout_103.command("KM14", "ON")
-            assert self.din_202.check_voltage("KM14", "ON")
+            assert self.dout_103.command("KM16", "ON")
+            assert self.din_202.check_voltage("KM16", "ON")
 
             # проверяем состояние
             assert self.psc24_10.check_behaviour(self.behaviour)
@@ -730,6 +788,7 @@ class Check_psc24_10:
                     # ОБЯЗАТЕЛЬНО В НАЧАЛЕ ЦИКЛА
                     self.main_log.set_finish(False)
                     self.main_log.set_device_count(i - 1)
+
                     time.sleep(2)
                     assert self.first_start()
                     time.sleep(2)

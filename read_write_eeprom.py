@@ -553,7 +553,7 @@ class ReadWriteEEprom:
                     return False
     # Получить серийный номер устройства
     def get_serial_number(self):
-        return 4710000000 + self.serial_number
+        return self.serial_number
 # получить версию прошивки!!!!!!!! ДОБАВИТЬ
 # добавить обработку событий!
 # for the future -> add to read a serial number

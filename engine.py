@@ -387,8 +387,8 @@ class Check_psc24_10:
             assert modb_din_201.getConnection("DIN_201", self.control_com, 201, 115200, self.control_log)
             modb_din_202 = devices.Modb()
             assert modb_din_202.getConnection("DIN_202", self.control_com, 202, 115200, self.control_log)
-            modb_ammeter_out1 = devices.Modb()
             # амперметры
+            modb_ammeter_out1 = devices.Modb()
             assert modb_ammeter_out1 .getConnection("Амперметр OUT1", self.ammeter_com, 5, 19200, self.control_log)
             modb_ammeter_out2 = devices.Modb()
             assert modb_ammeter_out2 .getConnection("Амперметр OUT2", self.ammeter_com, 6, 19200, self.control_log)
@@ -403,8 +403,8 @@ class Check_psc24_10:
             self.dout_104 = devices.Dout(modb_dout_104.getСonnectivity(), dout_names_104, "DOUT_104", self.control_log, 10)
             self.din_201 = devices.Din(modb_din_201.getСonnectivity(), din_names_201, "DIN_201", self.control_log, 10)
             self.din_202 = devices.Din(modb_din_202.getСonnectivity(), din_names_202, "DIN_202", self.control_log, 10)
-            self.ammeter_out1 = devices.Ammeter(modb_ammeter_out1.getСonnectivity(), "Амперметр OUT1", self.control_log, 10)
-            self.ammeter_out2 = devices.Ammeter(modb_ammeter_out2.getСonnectivity(), "Амперметр OUT2", self.control_log, 10)
+            self.ammeter_out1 = devices.Ammeter(modb_ammeter_out1.getСonnectivity(), "Амперметр OUT1", self.control_log, 30)
+            self.ammeter_out2 = devices.Ammeter(modb_ammeter_out2.getСonnectivity(), "Амперметр OUT2", self.control_log, 30)
             assert self.dout_103.command("KM7", "ON")
             assert self.din_202.check_voltage("KM7", "ON")
             return True
@@ -466,7 +466,7 @@ class Check_psc24_10:
                 assert False
             # считываем серийный номер
             assert self.eeprom.read_serial_number()
-            self.serial_number['Серийный номер'] = [self.eeprom.get_serial_number()]
+            self.serial_number['Серийный номер'] = [str(self.eeprom.get_serial_number())]
             # читаем конфигурацию assert/ получать setting getter'ом
             config = self.settings.load("settings.cfg")
             # выбираем блоки
@@ -552,8 +552,8 @@ class Check_psc24_10:
 
             # подать токи на выхода
             # подключаем OUT1
-            assert self.dout_103.command("KM16", "ON")
-            assert self.din_202.check_voltage("KM16", "ON")
+            assert self.dout_103.command("KM14", "ON")
+            assert self.din_202.check_voltage("KM14", "ON")
             # проверяем состояние
             assert self.psc24_10.check_behaviour(self.behaviour)
             # подключаем коммутатор #1
@@ -566,18 +566,18 @@ class Check_psc24_10:
             assert self.din_201.check_voltage("KL19", "ON")
             # проверяем состояние
             assert self.psc24_10.check_behaviour(self.behaviour)
-            # подключаем коммутатор #3
-            assert self.dout_102.command("KL20", "ON")
-            assert self.din_201.check_voltage("KL20", "ON")
-            # проверяем состояние
-            assert self.psc24_10.check_behaviour(self.behaviour)
-            # подключаем коммутатор #4
-            assert self.dout_102.command("KL21", "ON")
-            assert self.din_201.check_voltage("KL21", "ON")
+            # # подключаем коммутатор #3
+            # assert self.dout_102.command("KL20", "ON")
+            # assert self.din_201.check_voltage("KL20", "ON")
+            # # проверяем состояние
+            # assert self.psc24_10.check_behaviour(self.behaviour)
+            # # подключаем коммутатор #4
+            # assert self.dout_102.command("KL21", "ON")
+            # assert self.din_201.check_voltage("KL21", "ON")
             # проверяем состояние
             assert self.psc24_10.check_behaviour(self.behaviour)
 
-            # time.sleep(10)
+            time.sleep(5)
 
             # получаем и рассчитываем измерения OUT1
             # получаем ТИ с OUT1
@@ -599,18 +599,20 @@ class Check_psc24_10:
                                  "OUT1: Номинальный ток " + self.current['Ierror_rate'][0], True)
 
             # отключаем OUT1
-            assert self.dout_103.command("KM16", "OFF")
-            assert self.din_202.check_voltage("KM16", "OFF")
+            assert self.dout_103.command("KM14", "OFF")
+            assert self.din_202.check_voltage("KM14", "OFF")
 
             # проверяем состояние
             assert self.psc24_10.check_behaviour(self.behaviour)
 
             # включаем OUT2
-            assert self.dout_103.command("KM17", "ON")
-            assert self.din_202.check_voltage("KM17", "ON")
+            assert self.dout_103.command("KM15", "ON")
+            assert self.din_202.check_voltage("KM15", "ON")
 
             # проверяем состояние
             assert self.psc24_10.check_behaviour(self.behaviour)
+
+            time.sleep(5)
 
             # получаем и рассчитываем измерения OUT2
             # получаем ТИ с OUT2
@@ -635,8 +637,8 @@ class Check_psc24_10:
             assert self.psc24_10.check_behaviour(self.behaviour)
 
             # подключаем OUT1 и параллелим с OUT2
-            assert self.dout_103.command("KM16", "ON")
-            assert self.din_202.check_voltage("KM16", "ON")
+            assert self.dout_103.command("KM14", "ON")
+            assert self.din_202.check_voltage("KM14", "ON")
 
             # проверяем состояние
             assert self.psc24_10.check_behaviour(self.behaviour)
@@ -650,7 +652,7 @@ class Check_psc24_10:
             self.i_out2_fact = self.psc24_10.get_ti()
 
             # проверяем разницу между OUT1 и OUT2 не более 0.5
-            self.i_out1_delta_i_out2 = abs(self.i_out1_fact - self.i_out2_fact)
+            self.i_out1_delta_i_out2 = abs(round(self.i_out1_fact - self.i_out2_fact, 2))
             if (self.i_out1_delta_i_out2 <= 0.5):
                 self.current_difference['OUT1/OUT2, A'][0] = '<=500 mA'
             else:

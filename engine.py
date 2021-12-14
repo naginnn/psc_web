@@ -709,25 +709,27 @@ class Check_psc24_10:
         self.ammeter_com = self.config.get("ammeter_com")
         self.device_com = self.config.get("device_com")
         count_devices = int(self.config.get("checked_list"))
-        if self.prepare() == False:
-            self.control_log.add("Тестирование", "Тестирование завершено", False)
-            self.control_log.set_finish(True)
-            return False
+
         flag = False
         i = 1
         while True:
             while i <= count_devices:
                 try:
+                    flag = True
                     self.control_log.add("Девайс номер ", str(i), True)
                     # ОБЯЗАТЕЛЬНО В НАЧАЛЕ ЦИКЛА
                     self.main_log.set_finish(False)
                     self.main_log.set_device_count(i - 1)
+                    time.sleep(2)
+
+                    assert self.prepare()
                     time.sleep(2)
                     assert self.first_start()
                     time.sleep(2)
                     assert self.configurate_check()
                     time.sleep(2)
                     assert self.measurements_check()
+                    time.sleep(2)
                     # assert self.for_test()
 
                     # if i == 1:
@@ -738,17 +740,11 @@ class Check_psc24_10:
                     # сохраняем протокол
 
                     # ОБЯЗАТЕЛЬНО В КОНЦЕ ЦИКЛА
-                    self.main_log.set_finish(True)
                     self.main_log.set_start(True)
+                    self.main_log.set_finish(True)
                     i = i + 1
-                    protocol.create_protocol(protocol_time, self.control_log, self.serial_number, self.soft_version, self.voltage,
-                                             self.current, self.current_difference, self.voltage_threesolds, self.switching_channels,
-                                             self.ten, self.emergency_modes)
                     time.sleep(2)
                 except AssertionError:
-                    protocol.create_protocol(protocol_time, self.control_log, self.serial_number, self.soft_version, self.voltage,
-                                             self.current, self.current_difference, self.voltage_threesolds, self.switching_channels, self.ten,
-                                             self.emergency_modes)
                     self.main_log.set_start(False)
                     self.main_log.set_finish(True)
                     i = i + 1

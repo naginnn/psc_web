@@ -700,6 +700,7 @@ class Check_psc24_10:
             return False
     # главная функция
     def main1(self):
+        # for git
         self.control_log.set_start(False)
         protocol_time = str(datetime.now().strftime('%d.%m.%Y-%H-%M'))
         # обработать try false и добавить метод get

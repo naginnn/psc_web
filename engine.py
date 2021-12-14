@@ -321,7 +321,7 @@ class Check_psc24_10:
     soft_version = {'Версия ПО': ['1.2.3.8'],'Фактическая': [' ']}
     voltage = {'Канал, U': ['IN1', 'IN2', 'IN3'], 'Unom': ['', '', ''], 'Ufact': ['', '', ''], 'Uerror_rate': ['', '', '']}
     current = { 'Канал, I': ['OUT1', 'OUT2', '', ''], 'Inom': ['', '', '', ''], 'Ifact': ['', '', '', ''], 'Ierror_rate': ['', '', '', '']}
-    current_difference = {'OUT1/OUT2, A': [' ']}
+    current_difference = {'OUT1/OUT2, A': [' '], 'diff_value, A': [' ']}
     voltage_threesolds = {'Пороги, U': ['min, U', 'nom, U', 'max, U', ''], 'U_IN1': ['', '', '', ''], 'U_IN2': ['', '', '', ''], 'U_IN3': ['', '', '', ''], 'Результат': ['', '', '', '']}
     switching_channels = {'Переключение каналов': ['Под Imin 0A', 'Под Imax 10A', '', ''], 'Канал 1': ['', '', '', ''], 'Время, t': ['', '', '', ''], 'Канал 2': ['', '', '', '']}
     ten = {'Работа ТЭН': [' ']}
@@ -353,6 +353,15 @@ class Check_psc24_10:
         self.control_log = control_log
         self.main_log = main_log
         self.settings = settings
+
+    def wait_time(self, timeout):
+        time_sec = datetime.now().strftime('%H:%M:%S.%f')[:-4]
+        self.control_log.add(self.name, "Ожидание", True)
+        for t in range(timeout):
+            self.control_log.log_data[len(self.log.log_data) - 1] = \
+                time_sec + " " + self.name + \
+                ": Ожидание " + str(t + 1) + " сек"
+            time.sleep(1 - time.time() % 1)
 
     # расчет процента
     def percentage(self, percent, whole):
@@ -576,8 +585,8 @@ class Check_psc24_10:
             # assert self.din_201.check_voltage("KL21", "ON")
             # проверяем состояние
             assert self.psc24_10.check_behaviour(self.behaviour)
-
-            time.sleep(5)
+            # таймаут перед опросом датчика тока №1
+            self.wait_time(5)
 
             # получаем и рассчитываем измерения OUT1
             # получаем ТИ с OUT1
@@ -612,7 +621,10 @@ class Check_psc24_10:
             # проверяем состояние
             assert self.psc24_10.check_behaviour(self.behaviour)
 
-            time.sleep(5)
+            time_sec = datetime.now().strftime('%H:%M:%S.%f')[:-4]
+
+            # таймаут перед опросом датчика тока №1
+            self.wait_time(5)
 
             # получаем и рассчитываем измерения OUT2
             # получаем ТИ с OUT2
@@ -653,6 +665,7 @@ class Check_psc24_10:
 
             # проверяем разницу между OUT1 и OUT2 не более 0.5
             self.i_out1_delta_i_out2 = abs(round(self.i_out1_fact - self.i_out2_fact, 2))
+            self.current_difference['diff_value, A'][0] = str(self.i_out1_delta_i_out2)
             if (self.i_out1_delta_i_out2 <= 0.5):
                 self.current_difference['OUT1/OUT2, A'][0] = '<=500 mA'
             else:

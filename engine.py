@@ -700,15 +700,25 @@ class Check_psc24_10:
             return False
     # главная функция
     def main1(self):
-        # for git
-        self.control_log.set_start(False)
-        protocol_time = str(datetime.now().strftime('%d.%m.%Y-%H-%M'))
-        # обработать try false и добавить метод get
-        self.config = self.settings.load("settings.cfg")
-        self.control_com = self.config.get("control_com")
-        self.ammeter_com = self.config.get("ammeter_com")
-        self.device_com = self.config.get("device_com")
-        count_devices = int(self.config.get("checked_list"))
+        try:
+            # for git
+            self.control_log.set_start(False)
+            protocol_time = str(datetime.now().strftime('%d.%m.%Y-%H-%M'))
+            # обработать try false и добавить метод get
+            self.config = self.settings.load("settings.cfg")
+            self.control_com = self.config.get("control_com")
+            self.ammeter_com = self.config.get("ammeter_com")
+            self.device_com = self.config.get("device_com")
+            count_devices = int(self.config.get("checked_list"))
+            time.sleep(2)
+            assert self.prepare()
+        except AssertionError:
+            self.main_log.set_start(False)
+            self.main_log.set_finish(True)
+            self.control_log.add("Тестирование", "Тестирование завершено", False)
+            # закончить опрос backend'a
+            self.control_log.set_finish(True)
+            return False
 
         flag = False
         i = 1
@@ -720,9 +730,6 @@ class Check_psc24_10:
                     # ОБЯЗАТЕЛЬНО В НАЧАЛЕ ЦИКЛА
                     self.main_log.set_finish(False)
                     self.main_log.set_device_count(i - 1)
-                    time.sleep(2)
-
-                    assert self.prepare()
                     time.sleep(2)
                     assert self.first_start()
                     time.sleep(2)
@@ -738,13 +745,18 @@ class Check_psc24_10:
                     #     self.main_log.set_start(False)
 
                     # сохраняем протокол
-
+                    assert protocol.create_protocol("test_protocol", self.control_log,'_good(3)_bad(2)', self.serial_number, self.soft_version,
+                                             self.voltage, self.current, self.current_difference, self.voltage_threesolds, self.switching_channels,
+                                             self.ten, self.emergency_modes)
                     # ОБЯЗАТЕЛЬНО В КОНЦЕ ЦИКЛА
                     self.main_log.set_start(True)
                     self.main_log.set_finish(True)
                     i = i + 1
                     time.sleep(2)
                 except AssertionError:
+                    protocol.create_protocol("test_protocol", self.control_log,'_good(3)_bad(2)', self.serial_number, self.soft_version,
+                                             self.voltage, self.current, self.current_difference, self.voltage_threesolds, self.switching_channels,
+                                             self.ten, self.emergency_modes)
                     self.main_log.set_start(False)
                     self.main_log.set_finish(True)
                     i = i + 1

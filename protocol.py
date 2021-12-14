@@ -272,5 +272,5 @@ def create_protocol(name, log, result, serial_number, soft_version, voltage, cur
 #      switching_channels = {'Переключение каналов': ['Под Imin 0A', 'Под Imax 10A', '', ''], 'Канал 1': ['', '', '', ''], 'Время, t': ['', '', '', ''], 'Канал 2': ['', '', '', '']}
 #      ten = {'Работа ТЭН': [' ']}
 #      emergency_modes = {'Аварийные режимы': ['Режим КЗ', 'Режим перегрузки', 'Обрыв связи датчика', ''], 'Результат': ['', '', '', '']}
-#      create_protocol(log,'_good(3)_bad(2)', serial_number, soft_version, voltage, current, current_difference, voltage_threesolds, switching_channels, ten, emergency_modes)
+#      create_protocol(name, log,'_good(3)_bad(2)', serial_number, soft_version, voltage, current, current_difference, voltage_threesolds, switching_channels, ten, emergency_modes)
 #      print(log.get_log())

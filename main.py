@@ -44,7 +44,7 @@ def test_worker():
         # control_log.log_clear_result()
         control_log.reset_log()
         main_log.reset_log()
-        psc_test = engine.Check_psc24_10("Тестирование", control_log, "com2", main_log, "com2", settings)
+        psc_test = engine.Check_psc24_10("Тестирование", control_log, main_log, settings)
         psc_test.main1()
         # lock.acquire()
         if control_log.get_finish() is True:
@@ -115,10 +115,14 @@ def configuration():
         soft_version = request.form.get('soft_version')
         ip_adress = request.form.get('ip_adress')
         port = request.form.get('port')
+        control_com = request.form.get('control_com')
+        ammeter_com = request.form.get('ammeter_com')
+        device_com = request.form.get('device_com')
         device_name = request.form.get('device_name')
         power_supply_type = request.form.get('power_supply_type')
         checked_list = request.form.get('checked_list')
-        data.update({"soft_version":soft_version, "ip_adress":ip_adress, "port":port, "device_name":device_name, "power_supply_type":power_supply_type, "checked_list":checked_list})
+        data.update({"soft_version":soft_version, "ip_adress":ip_adress, "port":port, "device_name":device_name, "power_supply_type":power_supply_type,
+                     "checked_list":checked_list, "control_com":control_com, "ammeter_com":ammeter_com, "device_com":device_com})
         result = settings.save("settings.cfg",data)
         #зДЕСЬ ТО ЧТО Я МОГУ ИСПОЛЬЗОВАТЬ В js
         return jsonify({"result": result})
@@ -127,6 +131,10 @@ def configuration():
         soft_version = "0"
         ip_adress = "0"
         port = "0"
+
+        control_com = "0"
+        ammeter_com = "0"
+        device_com = "0"
 
         psc24_10 = "0"
         psc24_40 = "0"
@@ -152,6 +160,11 @@ def configuration():
         soft_version = data.get('soft_version')
         ip_adress = data.get('ip_adress')
         port = data.get('port')
+
+        control_com = data.get('control_com')
+        ammeter_com = data.get('ammeter_com')
+        device_com = data.get('device_com')
+
 
         if (data.get('device_name') == 'psc24_10'):
             psc24_10 = "selected"
@@ -185,7 +198,8 @@ def configuration():
             checked_4 = "selected"
         elif (data.get('checked_list') == '5'):
             checked_5 = "selected"
-        return render_template('configuration.html',soft_version = soft_version, ip_adress = ip_adress, port = port, psc24_10 = psc24_10, psc24_40 = psc24_40,
+        return render_template('configuration.html',soft_version = soft_version, ip_adress = ip_adress, port = port,
+                               control_com = control_com, ammeter_com = ammeter_com, device_com = device_com, psc24_10 = psc24_10, psc24_40 = psc24_40,
                                psc48_10 = psc48_10, psc48_40 = psc48_40, wm24_10 = wm24_10, pw24_5 = pw24_5, wm24_40 = wm24_40, mw24_67 = mw24_67, wm48_20 = wm48_20,
                                mw48_67 = mw48_67, checked_1 = checked_1, checked_2 = checked_2, checked_3 = checked_3, checked_4 = checked_4,checked_5 = checked_5)
 

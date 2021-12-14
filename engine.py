@@ -2,6 +2,7 @@ import pickle
 from datetime import datetime
 import devices
 import time
+import protocol
 from threading import Thread, Lock
 
 import read_write_eeprom
@@ -285,16 +286,17 @@ class Check_psc24_10:
     IN1 = ""
     IN2 = ""
     BTR = "KM1"
-
+    control_com = ""
+    ammeter_com = ""
+    device_com = ""
+    config = {}
     eeprom = ()
     power_management = ()
     # добавляем два лога и ком-порт модулям управления и psc
-    def __init__(self, name, control_log, control_com, main_log, device_com, settings):
+    def __init__(self, name, control_log, main_log, settings):
         self.name = name
         self.control_log = control_log
         self.main_log = main_log
-        self.control_com = control_com
-        self.device_com = device_com
         self.settings = settings
 
     # расчет процента
@@ -332,9 +334,9 @@ class Check_psc24_10:
             assert modb_din_202.getConnection("DIN_202", self.control_com, 202, 115200, self.control_log)
             modb_ammeter_out1 = devices.Modb()
             # амперметры
-            assert modb_ammeter_out1 .getConnection("Амперметр OUT1", self.control_com, 5, 19200, self.control_log)
+            assert modb_ammeter_out1 .getConnection("Амперметр OUT1", self.ammeter_com, 5, 19200, self.control_log)
             modb_ammeter_out2 = devices.Modb()
-            assert modb_ammeter_out2 .getConnection("Амперметр OUT2", self.control_com, 6, 19200, self.control_log)
+            assert modb_ammeter_out2 .getConnection("Амперметр OUT2", self.ammeter_com, 6, 19200, self.control_log)
 
             config = self.settings.load("settings.cfg")
             self.power_supply = devices.PowerSupply(config.get("ip_adress"), config.get("port"), "ЛБП",self.control_log)
@@ -426,7 +428,6 @@ class Check_psc24_10:
         except:
             self.control_log.add(self.name, "Error #3: Ошибка при проверке и записи конфигурации", False)
             return False
-
     # проверка телеизмерения Stage 4
     def measurements_check(self):
         self.control_log.add(self.name, "Stage 4 Проверка измерений", True)
@@ -636,7 +637,10 @@ class Check_psc24_10:
             return False
         # если токовые каналы в параллель то проверить, что разница между ними
         # не более 500mA
-    # Проверка порогов по напряжению
+
+   # STAGE 1-4 for TEST!
+
+    # Проверка порогов по напряжению работаем здесь
     def check_voltage_thresholds(self):
         self.control_log.add(self.name, "Stage 5 Проверка порогов по напряжению", True)
         try:
@@ -660,10 +664,6 @@ class Check_psc24_10:
             # установить минимальный порог на ЛБП с учетом погрешности
             assert self.power_supply.set_voltage(self.u_in_min - self.u_delta)
             assert self.power_supply.check_voltage(self.u_in_min)
-
-
-
-
 
             # снижаем напряжение до уставки u_min
             assert self.dout_102.command("KL30", "ON")
@@ -692,7 +692,7 @@ class Check_psc24_10:
     def for_test(self):
         try:
             modb_dout_101 = devices.Modb()
-            assert modb_dout_101.getConnection("DOUT_101", self.control_com, 101, 115200, self.control_log)
+            assert modb_dout_101.getConnection("DOUT_101", self.device_com, 101, 115200, self.control_log)
             self.dout_101 = devices.Dout(modb_dout_101.getСonnectivity(), dout_names_101, "DOUT_101", self.control_log, 10)
             self.dout_101.command("KL1", "ON")
 
@@ -701,19 +701,22 @@ class Check_psc24_10:
     # главная функция
     def main1(self):
         self.control_log.set_start(False)
+        protocol_time = str(datetime.now().strftime('%d.%m.%Y-%H-%M'))
         # обработать try false и добавить метод get
-        config = self.settings.load("settings.cfg")
-        count_devices = int(config.get("checked_list"))
-        # добавить формирование протокола
-        # assert self.prepare()
-        # i = 1
+        self.config = self.settings.load("settings.cfg")
+        self.control_com = self.config.get("control_com")
+        self.ammeter_com = self.config.get("ammeter_com")
+        self.device_com = self.config.get("device_com")
+        count_devices = int(self.config.get("checked_list"))
+        if self.prepare() == False:
+            self.control_log.add("Тестирование", "Тестирование завершено", False)
+            self.control_log.set_finish(True)
+            return False
         flag = False
         i = 1
         while True:
             while i <= count_devices:
                 try:
-                    if i >= count_devices:
-                        flag = True
                     self.control_log.add("Девайс номер ", str(i), True)
                     # ОБЯЗАТЕЛЬНО В НАЧАЛЕ ЦИКЛА
                     self.main_log.set_finish(False)
@@ -723,6 +726,7 @@ class Check_psc24_10:
                     time.sleep(2)
                     assert self.configurate_check()
                     time.sleep(2)
+                    assert self.measurements_check()
                     # assert self.for_test()
 
                     # if i == 1:
@@ -730,15 +734,20 @@ class Check_psc24_10:
                     # else:
                     #     self.main_log.set_start(False)
 
+                    # сохраняем протокол
 
                     # ОБЯЗАТЕЛЬНО В КОНЦЕ ЦИКЛА
                     self.main_log.set_finish(True)
-                    # если все успешно то True
                     self.main_log.set_start(True)
                     i = i + 1
-
+                    protocol.create_protocol(protocol_time, self.control_log, self.serial_number, self.soft_version, self.voltage,
+                                             self.current, self.current_difference, self.voltage_threesolds, self.switching_channels,
+                                             self.ten, self.emergency_modes)
                     time.sleep(2)
                 except AssertionError:
+                    protocol.create_protocol(protocol_time, self.control_log, self.serial_number, self.soft_version, self.voltage,
+                                             self.current, self.current_difference, self.voltage_threesolds, self.switching_channels, self.ten,
+                                             self.emergency_modes)
                     self.main_log.set_start(False)
                     self.main_log.set_finish(True)
                     i = i + 1

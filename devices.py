@@ -178,23 +178,33 @@ class PowerSupply:
         self.timeout = timeout
     # добавить 3 попытки
     def connection(self):
-        try:
-            self.log.add(self.name, "Установка соединения по адресу: " + self.ip_adress + ":" + self.port, True)
-            self.socket.connect((self.ip_adress, int(self.port)))
-            self.socket.send("*IDN?\n".encode())
-            if (str(self.socket.recv(100)).find("Elektro-Automatik") != -1):
-                self.socket.send("SYSTem:LOCK ON\n".encode())
-                self.log.add(self.name, "Соединение по адресу: " + self.ip_adress + ":" + self.port + " установлено",True)
+        time_sec = datetime.now().strftime('%H:%M:%S.%f')[:-4]
+        self.log.add(self.name, "Попытка установить соединение по адресу: " + self.ip_adress + ":" + self.port, True)
+        for t in range(self.timeout):
+            try:
+                self.socket.connect((self.ip_adress, int(self.port)))
+                self.socket.send("*IDN?\n".encode())
+                if (str(self.socket.recv(100)).find("Elektro-Automatik") != -1):
+                    self.socket.send("SYSTem:LOCK ON\n".encode())
+                    self.log.add(self.name, "Соединение по адресу: " + self.ip_adress + ":" + self.port + " установлено",True)
+                    self.socket.close()
+                    return True
+                self.log.log_data[len(self.log.log_data) - 1] = \
+                    time_sec + " " + "Попытка установить соединение по адресу: " + self.ip_adress + ":" + self.port + str(
+                        t + 1) + " сек"
+                if t >= self.timeout - 1:
+                    self.log.add(self.name, "Соединение по адресу: " + self.ip_adress + ":" + self.port + " не установлено", False)
+                    return False
                 self.socket.close()
-                return True
-            else:
-                self.log.add(self.name, "Соединение по адресу: " + self.ip_adress + ":" + self.port + " не установлено", False)
+            except:
+                self.log.log_data[len(self.log.log_data) - 1] = \
+                    time_sec + " " + self.name + \
+                    ": Попытка получить телеизмерения " + str(t + 1) + " сек"
+                time.sleep(1 - time.time() % 1)
+                if t >= self.timeout - 1:
+                    self.log.add(self.name, "Соединение по адресу: " + self.ip_adress + ":" + self.port + " не установлено", False)
+                    return False
                 self.socket.close()
-                return False
-        except:
-            self.log.add(self.name, "Соединение по адресу: " + self.ip_adress + ":" + self.port + " не установлено", False)
-            self.socket.close()
-            return False
 
     def remote(self, on_off):
         i = 0
@@ -511,16 +521,13 @@ class Psc_40:
             self.log.add(self.name, "Критическая ошибка при попытке получения телесигнала " + name_signal, False)
             return False
 
-# if __name__ == '__main__':
-#
-#     log = engine.Log()
-#     modb_ammeter = Modb()
-#     lala = modb_ammeter.getConnection("Амперметр", "com1", 5, 19200, log)
-#     print(lala)
-#     ammeter = Ammeter(modb_ammeter.getСonnectivity(), "Амперметр", log)
-#     lala = ammeter.check_ti()
-#     print(lala)
-#     print(ammeter.get_ti())
+if __name__ == '__main__':
+
+    log = engine.Log()
+    power_supply = PowerSupply('192.168.0.2', '5025', "", log, 3)
+    power_supply.connection()
+    print(log.get_log_data())
+
 
     #
     # i = 0

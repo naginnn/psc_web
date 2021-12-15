@@ -358,7 +358,7 @@ class Check_psc24_10:
         time_sec = datetime.now().strftime('%H:%M:%S.%f')[:-4]
         self.control_log.add(self.name, "Ожидание", True)
         for t in range(timeout):
-            self.control_log.log_data[len(self.log.log_data) - 1] = \
+            self.control_log.log_data[len(self.control_log.log_data) - 1] = \
                 time_sec + " " + self.name + \
                 ": Ожидание " + str(t + 1) + " сек"
             time.sleep(1 - time.time() % 1)

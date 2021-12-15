@@ -580,7 +580,7 @@ class Check_psc24_10:
             # assert self.dout_102.command("KL21", "ON")
             # assert self.din_201.check_voltage("KL21", "ON")
             # проверяем состояние
-            assert self.psc24_10.check_behaviour(self.behaviour)
+            # assert self.psc24_10.check_behaviour(self.behaviour)
             # таймаут перед опросом датчика тока №1
             self.wait_time(5)
 
@@ -639,7 +639,7 @@ class Check_psc24_10:
                 self.current['Ierror_rate'][1] = '>' + str(self.i_delta_percent) + '%'
 
             self.control_log.add(self.name,
-                                 "OUT2: Номинальный ток " + self.current['Ierror_rate'][0], True)
+                                 "OUT2: Номинальный ток " + self.current['Ierror_rate'][1], True)
 
             # проверяем состояние
             assert self.psc24_10.check_behaviour(self.behaviour)
@@ -748,7 +748,14 @@ class Check_psc24_10:
             self.behaviour = {"pwr1": 0, "pwr2": 1, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 1, "error_pwr2": 0,"error_btr": 0,
                               "error_out1": 0, "error_out2": 0, "charge_btr": 1, "ten": 0, "apts": 0}
 
-            assert self.psc24_10.check_behaviour(self.behaviour)
+            # определяем по поведению сработал ли порог
+            if self.psc24_10.check_behaviour(self.behaviour):
+                self.voltage_threesolds['ResIN1'][0] = "ok"
+            else:
+                self.voltage_threesolds['ResIN1'][0] = "bad"
+            self.control_log.add(self.name,
+                                 "Результат работы срабатывания по u_min: " + self.voltage_threesolds['ResIN1'][0],
+                                 True)
 
             # устанавливаем номинальное напряжение
             assert self.power_supply.set_voltage(self.u_nom)
@@ -759,7 +766,14 @@ class Check_psc24_10:
                               "error_btr": 0, "error_out1": 0, "error_out2": 0, "charge_btr": 1, "ten": 0, "apts": 0}
 
             # проверяем состояние, убеждаемся в переключении на IN1
-            assert self.psc24_10.check_behaviour(self.behaviour)
+            # определяем по поведению сработал ли порог по u_nom
+            if self.psc24_10.check_behaviour(self.behaviour):
+                self.voltage_threesolds['ResIN1'][1] = "ok"
+            else:
+                self.voltage_threesolds['ResIN1'][1] = "bad"
+            self.control_log.add(self.name,
+                                 "Результат работы срабатывания по u_max: " + self.voltage_threesolds['ResIN1'][1],
+                                 True)
 
             # расчитываем погрешность для IN1 u_max
             self.u_delta = self.percentage(self.u_delta_percent, self.u_in_max)
@@ -771,7 +785,14 @@ class Check_psc24_10:
             self.behaviour = {"pwr1": 0, "pwr2": 1, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 1, "error_pwr2": 0,
                               "error_btr": 0, "error_out1": 0, "error_out2": 0, "charge_btr": 1, "ten": 0, "apts": 0}
 
-            assert self.psc24_10.check_behaviour(self.behaviour)
+            # определяем по поведению сработал ли порог по u_max
+            if self.psc24_10.check_behaviour(self.behaviour):
+                self.voltage_threesolds['ResIN1'][2] = "ok"
+            else:
+                self.voltage_threesolds['ResIN1'][2] = "bad"
+            self.control_log.add(self.name,
+                                 "Результат работы срабатывания по u_max: " + self.voltage_threesolds['ResIN1'][1],
+                                 True)
 
             # устанавливаем номинальное напряжение
             assert self.power_supply.set_voltage(self.u_nom)
@@ -820,7 +841,14 @@ class Check_psc24_10:
             self.behaviour = {"pwr1": 0, "pwr2": 0, "btr": 1, "key1": 1, "key2": 1, "error_pwr1": 1, "error_pwr2": 1,
                               "error_btr": 0, "error_out1": 0, "error_out2": 0, "charge_btr": 0, "ten": 0, "apts": 0}
 
-            assert self.psc24_10.check_behaviour(self.behaviour)
+            # определяем по поведению сработал ли порог
+            if self.psc24_10.check_behaviour(self.behaviour):
+                self.voltage_threesolds['ResIN2'][0] = "ok"
+            else:
+                self.voltage_threesolds['ResIN2'][0] = "bad"
+            self.control_log.add(self.name,
+                                 "Результат работы срабатывания по u_min: " + self.voltage_threesolds['ResIN2'][0],
+                                 True)
 
             # устанавливаем номинальное напряжение
             assert self.power_supply.set_voltage(self.u_nom)
@@ -831,7 +859,14 @@ class Check_psc24_10:
                               "error_btr": 0, "error_out1": 0, "error_out2": 0, "charge_btr": 1, "ten": 0, "apts": 0}
 
             # проверяем переход на IN2
-            assert self.psc24_10.check_behaviour(self.behaviour)
+            # определяем по поведению сработал ли порог
+            if self.psc24_10.check_behaviour(self.behaviour):
+                self.voltage_threesolds['ResIN2'][1] = "ok"
+            else:
+                self.voltage_threesolds['ResIN2'][1] = "bad"
+            self.control_log.add(self.name,
+                                 "Результат работы срабатывания по u_min: " + self.voltage_threesolds['ResIN2'][1],
+                                 True)
 
             # расчитываем погрешность для IN2 u_max
             self.u_delta = self.percentage(self.u_delta_percent, self.u_in_max)
@@ -843,7 +878,13 @@ class Check_psc24_10:
             self.behaviour = {"pwr1": 0, "pwr2": 0, "btr": 1, "key1": 1, "key2": 1, "error_pwr1": 1, "error_pwr2": 1,
                               "error_btr": 0, "error_out1": 0, "error_out2": 0, "charge_btr": 0, "ten": 0, "apts": 0}
 
-            assert self.psc24_10.check_behaviour(self.behaviour)
+            if self.psc24_10.check_behaviour(self.behaviour):
+                self.voltage_threesolds['ResIN2'][2] = "ok"
+            else:
+                self.voltage_threesolds['ResIN2'][2] = "bad"
+            self.control_log.add(self.name,
+                                 "Результат работы срабатывания по u_min: " + self.voltage_threesolds['ResIN2'][2],
+                                 True)
 
             # устанавливаем номинальное напряжение
             assert self.power_supply.set_voltage(self.u_nom)
@@ -918,6 +959,8 @@ class Check_psc24_10:
                     assert self.configurate_check()
                     time.sleep(2)
                     assert self.measurements_check()
+                    time.sleep(2)
+                    assert self.check_voltage_thresholds()
                     time.sleep(2)
                     # assert self.for_test()
 

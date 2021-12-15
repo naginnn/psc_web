@@ -414,6 +414,15 @@ class Check_psc24_10:
             self.din_202 = devices.Din(modb_din_202.getСonnectivity(), din_names_202, "DIN_202", self.control_log, 10)
             self.ammeter_out1 = devices.Ammeter(modb_ammeter_out1.getСonnectivity(), "Амперметр OUT1", self.control_log, 30)
             self.ammeter_out2 = devices.Ammeter(modb_ammeter_out2.getСonnectivity(), "Амперметр OUT2", self.control_log, 30)
+            # читаем конфигурацию assert/ получать setting getter'ом
+            config = self.settings.load("settings.cfg")
+            # выбираем блоки
+            if config.get("power_supply_type") == "wm24_10":
+                self.IN1 = "KL7"
+                self.IN2 = "KL8"
+            if config.get("power_supply_type") == "pw24_5":
+                self.IN1 = "KL15"
+                self.IN2 = "KL16"
             assert self.dout_103.command("KM7", "ON")
             assert self.din_202.check_voltage("KM7", "ON")
             return True
@@ -474,15 +483,7 @@ class Check_psc24_10:
             # считываем серийный номер
             assert self.eeprom.read_serial_number()
             self.serial_number['Серийный номер'] = [str(self.eeprom.get_serial_number())]
-            # читаем конфигурацию assert/ получать setting getter'ом
-            config = self.settings.load("settings.cfg")
-            # выбираем блоки
-            if config.get("power_supply_type") == "wm24_10":
-                self.IN1 = "KL7"
-                self.IN2 = "KL8"
-            if config.get("power_supply_type") == "pw24_5":
-                self.IN1 = "KL15"
-                self.IN2 = "KL16"
+
             assert self.eeprom.read_power_management()
             self.power_management = self.eeprom.get_power_management()
 
@@ -651,6 +652,9 @@ class Check_psc24_10:
             # проверяем состояние
             assert self.psc24_10.check_behaviour(self.behaviour)
 
+            # таймаут перед опросом датчика тока №1
+            self.wait_time(5)
+
             # получаем измерения OUT1
             assert self.psc24_10.check_ti("I_OUT1")
             self.i_out1_fact = self.psc24_10.get_ti()
@@ -668,6 +672,8 @@ class Check_psc24_10:
                 self.current_difference['OUT1/OUT2, A'][0] = '>500 mA'
             self.control_log.add(self.name, "Разница между каналами " + self.current_difference['OUT1/OUT2, A'][0], True)
 
+            # проверяем состояние
+            assert self.psc24_10.check_behaviour(self.behaviour)
             # # отключаем OUT1
             # assert self.dout_103.command("KM14", "OFF")
             # assert self.din_202.check_voltage("KM14", "OFF")
@@ -697,8 +703,7 @@ class Check_psc24_10:
             # # отключаем коммутатор #4
             # assert self.dout_102.command("KL21", "ON")
             # assert self.din_201.check_voltage("KL21", "ON")
-            # проверяем состояние
-            assert self.psc24_10.check_behaviour(self.behaviour)
+            return True
         except:
             self.control_log.add(self.name, "Error #4: Ошибка при проверке измерений", False)
             return False
@@ -715,8 +720,8 @@ class Check_psc24_10:
             assert self.dout_102.command("KL31", "OFF")
             assert self.din_201.check_voltage("KL31", "OFF")
 
-            assert self.dout_102.command("KL33", "OFF")
-            assert self.din_201.check_voltage("KL33", "OFF")
+            assert self.dout_103.command("KL33", "OFF")
+            assert self.din_202.check_voltage("KL33", "OFF")
 
             # подключаем IN2
             assert self.dout_101.command(self.IN2, "ON")
@@ -725,6 +730,8 @@ class Check_psc24_10:
             # подключаем АКБ
             assert self.dout_103.command(self.BTR, "ON")
             assert self.din_202.check_voltage(self.BTR, "ON")
+
+            self.wait_time(10)
 
             # предполагаемое поведение после коммутации
             assert self.psc24_10.check_behaviour(self.behaviour)
@@ -735,14 +742,14 @@ class Check_psc24_10:
             self.u_in_max = float(self.power_management.get("pw1_u_max"))
 
             # сохраняем протокол
-            self.voltage_threesolds['U_IN1'][0] = self.u_in_min
-            self.voltage_threesolds['U_IN1'][1] = self.u_nom
-            self.voltage_threesolds['U_IN1'][2] = self.u_in_max
+            self.voltage_threesolds['U_IN1'][0] = str(self.u_in_min)
+            self.voltage_threesolds['U_IN1'][1] = str(self.u_nom)
+            self.voltage_threesolds['U_IN1'][2] = str(self.u_in_max)
             # расчитываем погрешность для IN1 u_min
             self.u_delta = self.percentage(self.u_delta_percent, self.u_in_min)
             # установить минимальный порог на ЛБП с учетом погрешности
             assert self.power_supply.set_voltage(self.u_in_min - self.u_delta)
-            assert self.power_supply.check_voltage(self.u_in_min)
+            assert self.power_supply.check_voltage(self.u_in_min - self.u_delta)
 
             # предполагаемое поведение
             self.behaviour = {"pwr1": 0, "pwr2": 1, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 1, "error_pwr2": 0,"error_btr": 0,
@@ -779,7 +786,7 @@ class Check_psc24_10:
             self.u_delta = self.percentage(self.u_delta_percent, self.u_in_max)
             # установить максимальный порог на ЛБП с учетом погрешности
             assert self.power_supply.set_voltage(self.u_in_max + self.u_delta)
-            assert self.power_supply.check_voltage(self.u_in_max)
+            assert self.power_supply.check_voltage(self.u_in_max + self.u_delta)
 
             # предполагаемое поведение
             self.behaviour = {"pwr1": 0, "pwr2": 1, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 1, "error_pwr2": 0,
@@ -828,14 +835,14 @@ class Check_psc24_10:
             self.u_in_max = float(self.power_management.get("pw2_u_max"))
 
             # сохраняем протокол
-            self.voltage_threesolds['U_IN2'][0] = self.u_in_min
-            self.voltage_threesolds['U_IN2'][1] = self.u_nom
-            self.voltage_threesolds['U_IN2'][2] = self.u_in_max
+            self.voltage_threesolds['U_IN2'][0] = str(self.u_in_min)
+            self.voltage_threesolds['U_IN2'][1] = str(self.u_nom)
+            self.voltage_threesolds['U_IN2'][2] = str(self.u_in_max)
             # расчитываем погрешность для IN2 u_min
             self.u_delta = self.percentage(self.u_delta_percent, self.u_in_min)
             # установить минимальный порог на ЛБП с учетом погрешности
             assert self.power_supply.set_voltage(self.u_in_min - self.u_delta)
-            assert self.power_supply.check_voltage(self.u_in_min)
+            assert self.power_supply.check_voltage(self.u_in_min - self.u_delta)
 
             # предполагаемое поведение
             self.behaviour = {"pwr1": 0, "pwr2": 0, "btr": 1, "key1": 1, "key2": 1, "error_pwr1": 1, "error_pwr2": 1,
@@ -872,7 +879,7 @@ class Check_psc24_10:
             self.u_delta = self.percentage(self.u_delta_percent, self.u_in_max)
             # установить максимальный порог на ЛБП с учетом погрешности
             assert self.power_supply.set_voltage(self.u_in_max + self.u_delta)
-            assert self.power_supply.check_voltage(self.u_in_max)
+            assert self.power_supply.check_voltage(self.u_in_max + self.u_delta)
 
             # предполагаемое поведение
             self.behaviour = {"pwr1": 0, "pwr2": 0, "btr": 1, "key1": 1, "key2": 1, "error_pwr1": 1, "error_pwr2": 1,
@@ -960,6 +967,7 @@ class Check_psc24_10:
                     time.sleep(2)
                     assert self.measurements_check()
                     time.sleep(2)
+                    self.wait_time(10)
                     assert self.check_voltage_thresholds()
                     time.sleep(2)
                     # assert self.for_test()

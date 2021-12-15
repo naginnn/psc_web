@@ -97,7 +97,6 @@ LOBYTE = b'\
 \x01\xC0\x80\x41\x00\xC1\x81\x40\x00\xC1\x81\x40\x01\xC0\x80\x41\
 \x00\xC1\x81\x40\x01\xC0\x80\x41\x01\xC0\x80\x41\x00\xC1\x81\x40'
 
-# Просто кидать нули вместо данных в посылке! А может и нет!
 class FrameCollector:
     # упаковка сетевых настроек (U8)
     def network_settings(self, param, key, value):
@@ -383,6 +382,76 @@ class ReadWriteEEprom:
     # Получаем версию
     def get_soft_version(self):
         return self.soft_version
+    # записываем настройки электропитания
+    def write_power_management(self):
+        time_sec = datetime.now().strftime('%H:%M:%S.%f')[:-4]
+        self.log.add(self.name, "Попытка записать настройки электропитания", True)
+        f = open('eeprom.cfg', 'r')
+        params = {}
+        for line in f:
+            temp = line.split(':')
+            for t in temp:
+                par_name = t.split("=")
+                params.update({par_name[0]: par_name[1]})
+        for t in range(self.timeout):
+            try:
+                package = []
+                write = FrameCollector()
+                package.append(write.power_management(register_names.get("pw1u"), registers_pointer.get(0x04).get("pw1_u_nom"), float(params.get("pw1_u_nom"))))
+                package.append(write.power_management(register_names.get("pw1u"), registers_pointer.get(0x04).get("pw1_u_min"), float(params.get("pw1_u_min"))))
+                package.append(write.power_management(register_names.get("pw1u"), registers_pointer.get(0x04).get("pw1_u_max"), float(params.get("pw1_u_max"))))
+                package.append(write.power_management(register_names.get("pw1u"), registers_pointer.get(0x04).get("pw1_u_min_hyst"), float(params.get("pw1_u_min_hyst"))))
+                package.append(write.power_management(register_names.get("pw1u"), registers_pointer.get(0x04).get("pw1_u_max_hyst"), float(params.get("pw1_u_max_hyst"))))
+
+                # управление питанием pw2
+                package.append(write.power_management(register_names.get("pw2u"), registers_pointer.get(0x05).get("pw2_u_nom"), float(params.get("pw2_u_nom"))))
+                package.append(write.power_management(register_names.get("pw2u"), registers_pointer.get(0x05).get("pw2_u_min"), float(params.get("pw2_u_min"))))
+                package.append(write.power_management(register_names.get("pw2u"), registers_pointer.get(0x05).get("pw2_u_max"), float(params.get("pw2_u_max"))))
+                package.append(write.power_management(register_names.get("pw2u"), registers_pointer.get(0x05).get("pw2_u_min_hyst"), float(params.get("pw2_u_min_hyst"))))
+                package.append(write.power_management(register_names.get("pw2u"), registers_pointer.get(0x05).get("pw2_u_max_hyst"), float(params.get("pw2_u_max_hyst"))))
+
+                # управление питанием pw3 (BTR)
+                package.append(write.power_management(register_names.get("btru"), registers_pointer.get(0x06).get("btr_u_nom"), float(params.get("btr_u_nom"))))
+                package.append(write.power_management(register_names.get("btru"), registers_pointer.get(0x06).get("btr_u_min"), float(params.get("btr_u_min"))))
+                package.append(write.power_management(register_names.get("btru"), registers_pointer.get(0x06).get("btr_u_max"), float(params.get("btr_u_max"))))
+                package.append(write.power_management(register_names.get("btru"), registers_pointer.get(0x06).get("btr_u_min_hyst"), float(params.get("btr_u_min_hyst"))))
+                package.append(write.power_management(register_names.get("btru"), registers_pointer.get(0x06).get("btr_u_max_hyst"), float(params.get("btr_u_max_hyst"))))
+
+                # управление питанием outi
+                package.append(write.power_management(register_names.get("outi"), registers_pointer.get(0x07).get("out_i_1"), float(params.get("out_i_1"))))
+                package.append(write.power_management(register_names.get("outi"), registers_pointer.get(0x07).get("out_i_2"), float(params.get("out_i_2"))))
+                package.append(write.power_management(0x87, registers_pointer.get(0x07).get("out_i_1"),float(0)))
+                package.append(write.power_management(register_names.get("outi"), registers_pointer.get(0x07).get("out_i_2"),float(0)))
+                #
+                # управление АКБ
+                package.append(write.power_management(register_names.get("charge"), registers_pointer.get(0x08).get("charge_err_min"), float(params.get("charge_err_min"))))
+                package.append(write.power_management(register_names.get("charge"), registers_pointer.get(0x08).get("charge_u_max"), float(params.get("charge_u_max"))))
+                package.append(write.power_management(register_names.get("charge"), registers_pointer.get(0x08).get("charge_u_min"), float(params.get("charge_u_min"))))
+                package.append(write.power_management(register_names.get("charge"), registers_pointer.get(0x08).get("charge_i_stable"), float(params.get("charge_i_stable"))))
+                package.append(write.power_management(register_names.get("charge"), registers_pointer.get(0x08).get("charge_u_stable"), float(params.get("charge_u_stable"))))
+
+                # через MODBUS
+                ser = serial.Serial(self.com, self.braudrate, timeout=0.3)
+                for frame in package:
+                    values = bytearray(write.write_modbus(frame))
+                    ser.write(values)
+                    response = ser.read(len(values))
+                    if (len(response) == 0):
+                        assert False
+
+                ser.close()
+                self.device_values = device_values
+                self.log.add("EEPROM", "Настройки электропитания записаны", True)
+                return True
+            except:
+                ser.close()
+                self.log.log_data[len(self.log.log_data) - 1] = \
+                    time_sec + " " + self.name + \
+                    ": Попытка записать настройки электропитания " + str(t + 1) + " сек"
+                time.sleep(1 - time.time() % 1)
+                if t >= self.timeout - 1:
+                    self.log.add(self.name, "Неудалось записать настройки электропитания", False)
+                    return False
     # Считываем настройки PSC
     def read_power_management(self):
         time_sec = datetime.now().strftime('%H:%M:%S.%f')[:-4]
@@ -554,14 +623,59 @@ class ReadWriteEEprom:
     # Получить серийный номер устройства
     def get_serial_number(self):
         return self.serial_number
+    # записываем сетевые настройки
+    def write_network_settings(self):
+        time_sec = datetime.now().strftime('%H:%M:%S.%f')[:-4]
+        self.log.add(self.name, "Попытка записать сетевые настройки", True)
+        f = open('eeprom.cfg', 'r')
+        params = {}
+        for line in f:
+            temp = line.split(':')
+            for t in temp:
+                par_name = t.split("=")
+                params.update({par_name[0]: par_name[1]})
+        for t in range(self.timeout):
+            try:
+                package = []
+                write = FrameCollector()
+                # сетевые настройки
+                package.append(write.network_settings(0x01, 0x01, int(params.get("InterfaceAdress"))))
+                package.append(write.network_settings(0x01, 0x02, int(params.get("InterfaceSpeed"))))
+                package.append(write.network_settings(0x01, 0x03, params.get("InterfaceChet")))
+                package.append(write.network_settings(0x01, 0x04, params.get("ProtocolType")))
+
+                # через MODBUS
+                ser = serial.Serial(self.com, self.braudrate, timeout=0.3)
+                for frame in package:
+                    values = bytearray(write.write_modbus(frame))
+                    ser.write(values)
+                    response = ser.read(len(values))
+                    if (len(response) == 0):
+                        assert False
+
+                ser.close()
+                self.device_values = device_values
+                self.log.add("EEPROM", "Сетевые настройки записаны", True)
+                return True
+            except:
+                ser.close()
+                self.log.log_data[len(self.log.log_data) - 1] = \
+                    time_sec + " " + self.name + \
+                    ": Попытка записать сетевые настройки " + str(t + 1) + " сек"
+                time.sleep(1 - time.time() % 1)
+                if t >= self.timeout - 1:
+                    self.log.add(self.name, "Неудалось записать сетевые настройки", False)
+                    return False
 # получить версию прошивки!!!!!!!! ДОБАВИТЬ
 # добавить обработку событий!
-# for the future -> add to read a serial number
-# if __name__ == '__main__':
-    # log = engine.Log()
-    # # создаем объект
-    # eeprom = ReadWriteEEprom(log,"com1", 115200)
-    # eeprom.read_soft_version()
+if __name__ == '__main__':
+    log = engine.Log()
+    # создаем объект
+    eeprom = ReadWriteEEprom("EEPROM",log, "com2", 115200,5)
+    print(eeprom.read_soft_version())
+    print(eeprom.get_soft_version())
+    # print(eeprom.write_power_management())
+    print(eeprom.write_network_settings())
     # print(log.get_log())
     # print(eeprom.get_soft_version())
     # print()

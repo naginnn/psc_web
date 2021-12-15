@@ -303,25 +303,29 @@ class Check_psc24_10:
     # предполагаемое поведение
     behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 0, "error_pwr2": 0, "error_btr": 0,
                  "error_out1": 0, "error_out2": 0, "charge_btr": 1, "ten": 0, "apts": 0}
-    u_nom = 25.14
+    u_nom = 24.0
+    u_in_min = 0.0
+    U_in_min_gyst = 0.0
+    U_in_max_gyst = 0.0
+    u_in_max = 0.0
     i_nom = 0.0
     u_in1_fact = 0.0
     u_in2_fact = 0.0
     u_in3_fact = 0.0
-    u_in_min = 0.0
-    u_in_max = 0.0
     u_delta = 0.0
     i_out1_fact = 0.0
     i_out2_fact = 0.0
-    i_out1_delta_i_out2 = 0.0
+    i_nom_difference = 0.5
+    i_fact_difference = 0.0
+    u_delta_fact_percent = 0
     u_delta_percent = 5
     i_delta_percent = 15
     # списки для будущего протокола
     serial_number = {'Серийный номер': [' ']}
-    soft_version = {'Версия ПО': ['1.2.3.8'],'Фактическая': [' ']}
-    voltage = {'Канал, U': ['IN1', 'IN2', 'IN3'], 'Unom': ['', '', ''], 'Ufact': ['', '', ''], 'Uerror_rate': ['', '', '']}
-    current = { 'Канал, I': ['OUT1', 'OUT2', '', ''], 'Inom': ['', '', '', ''], 'Ifact': ['', '', '', ''], 'Ierror_rate': ['', '', '', '']}
-    current_difference = {'OUT1/OUT2, A': [' '], 'diff_value, A': [' ']}
+    soft_version = {'Версия ПО': [' '], 'Фактическая': [' ']}
+    voltage = {'Канал, U': ['IN1', 'IN2', 'IN3'], 'Unom': ['', '', ''], 'Ufact': ['', '', ''], 'Uerror_rate_nom': ['', '', ''], 'Uerror_rate_fact': ['', '', ''], 'result': ['', '', '']}
+    current = {'Канал, I': ['OUT1', 'OUT2'], 'Inom': ['', ''], 'Ifact': ['', ''], 'Ierror_rate_nom': ['', ''], 'Ierror_rate_nom': ['', ''], 'Ierror_rate_fact': ['', ''], 'result': ['', '']}
+    current_difference = {'Idifference_nom': [' '], 'Idifference_fact': [' '], 'result': [' ']}
     voltage_threesolds = {'Пороги, U': ['min, U', 'nom, U', 'max, U', ''], 'U_IN1': ['', '', '', ''], 'ResIN1': ['', '', '', ''], 'U_IN2': ['', '', '', ''], 'ResIN2': ['', '', '', ''], 'U_IN3': ['', '', '', ''], 'ResIN3': ['', '', '', '']}
     switching_channels = {'Переключение каналов': ['Под Imin 0A', 'Под Imax 10A', '', ''], 'Канал 1': ['', '', '', ''], 'Время, t': ['', '', '', ''], 'Канал 2': ['', '', '', '']}
     ten = {'Работа ТЭН': [' ']}
@@ -370,11 +374,9 @@ class Check_psc24_10:
 
     # расчет погрешности, передаем поданное напряжение с ЛБП и фактическое с устройства, получаем результат true/false
     # Для напряжения percent = 5%, для тока percent = 15%
-    def check_error_rate(self, nom, fact, percent):
-        delta = self.percentage(percent, nom)
-        max = round(nom + delta, 2)
-        min = round(nom - delta, 2)
-        if (fact >= min) and (fact <= max):
+    def check_error_rate(self, nom, fact, nom_percent):
+        self.u_delta_fact_percent = abs(round((fact - nom) * 100 / nom))
+        if (self.u_delta_fact_percent <= nom_percent):
             return True
         return False
 
@@ -468,6 +470,7 @@ class Check_psc24_10:
             assert self.eeprom.read_soft_version()
             config = self.settings.load("settings.cfg")
             soft_version = config.get("soft_version")
+            self.soft_version['Версия ПО'] = soft_version
             if self.eeprom.get_soft_version() == soft_version:
                 self.soft_version['Фактическая'] = [self.eeprom.get_soft_version()]
                 self.control_log.add(self.name,
@@ -481,11 +484,17 @@ class Check_psc24_10:
                 assert False
             # считываем серийный номер
             assert self.eeprom.read_serial_number()
-            self.serial_number['Серийный номер'] = [str(self.eeprom.get_serial_number())]
+            serial_number = str(self.eeprom.get_serial_number())
+            if serial_number != "4710000000":
+                self.serial_number['Серийный номер'][0] = serial_number
+            else:
+                assert False
 
+            # считываем настройки электропитания
             assert self.eeprom.read_power_management()
             self.power_management = self.eeprom.get_power_management()
 
+            # считываем состояние
             assert self.psc24_10.check_behaviour(self.behaviour)
             return True
         except:
@@ -495,6 +504,7 @@ class Check_psc24_10:
     def measurements_check(self):
         self.control_log.add(self.name, "Stage 4 Проверка измерений", True)
         try:
+            ##############  IN1  ##############
             # получаем номинальное напряжение канала на устройстве
             self.u_nom = float(self.power_management.get("pw1_u_nom"))
             # устанавливаем номинальное напряжение на ЛБП
@@ -506,15 +516,22 @@ class Check_psc24_10:
             # записываем значение номинальное и фактическое в протокол
             self.voltage['Unom'][0] = self.u_nom
             self.voltage['Ufact'][0] = self.u_in1_fact
+            self.voltage['Uerror_rate_nom'][0] = str(self.u_delta_percent) + '%'
             # выясняем какая погрешность, в зависимости от результата заполняем протокол
             if self.check_error_rate(self.u_nom, self.u_in1_fact, self.u_delta_percent):
-                self.voltage['Uerror_rate'][0] = '<='+str(self.u_delta_percent)+'%'
+                self.voltage['Uerror_rate_fact'][0] = str(self.u_delta_fact_percent) + '%'
+                self.voltage['result'][0] = "ok"
+                self.control_log.add(self.name,
+                                     "IN1: Номинальное напряжение " + str(self.u_nom) + " Фактическое напряжение " + str(self.u_in1_fact) +
+                                     " <= " + str(self.u_delta_percent), True)
             else:
-                self.voltage['Uerror_rate'][0] = '>'+str(self.u_delta_percent)+'%'
-            self.control_log.add(self.name,
-                                 "IN1: Номинальное напряжение " + str(self.u_nom) + " Фактическое " + str(self.u_in1_fact),
-                                 True)
+                self.voltage['Uerror_rate_fact'][0] = str(self.u_delta_fact_percent) + '%'
+                self.voltage['result'][0] = "bad"
+                self.control_log.add(self.name,
+                                     "IN1: Номинальное напряжение " + str(self.u_nom) + " Фактическое напряжение " + str(self.u_in1_fact) +
+                                     " > " + str(self.u_delta_percent), False)
 
+            ##############  IN2  ##############
             # получаем номинальное напряжение канала на устройстве
             self.u_nom = float(self.power_management.get("pw2_u_nom"))
             # устанавливаем номинальное напряжение на ЛБП
@@ -526,15 +543,24 @@ class Check_psc24_10:
             # записываем значение номинальное и фактическое в протокол
             self.voltage['Unom'][1] = self.u_nom
             self.voltage['Ufact'][1] = self.u_in2_fact
+            self.voltage['Uerror_rate_nom'][1] = str(self.u_delta_percent) + '%'
             # выясняем какая погрешность, в зависимости от результата заполняем протокол
             if self.check_error_rate(self.u_nom, self.u_in2_fact, self.u_delta_percent):
-                self.voltage['Uerror_rate'][1] = '<='+str(self.u_delta_percent)+'%'
+                self.voltage['Uerror_rate_fact'][1] = str(self.u_delta_fact_percent) + '%'
+                self.voltage['result'][1] = "ok"
+                self.control_log.add(self.name,
+                                     "IN2: Номинальное напряжение " + str(
+                                         self.u_nom) + " Фактическое напряжение " + str(self.u_in1_fact) +
+                                     " <= " + str(self.u_delta_percent), True)
             else:
-                self.voltage['Uerror_rate'][1] = '>'+str(self.u_delta_percent)+'%'
-            self.control_log.add(self.name,
-                                 "IN2: Номинальное напряжение " + str(self.u_nom) + " Фактическое " + str(self.u_in2_fact),
-                                 True)
+                self.voltage['Uerror_rate_fact'][1] = str(self.u_delta_fact_percent) + '%'
+                self.voltage['result'][1] = "bad"
+                self.control_log.add(self.name,
+                                     "IN2: Номинальное напряжение " + str(
+                                         self.u_nom) + " Фактическое напряжение " + str(self.u_in1_fact) +
+                                     " > " + str(self.u_delta_percent), False)
 
+            ##############  IN3(АКБ)  ##############
             # получаем номинальное напряжение канала на устройстве
             self.u_nom = float(self.power_management.get("btr_u_nom"))
             # устанавливаем номинальное напряжение на ЛБП
@@ -546,14 +572,22 @@ class Check_psc24_10:
             # записываем значение номинальное и фактическое в протокол
             self.voltage['Unom'][2] = self.u_nom
             self.voltage['Ufact'][2] = self.u_in3_fact
+            self.voltage['Uerror_rate_nom'][2] = str(self.u_delta_percent) + '%'
             # выясняем какая погрешность, в зависимости от результата заполняем протокол
             if self.check_error_rate(self.u_nom, self.u_in3_fact, self.u_delta_percent):
-                self.voltage['Uerror_rate'][2] = '<='+str(self.u_delta_percent)+'%'
+                self.voltage['Uerror_rate_fact'][2] = str(self.u_delta_fact_percent) + '%'
+                self.voltage['result'][1] = "ok"
+                self.control_log.add(self.name,
+                                     "IN3 (АКБ): Номинальное напряжение " + str(
+                                         self.u_nom) + " Фактическое напряжение " + str(self.u_in1_fact) +
+                                     " <= " + str(self.u_delta_percent), True)
             else:
-                self.voltage['Uerror_rate'][2] = '>'+str(self.u_delta_percent)+'%'
-            self.control_log.add(self.name,
-                                 "IN3: Номинальное напряжение " + str(self.u_nom) + " Фактическое " + str(self.u_in3_fact),
-                                 True)
+                self.voltage['Uerror_rate_fact'][2] = str(self.u_delta_fact_percent) + '%'
+                self.voltage['result'][1] = "bad"
+                self.control_log.add(self.name,
+                                     "IN3 (АКБ): Номинальное напряжение " + str(
+                                         self.u_nom) + " Фактическое напряжение " + str(self.u_in1_fact) +
+                                     " > " + str(self.u_delta_percent), False)
 
             # подать токи на выхода
             # подключаем OUT1
@@ -571,16 +605,17 @@ class Check_psc24_10:
             assert self.din_201.check_voltage("KL19", "ON")
             # проверяем состояние
             assert self.psc24_10.check_behaviour(self.behaviour)
-            # # подключаем коммутатор #3
-            # assert self.dout_102.command("KL20", "ON")
-            # assert self.din_201.check_voltage("KL20", "ON")
-            # # проверяем состояние
-            # assert self.psc24_10.check_behaviour(self.behaviour)
-            # # подключаем коммутатор #4
-            # assert self.dout_102.command("KL21", "ON")
-            # assert self.din_201.check_voltage("KL21", "ON")
+            # подключаем коммутатор #3
+            assert self.dout_102.command("KL20", "ON")
+            assert self.din_201.check_voltage("KL20", "ON")
             # проверяем состояние
-            # assert self.psc24_10.check_behaviour(self.behaviour)
+            assert self.psc24_10.check_behaviour(self.behaviour)
+            # подключаем коммутатор #4
+            assert self.dout_102.command("KL21", "ON")
+            assert self.din_201.check_voltage("KL21", "ON")
+            # проверяем состояние
+            assert self.psc24_10.check_behaviour(self.behaviour)
+
             # таймаут перед опросом датчика тока №1
             self.wait_time(5)
 
@@ -594,14 +629,21 @@ class Check_psc24_10:
             # записываем значение номинальное и фактическое в протокол
             self.current['Inom'][0] = self.i_nom
             self.current['Ifact'][0] = self.i_out1_fact
+            self.current['Ierror_rate_nom'][0] = str(self.i_delta_percent) + '%'
             # выясняем какая погрешность, в зависимости от результата заполняем протокол
             if self.check_error_rate(self.i_nom, self.i_out1_fact, self.i_delta_percent):
-                self.current['Ierror_rate'][0] = '<=' + str(self.i_delta_percent) + '%'
+                self.current['Ierror_rate_fact'][0] = str(self.i_delta_fact_percent) + '%'
+                self.current['result'][0] = "ok"
+                self.control_log.add(self.name, "OUT1: Номинальный ток " + str(self.i_nom) +
+                                     " Фактический ток " + str(self.i_out1_fact) +
+                                     " <= " + str(self.i_delta_percent), True)
             else:
-                self.current['Ierror_rate'][0] = '>' + str(self.i_delta_percent) + '%'
+                self.current['Ierror_rate_fact'][0] = str(self.i_delta_fact_percent) + '%'
+                self.current['result'][0] = "bad"
+                self.control_log.add(self.name, "OUT1: Номинальный ток " + str(self.i_nom) +
+                                     " Фактический ток " + str(self.i_out1_fact) +
+                                     " > " + str(self.i_delta_percent), False)
 
-            self.control_log.add(self.name,
-                                 "OUT1: Номинальный ток " + self.current['Ierror_rate'][0], True)
 
             # отключаем OUT1
             assert self.dout_103.command("KM14", "OFF")
@@ -617,9 +659,7 @@ class Check_psc24_10:
             # проверяем состояние
             assert self.psc24_10.check_behaviour(self.behaviour)
 
-            time_sec = datetime.now().strftime('%H:%M:%S.%f')[:-4]
-
-            # таймаут перед опросом датчика тока №1
+            # таймаут перед опросом датчика тока №2
             self.wait_time(5)
 
             # получаем и рассчитываем измерения OUT2
@@ -632,14 +672,20 @@ class Check_psc24_10:
             # записываем значение номинальное и фактическое в протокол
             self.current['Inom'][1] = self.i_nom
             self.current['Ifact'][1] = self.i_out2_fact
+            self.current['Ierror_rate_nom'][1] = str(self.i_delta_percent) + '%'
             # выясняем какая погрешность, в зависимости от результата заполняем протокол
             if self.check_error_rate(self.i_nom, self.i_out2_fact, self.i_delta_percent):
-                self.current['Ierror_rate'][1] = '<=' + str(self.i_delta_percent) + '%'
+                self.current['Ierror_rate_fact'][1] = str(self.i_delta_fact_percent) + '%'
+                self.current['result'][1] = "ok"
+                self.control_log.add(self.name, "OUT2: Номинальный ток " + str(self.i_nom) +
+                                     " Фактический ток " + str(self.i_out1_fact) +
+                                     " <= " + str(self.i_delta_percent), True)
             else:
-                self.current['Ierror_rate'][1] = '>' + str(self.i_delta_percent) + '%'
-
-            self.control_log.add(self.name,
-                                 "OUT2: Номинальный ток " + self.current['Ierror_rate'][1], True)
+                self.current['Ierror_rate_fact'][1] = str(self.i_delta_fact_percent) + '%'
+                self.current['result'][1] = "bad"
+                self.control_log.add(self.name, "OUT2: Номинальный ток " + str(self.i_nom) +
+                                     " Фактический ток " + str(self.i_out1_fact) +
+                                     " > " + str(self.i_delta_percent), False)
 
             # проверяем состояние
             assert self.psc24_10.check_behaviour(self.behaviour)
@@ -651,8 +697,8 @@ class Check_psc24_10:
             # проверяем состояние
             assert self.psc24_10.check_behaviour(self.behaviour)
 
-            # таймаут перед опросом датчика тока №1
-            self.wait_time(5)
+            # таймаут перед запараллеливанием каналов
+            self.wait_time(15)
 
             # получаем измерения OUT1
             assert self.psc24_10.check_ti("I_OUT1")
@@ -663,55 +709,56 @@ class Check_psc24_10:
             self.i_out2_fact = self.psc24_10.get_ti()
 
             # проверяем разницу между OUT1 и OUT2 не более 0.5
-            self.i_out1_delta_i_out2 = abs(round(self.i_out1_fact - self.i_out2_fact, 2))
-            self.current_difference['diff_value, A'][0] = str(self.i_out1_delta_i_out2)
-            if (self.i_out1_delta_i_out2 <= 0.5):
-                self.current_difference['OUT1/OUT2, A'][0] = '<=500 mA'
+            self.i_fact_difference = abs(round(self.i_out1_fact - self.i_out2_fact, 2))
+            self.current_difference['Idifference_nom'][0] = str(self.i_nom_difference)
+            self.current_difference['Idifference_fact'][0] = str(self.i_fact_difference)
+            if (self.i_fact_difference <= self.i_nom_difference):
+                self.current_difference['result'][0] = "ok"
+                self.control_log.add(self.name, "Разница между каналами по току < " + str(self.i_fact_difference) + " mA", True)
             else:
-                self.current_difference['OUT1/OUT2, A'][0] = '>500 mA'
-            self.control_log.add(self.name, "Разница между каналами " + self.current_difference['OUT1/OUT2, A'][0], True)
+                self.current_difference['result'][0] = "bad"
+                self.control_log.add(self.name, "Разница между каналами по току > " + str(self.i_fact_difference) + " mA", False)
 
-            # проверяем состояние
-            assert self.psc24_10.check_behaviour(self.behaviour)
-            # # отключаем OUT1
-            # assert self.dout_103.command("KM14", "OFF")
-            # assert self.din_202.check_voltage("KM14", "OFF")
-            #
-            # # отключаем OUT2
-            # assert self.dout_103.command("KM15", "OFF")
-            # assert self.din_202.check_voltage("KM15", "OFF")
-            #
-            # assert self.psc24_10.check_behaviour(self.behaviour)
-            #
-
-            # довыключить всю нагрузку (ВРЕМЕННО ДЛЯ ТЕСТА А МОЖЕТ И НЕТ)
-            # отключаем коммутатор #1
-            assert self.dout_102.command("KL18", "OFF")
-            assert self.din_201.check_voltage("KL18", "OFF")
-            # проверяем состояние
-            assert self.psc24_10.check_behaviour(self.behaviour)
-            # отключаем коммутатор #2
-            assert self.dout_102.command("KL19", "OFF")
-            assert self.din_201.check_voltage("KL19", "OFF")
             # проверяем состояние
             assert self.psc24_10.check_behaviour(self.behaviour)
             # отключаем OUT1
             assert self.dout_103.command("KM14", "OFF")
             assert self.din_202.check_voltage("KM14", "OFF")
-            # проверяем состояние
-            assert self.psc24_10.check_behaviour(self.behaviour)
+
             # отключаем OUT2
             assert self.dout_103.command("KM15", "OFF")
             assert self.din_202.check_voltage("KM15", "OFF")
+
             # проверяем состояние
             assert self.psc24_10.check_behaviour(self.behaviour)
+
+            # довыключить всю нагрузку (ВРЕМЕННО ДЛЯ ТЕСТА А МОЖЕТ И НЕТ)
+            # отключаем коммутатор #1
+            # assert self.dout_102.command("KL18", "OFF")
+            # assert self.din_201.check_voltage("KL18", "OFF")
+            # # проверяем состояние
+            # assert self.psc24_10.check_behaviour(self.behaviour)
+            # # отключаем коммутатор #2
+            # assert self.dout_102.command("KL19", "OFF")
+            # assert self.din_201.check_voltage("KL19", "OFF")
+            # # проверяем состояние
+            # assert self.psc24_10.check_behaviour(self.behaviour)
+            # # отключаем OUT1
+            # assert self.dout_103.command("KM14", "OFF")
+            # assert self.din_202.check_voltage("KM14", "OFF")
+            # # проверяем состояние
+            # assert self.psc24_10.check_behaviour(self.behaviour)
+            # # отключаем OUT2
+            # assert self.dout_103.command("KM15", "OFF")
+            # assert self.din_202.check_voltage("KM15", "OFF")
+            # # проверяем состояние
+            # assert self.psc24_10.check_behaviour(self.behaviour)
             return True
         except:
             self.control_log.add(self.name, "Error #4: Ошибка при проверке измерений", False)
             return False
         # если токовые каналы в параллель то проверить, что разница между ними
         # не более 500mA
-
     # Проверка порогов по напряжению работаем здесь
     def check_voltage_thresholds(self):
         self.control_log.add(self.name, "Stage 5 Проверка порогов по напряжению", True)
@@ -740,6 +787,8 @@ class Check_psc24_10:
             assert self.psc24_10.check_behaviour(self.behaviour)
 
             # получаем пороги
+            self.U_in_min_gyst = float(self.power_management.get("pw1_u_min_hyst"))
+            self.U_in_max_gyst = float(self.power_management.get("pw1_u_max_hyst"))
             self.u_in_min = float(self.power_management.get("pw1_u_min"))
             self.u_nom = float(self.power_management.get("pw1_u_nom"))
             self.u_in_max = float(self.power_management.get("pw1_u_max"))
@@ -807,6 +856,8 @@ class Check_psc24_10:
             # устанавливаем номинальное напряжение
             assert self.power_supply.set_voltage(self.u_nom)
             assert self.power_supply.check_voltage(self.u_nom)
+
+            self.wait_time(10)
 
             # предполагаемое поведение
             self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 0, "error_pwr2": 0,
@@ -902,12 +953,16 @@ class Check_psc24_10:
             assert self.power_supply.set_voltage(self.u_nom)
             assert self.power_supply.check_voltage(self.u_nom)
 
+            self.wait_time(10)
+
             # предполагаемое поведение
             self.behaviour = {"pwr1": 0, "pwr2": 1, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 1, "error_pwr2": 0,
                               "error_btr": 0, "error_out1": 0, "error_out2": 0, "charge_btr": 1, "ten": 0, "apts": 0}
 
             assert self.psc24_10.check_behaviour(self.behaviour)
 
+            # Проверка АКБ и порогов по напряжению
+            # IN1=null IN2=WM IN3=ЛБП
             # подключаем IN2
             assert self.dout_101.command(self.IN2, "ON")
             assert self.din_201.check_voltage(self.IN2, "ON")
@@ -938,6 +993,7 @@ class Check_psc24_10:
             self.u_in_min = float(self.power_management.get("btr_u_min"))
             self.u_nom = float(self.power_management.get("btr_u_nom"))
             self.u_in_max = float(self.power_management.get("btr_u_max"))
+            u_charge_voltage_btr = float(self.power_management.get("charge_u_max"))
 
             # сохраняем протокол
             self.voltage_threesolds['U_IN3'][0] = str(self.u_in_min)
@@ -947,14 +1003,15 @@ class Check_psc24_10:
             self.u_delta = self.percentage(self.u_delta_percent, self.u_in_min)
             # установить минимальный порог на ЛБП с учетом погрешности
             assert self.power_supply.set_voltage(self.u_in_min - self.u_delta)
-            assert self.power_supply.check_voltage(self.u_in_min - self.u_delta)
+            # обманываем ЛБП и снимаем с ЛБП напряжение заряда
+            assert self.power_supply.check_voltage(u_charge_voltage_btr)
 
             # ожидаем пропажу АКБ
             self.wait_time(90)
 
             # предполагаемое поведение
             self.behaviour = {"pwr1": 0, "pwr2": 1, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 1, "error_pwr2": 0,
-                              "error_btr": 1, "error_out1": 0, "error_out2": 0, "charge_btr": 0, "ten": 0, "apts": 0}
+                              "error_btr": 1, "error_out1": 0, "error_out2": 0, "charge_btr": 1, "ten": 0, "apts": 0}
 
             # определяем по поведению сработал ли порог u_min
             if self.psc24_10.check_behaviour(self.behaviour):
@@ -991,7 +1048,7 @@ class Check_psc24_10:
             assert self.power_supply.check_voltage(self.u_in_max + self.u_delta)
 
             # ожидаем пропажу АКБ
-            self.wait_time(90)
+            self.wait_time(5)
 
             # предполагаемое поведение
             self.behaviour = {"pwr1": 0, "pwr2": 1, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 1, "error_pwr2": 0,
@@ -1007,7 +1064,7 @@ class Check_psc24_10:
 
             # устанавливаем номинальное напряжение
             assert self.power_supply.set_voltage(self.u_nom)
-            assert self.power_supply.check_voltage(self.u_nom)
+            assert self.power_supply.check_voltage(u_charge_voltage_btr)
 
             self.wait_time(5)
 
@@ -1113,6 +1170,9 @@ class Check_psc24_10:
                     assert protocol.create_protocol("test_protocol", self.control_log,'_good(3)_bad(2)', self.serial_number, self.soft_version,
                                              self.voltage, self.current, self.current_difference, self.voltage_threesolds, self.switching_channels,
                                              self.ten, self.emergency_modes)
+                    assert self.dout_103.command(self.device[i], "ON")
+                    assert self.din_202.check_voltage(self.device[i], "ON")
+                    time.sleep(2)
                     # ОБЯЗАТЕЛЬНО В КОНЦЕ ЦИКЛА
                     self.main_log.set_start(True)
                     self.main_log.set_finish(True)

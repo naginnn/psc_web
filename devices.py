@@ -6,6 +6,7 @@ import engine
 import time
 from datetime import datetime
 
+dout_numbers = [81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96]
 dout_names_101 = {"KL1":81,"KL2":82,"KL3":83,"KL4":84,"KL5":85,"KL6":86,"KL7":87,"KL8":88,"KL9":89,"KL10":90,"KL11":91,"KL12":92,"KL13":93,"KL14":94,"KL15":95,"KL16":96}
 dout_names_102 = {"KL17":81,"KL18":82,"KL19":83,"KL20":84,"KL21":85,"KL22":86,"KL23":87,"KL24":88,"KL25":89,"KL26":90,"KL27":91,"KL28":92,"KL29":93,"KL30":94,"KL31":95,"KL32":96}
 dout_names_103 = {"KL33":81,"KM1":82,"KM2":83,"KM3":84,"KM4":85,"KM5":86,"KM6":87,"KM7":88,"KM8":89,"KM9":90,"KM10":91,"KM11":92,"KM14":93,"KM15":94,"KM16":95,"KM17":96}
@@ -117,6 +118,31 @@ class Dout:
                 return signals
         except:
             return False
+
+    def off_enabled(self):
+        time_sec = datetime.now().strftime('%H:%M:%S.%f')[:-4]
+        self.log.add(self.name, "Сброс управления", True)
+        i = 0
+        for t in range(self.timeout):
+            try:
+                dout_signals = self.get_status()
+                if (dout_signals != False):
+                    for relay in dout_signals:
+                        if relay == 1:
+                            self.instrument.write_register(dout_numbers[i], 0, 4)
+                        i = i + 1
+                    self.log.add(self.name, "Сброс управления выполнен", True)
+                    return True
+            except:
+                self.log.log_data[len(self.log.log_data) - 1] = \
+                    time_sec + " " + self.name + \
+                    ": Сброс управления " + str(t + 1) + " сек"
+                time.sleep(1 - time.time() % 1)
+                if t >= self.timeout - 1:
+                    self.log.add(self.name, "Неудалось выполнить сброс управления", False)
+                    return False
+
+
 
     def command(self, relay, status):
         time_sec = datetime.now().strftime('%H:%M:%S.%f')[:-4]

@@ -609,6 +609,8 @@ class ReadWriteEEprom:
                     val = read.hex_to_float(response[:len(response) - 2])
                 ser.close()
                 self.serial_number = 4710000000 + val
+                if self.serial_number > 9000000000:
+                    self.serial_number = 4710000000
                 self.log.add(self.name, "Серийный номер устройства получен: " + str(self.serial_number), True)
                 return True
             except:
@@ -668,14 +670,16 @@ class ReadWriteEEprom:
                     return False
 # получить версию прошивки!!!!!!!! ДОБАВИТЬ
 # добавить обработку событий!
-if __name__ == '__main__':
-    log = engine.Log()
-    # создаем объект
-    eeprom = ReadWriteEEprom("EEPROM",log, "com2", 115200,5)
-    print(eeprom.read_soft_version())
-    print(eeprom.get_soft_version())
+# if __name__ == '__main__':
+#     log = engine.Log()
+#     # создаем объект
+#     eeprom = ReadWriteEEprom("EEPROM",log, "com9", 115200, 5)
+#     print(eeprom.read_soft_version())
+#     print(eeprom.get_soft_version())
+#     print(eeprom.read_serial_number())
+#     print(eeprom.get_serial_number())
     # print(eeprom.write_power_management())
-    print(eeprom.write_network_settings())
+    # print(eeprom.write_network_settings())
     # print(log.get_log())
     # print(eeprom.get_soft_version())
     # print()

@@ -72,9 +72,10 @@ din_names_202 = {"KL33":"ЛБП U4 - U на IN4",
                  "SF5": "Цепь IN2",
                  "SF6": "Цепь IN3",
                  "SF7": "Цепь IN4",
-                 "Reserved": "Reserved",
-                 "Reserved": "Reserved",
-                 "Reserved": "Reserved",
+                 "KL34": "Обрыв связи с датчиком",
+                 "Reserved1": "Reserved",
+                 "Reserved2": "Reserved",
+                 "Reserved3": "Reserved",
                  "KM20": "Прибавить 20А(реостат)",
                  "KM21": "Прибавить 40А(реостат)",
                  "KM22": "Прибавить 40А(реостат)",
@@ -428,6 +429,10 @@ class Check_psc24_10:
             if config.get("power_supply_type") == "pw24_5":
                 self.IN1 = "KL15"
                 self.IN2 = "KL16"
+            assert self.din_202.check_voltage("SF4", "ON")
+            assert self.din_202.check_voltage("SF5", "ON")
+            assert self.din_202.check_voltage("SF6", "ON")
+            assert self.din_202.check_voltage("SF7", "ON")
             return True
         except:
             self.control_log.add(self.name, "Error #1: Ошибка инициализации модулей управления", False)
@@ -487,10 +492,12 @@ class Check_psc24_10:
             # считываем серийный номер
             assert self.eeprom.read_serial_number()
             serial_number = str(self.eeprom.get_serial_number())
-            if serial_number != "4710000000":
-                self.serial_number['Серийный номер'][0] = serial_number
-            else:
-                assert False
+            self.serial_number['Серийный номер'][0] = serial_number
+            # потом вернуть
+            # if serial_number != "4710000000":
+            #     self.serial_number['Серийный номер'][0] = serial_number
+            # else:
+            #     assert False
 
             # считываем настройки электропитания
             assert self.eeprom.read_power_management()
@@ -1106,18 +1113,39 @@ class Check_psc24_10:
     def crash_mode(self):
         print("Режим перегрузки")
 
+    # сбросить все управление
     def off_all_control(self):
         try:
-            self.control_log.add(self.name, "Сброс управления", False)
             assert self.dout_101.off_enabled()
             assert self.dout_102.off_enabled()
             assert self.dout_103.off_enabled()
             assert self.dout_104.off_enabled()
-            self.control_log.add(self.name, "Управление сброшено", False)
+            assert self.power_supply.set_voltage(24.0)
             return True
         except:
-            self.control_log.add(self.name, "Неудалось сбросить управление", False)
             return False
+
+    def clear_protocol_data(self):
+        behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 0, "error_pwr2": 0,
+                     "error_btr": 0,
+                     "error_out1": 0, "error_out2": 0, "charge_btr": 1, "ten": 0, "apts": 0}
+
+        self.serial_number = {'Серийный номер': [' ']}
+        self.soft_version = {'Версия ПО': [' '], 'Фактическая': [' ']}
+        self.voltage = {'Канал, U': ['IN1', 'IN2', 'IN3'], 'Unom': ['', '', ''], 'Ufact': ['', '', ''],
+                   'Uerror_rate_nom': ['', '', ''], 'Uerror_rate_fact': ['', '', ''], 'result': ['', '', '']}
+        self.current = {'Канал, I': ['OUT1', 'OUT2'], 'Inom': ['', ''], 'Ifact': ['', ''], 'Ierror_rate_nom': ['', ''],
+                   'Ierror_rate_nom': ['', ''], 'Ierror_rate_fact': ['', ''], 'result': ['', '']}
+        self.current_difference = {'Idifference_nom': [' '], 'Idifference_fact': [' '], 'result': [' ']}
+        self.voltage_threesolds = {'Пороги, U': ['min, U', 'nom, U', 'max, U', ''], 'U_IN1': ['', '', '', ''],
+                              'ResIN1': ['', '', '', ''], 'U_IN2': ['', '', '', ''], 'ResIN2': ['', '', '', ''],
+                              'U_IN3': ['', '', '', ''], 'ResIN3': ['', '', '', '']}
+        self.switching_channels = {'Переключение каналов': ['Под Imin 0A', 'Под Imax 10A', '', ''],
+                              'Канал 1': ['', '', '', ''], 'Время, t': ['', '', '', ''], 'Канал 2': ['', '', '', '']}
+        self.ten = {'Работа ТЭН': [' ']}
+        self.emergency_modes = {'Аварийные режимы': ['Режим КЗ', 'Режим перегрузки', 'Обрыв связи датчика', ''],
+                           'Результат': ['', '', '', '']}
+
     def for_test(self):
         try:
             modb_dout_101 = devices.Modb()
@@ -1141,6 +1169,7 @@ class Check_psc24_10:
             count_devices = int(self.config.get("checked_list"))
             time.sleep(2)
             assert self.prepare()
+            assert self.off_all_control()
         except AssertionError:
             self.main_log.set_start(False)
             self.main_log.set_finish(True)
@@ -1156,6 +1185,7 @@ class Check_psc24_10:
             while i <= count_devices:
                 try:
                     flag = True
+                    off_control = False
                     self.control_log.add("Девайс номер ", str(i), True)
                     # ОБЯЗАТЕЛЬНО В НАЧАЛЕ ЦИКЛА
                     self.main_log.set_finish(False)
@@ -1163,24 +1193,21 @@ class Check_psc24_10:
                     time.sleep(2)
                     assert self.dout_103.command(self.device[i], "ON")
                     assert self.din_202.check_voltage(self.device[i], "ON")
-                    time.sleep(2)
+                    self.wait_time(2)
                     assert self.first_start()
-                    time.sleep(2)
+                    self.wait_time(2)
                     assert self.configurate_check()
-                    time.sleep(2)
+                    self.wait_time(2)
                     assert self.measurements_check()
-                    time.sleep(2)
-                    self.wait_time(10)
+                    self.wait_time(2)
                     assert self.check_voltage_thresholds()
-                    time.sleep(2)
-                    assert self.dout_103.command(self.device[i], "OFF")
-                    assert self.din_202.check_voltage(self.device[i], "OFF")
-                    time.sleep(2)
+                    self.wait_time(2)
 
                     assert protocol.create_protocol("test_protocol", self.control_log, self.serial_number, self.soft_version,
                                              self.voltage, self.current, self.current_difference, self.voltage_threesolds, self.switching_channels,
                                              self.ten, self.emergency_modes)
-                    time.sleep(2)
+                    self.clear_protocol_data()
+                    self.wait_time(2)
 
                     # отключать все dout'ы в случае успешной проверки
                     off_control = self.off_all_control()
@@ -1192,12 +1219,13 @@ class Check_psc24_10:
                     self.main_log.set_start(True)
                     self.main_log.set_finish(True)
                     i = i + 1
-                    time.sleep(2)
+                    self.wait_time(2)
                 except AssertionError:
                     protocol.create_protocol("test_protocol", self.control_log, self.serial_number, self.soft_version,
                                              self.voltage, self.current, self.current_difference,
                                              self.voltage_threesolds, self.switching_channels,
                                              self.ten, self.emergency_modes)
+                    self.clear_protocol_data()
                     if off_control != True:
                         in_off_control = self.off_all_control()
                         if in_off_control:

@@ -114,7 +114,6 @@ class Dout:
         try:
             signals = self.instrument.read_registers(1, 16, 3)
             if (len(signals) == 16):
-                self.log.add(self.name, "Состояние устройства получено", True)
                 return signals
         except:
             return False
@@ -192,17 +191,17 @@ class Din:
         time_sec = datetime.now().strftime('%H:%M:%S.%f')[:-4]
         self.log.add(self.name,"Попытка проверить состояние " + signal + " " + status, True)
         for t in range(self.timeout):
-            din_signals = self.get_status()
-            if (din_signals != False):
-                haha = list(self.din_names).index(signal)
-                lala = din_signals[list(self.din_names).index(signal)]
-                lala2 = din_signals[list(self.din_names).index(signal)+1]
-                if ((din_signals[list(self.din_names).index(signal)] == 1) and (status == "ON")):
-                    self.log.add(self.name, "Напряжение на " + self.din_names.get(signal) + " подано", True)
-                    return True
-                if ((din_signals[list(self.din_names).index(signal)] == 0) and (status == "OFF")):
-                    self.log.add(self.name, "Напряжение с " + self.din_names.get(signal) + " снято", True)
-                    return True
+            try:
+                din_signals = self.get_status()
+                if (din_signals != False):
+                    if ((din_signals[list(self.din_names).index(signal)] == 1) and (status == "ON")):
+                        self.log.add(self.name, "Напряжение на " + self.din_names.get(signal) + " подано", True)
+                        return True
+                    if ((din_signals[list(self.din_names).index(signal)] == 0) and (status == "OFF")):
+                        self.log.add(self.name, "Напряжение с " + self.din_names.get(signal) + " снято", True)
+                        return True
+                assert False
+            except:
                 self.log.log_data[len(self.log.log_data) - 1] = \
                     time_sec + " " + self.name + \
                     ": Попытка проверить состояние " + signal + " " + status + " " + str(t + 1) + " сек"
@@ -215,7 +214,6 @@ class Din:
         try:
             signals = self.instrument.read_registers(1, 32, 3)
             if (len(signals) == 32):
-                self.log.add(self.name, "Состояние устройства получено", True)
                 return signals
         except:
             return False
@@ -485,30 +483,31 @@ class Psc_10:
     def check_behaviour(self, behav):
         time_sec = datetime.now().strftime('%H:%M:%S.%f')[:-4]
         self.log.add(self.name, "Ожидание включения устройства ", True)
+        state = True
         for t in range(self.timeout):
-            behaviour = self.get_all_ts()
-            if (behaviour != False):
-                i = 0
-                for key in behav:
-                    if behav[key] != behaviour[i]:
-                        self.log.add(self.name, "Состояние устройства не соответствует действительности", False)
-                        return False
-                    i = i + 1
-                self.log.add(self.name, "Состояние устройства соответствует", True)
-                return True
-            self.log.log_data[len(self.log.log_data) - 1] = \
-                time_sec + " " + self.name + \
-                ": Ожидание включения устройства " + str(t + 1) + " сек"
-            time.sleep(1 - time.time() % 1)
-            if t >= self.timeout - 1:
-                self.log.add(self.name, "Неудалось получить состояние устройства", True)
-                return False
+            try:
+                behaviour = self.get_all_ts()
+                if (behaviour != False):
+                    i = 0
+                    for key in behav:
+                        if behav[key] != behaviour[i]:
+                            assert False
+                        i = i + 1
+                    self.log.add(self.name, "Состояние устройства соответствует", True)
+                    return True
+            except:
+                self.log.log_data[len(self.log.log_data) - 1] = \
+                    time_sec + " " + self.name + \
+                    ": Ожидание включения устройства " + str(t + 1) + " сек"
+                time.sleep(1 - time.time() % 1)
+                if t >= self.timeout - 1:
+                    self.log.add(self.name, "Неудалось получить состояние устройства", False)
+                    return False
 
     def get_all_ts(self):
         try:
             behaviour = self.instrument.read_registers(1, 13, 3)
             if (len(behaviour) == 13):
-                self.log.add(self.name, "Состояние устройства получено", True)
                 return behaviour
         except:
             return False

@@ -19,35 +19,6 @@ din_names_201 = {"KL1":"MW1 - MeanWell 24-67","KL2":"MW2 - MeanWell 24-67","KL3"
                  "KL26": "A15 - Коммутатор #9","KL27": "A16 - Коммутатор #10", "KL28": "A17 - Коммутатор #11", "KL29": "A18 - Коммутатор #12","KL30": "ЛБП U1 - U на IN1",
                  "KL31": "ЛБП U2 - U на IN2", "KL32": "ЛБП U3 - U на IN3"
                  }
-# din_names_202 = {"KL33":"ЛБП U4 - U на IN4",
-#                  "KM1":"АКБ #1 - IN 3,4",
-#                  "KM2":"АКБ #2 - IN 3,4",
-#                  "KM3":"АКБ #3 - IN 3,4",
-#                  "KM4":"АКБ #4 - IN 3,4",
-#                  "KM5":"АКБ #5 - IN 3,4",
-#                  "KM6":"АКБ #6 - IN 3,4",
-#                  "KM7":"PSC 1 - входные каналы",
-#                  "KM8":"PSC 2 - входные каналы",
-#                  "KM9":"PSC 3 - входные каналы",
-#                  "KM10":"PSC 4 - входные каналы",
-#                  "KM11":"PSC 5 - входные каналы",
-#                  "KM14":"OUT1  - Коммутаторы",
-#                  "KM15":"OUT2  - R(реостат)",
-#                  "KM16":"OUT1  - Коммутаторы",
-#                  "KM17":"OUT2 - R(реостат)",
-#                  "KM18": "Коротокое замыкание на R1(реостат)",
-#                  "KM19": "Коротокое замыкание на R2(коммутаторы)",
-#                  "KM12": "Прибавить 5А(коммутаторы)",
-#                  "KM13": "Прибавить 10А(коммутаторы)",
-#                  "SF4": "Цепь IN1",
-#                  "SF5": "Цепь IN2",
-#                  "SF6": "Цепь IN3",
-#                  "SF7": "Цепь IN4",
-#                  "KM20": "Прибавить 20А(реостат)",
-#                  "KM21": "Прибавить 40А(реостат)",
-#                  "KM22": "Прибавить 40А(реостат)",
-#                  "KM23": "Прибавить 80А(реостат)",
-#                  "KL34": "Обрыв связи с датчиком"}
 din_names_202 = {"KL33":"ЛБП U4 - U на IN4",
                  "KM1":"АКБ #1 - IN 3,4",
                  "KM2":"АКБ #2 - IN 3,4",
@@ -359,7 +330,7 @@ class Check_psc24_10:
         self.control_log = control_log
         self.main_log = main_log
         self.settings = settings
-
+    # время ожидания (перерыва)
     def wait_time(self, timeout):
         time_sec = datetime.now().strftime('%H:%M:%S.%f')[:-4]
         self.control_log.add(self.name, "Ожидание", True)
@@ -1121,6 +1092,7 @@ class Check_psc24_10:
             assert self.dout_103.off_enabled()
             assert self.dout_104.off_enabled()
             assert self.power_supply.set_voltage(24.0)
+            self.clear_protocol_data()
             return True
         except:
             return False
@@ -1206,7 +1178,6 @@ class Check_psc24_10:
                     assert protocol.create_protocol("test_protocol", self.control_log, self.serial_number, self.soft_version,
                                              self.voltage, self.current, self.current_difference, self.voltage_threesolds, self.switching_channels,
                                              self.ten, self.emergency_modes)
-                    self.clear_protocol_data()
                     self.wait_time(2)
 
                     # отключать все dout'ы в случае успешной проверки

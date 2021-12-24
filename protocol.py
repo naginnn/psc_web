@@ -214,12 +214,15 @@ def append_df_to_excel(
         wb.close()
 
 
-def create_protocol(name, log, serial_number, soft_version, voltage, current, current_difference, voltage_threesolds, switching_channels, ten, emergency_modes):
+def create_protocol(name, log, check_number, serial_number, soft_version, voltage, current, current_difference, voltage_threesolds, switching_channels, ten, emergency_modes):
     i = 0
     log.add("Протокол", "Формирование протокола", True)
     try:
         while True:
             filename = 'protocols/' + name + '.xlsx'
+            df = pd.DataFrame.from_dict(check_number)
+            append_df_to_excel(filename, df, index=False)
+
             df = pd.DataFrame.from_dict(serial_number)
             append_df_to_excel(filename, df, index=False)
 
@@ -267,8 +270,7 @@ def create_protocol(name, log, serial_number, soft_version, voltage, current, cu
 #      soft_version = {'Версия ПО': [' '], 'Фактическая': [' ']}
 #      voltage = {'Канал, U': ['IN1', 'IN2', 'IN3'], 'Unom': ['', '', ''], 'Ufact': ['', '', ''],
 #                 'Uerror_rate_nom': ['', '', ''], 'Uerror_rate_fact': ['', '', ''], 'result': ['', '', '']}
-#      current = {'Канал, I': ['OUT1', 'OUT2'], 'Inom': ['', ''], 'Ifact': ['', ''], 'Ierror_rate_nom': ['', ''],
-#                 'Ierror_rate_nom': ['', ''], 'Ierror_rate_fact': ['', ''], 'result': ['', '']}
+#      current_difference = {'OUT1': [' '], 'OUT2': [' '], 'Idifference_nom': [' '], 'Idifference_fact': [' '], 'result': [' ']}
 #      current_difference = {'Idifference_nom': [' '], 'Idifference_fact': [' '], 'result': [' ']}
 #      voltage_threesolds = {'Пороги, U': ['min, U', 'nom, U', 'max, U', ''], 'U_IN1': ['', '', '', ''],
 #                            'ResIN1': ['', '', '', ''], 'U_IN2': ['', '', '', ''], 'ResIN2': ['', '', '', ''],

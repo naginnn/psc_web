@@ -293,11 +293,12 @@ class Check_psc24_10:
     u_delta_percent = 5
     i_delta_percent = 15
     # списки для будущего протокола
+    check_number = {'Порядковый номер': [' ']}
     serial_number = {'Серийный номер': [' ']}
     soft_version = {'Версия ПО': [' '], 'Фактическая': [' ']}
     voltage = {'Канал, U': ['IN1', 'IN2', 'IN3'], 'Unom': ['', '', ''], 'Ufact': ['', '', ''], 'Uerror_rate_nom': ['', '', ''], 'Uerror_rate_fact': ['', '', ''], 'result': ['', '', '']}
     current = {'Канал, I': ['OUT1', 'OUT2'], 'Inom': ['', ''], 'Ifact': ['', ''], 'Ierror_rate_nom': ['', ''], 'Ierror_rate_nom': ['', ''], 'Ierror_rate_fact': ['', ''], 'result': ['', '']}
-    current_difference = {'Idifference_nom': [' '], 'Idifference_fact': [' '], 'result': [' ']}
+    current_difference = {'OUT1': [' '], 'OUT2': [' '], 'Idifference_nom': [' '], 'Idifference_fact': [' '], 'result': [' ']}
     voltage_threesolds = {'Пороги, U': ['min, U', 'nom, U', 'max, U', ''], 'U_IN1': ['', '', '', ''], 'ResIN1': ['', '', '', ''], 'U_IN2': ['', '', '', ''], 'ResIN2': ['', '', '', ''], 'U_IN3': ['', '', '', ''], 'ResIN3': ['', '', '', '']}
     switching_channels = {'Переключение каналов': ['Под Imin 0A', 'Под Imax 10A', '', ''], 'Канал 1': ['', '', '', ''], 'Время, t': ['', '', '', ''], 'Канал 2': ['', '', '', '']}
     ten = {'Работа ТЭН': [' ']}
@@ -570,9 +571,7 @@ class Check_psc24_10:
                                      " > " + str(self.u_delta_percent), False)
 
             # подать токи на выхода
-            # подключаем OUT1
-            assert self.dout_103.command("KM14", "ON")
-            assert self.din_202.check_voltage("KM14", "ON")
+
             # проверяем состояние
             assert self.psc24_10.check_behaviour(self.behaviour)
             # подключаем коммутатор #1
@@ -583,6 +582,10 @@ class Check_psc24_10:
             # подключаем коммутатор #2
             assert self.dout_102.command("KL19", "ON")
             assert self.din_201.check_voltage("KL19", "ON")
+
+            # подключаем OUT1
+            assert self.dout_103.command("KM14", "ON")
+            assert self.din_202.check_voltage("KM14", "ON")
             # проверяем состояние
             assert self.psc24_10.check_behaviour(self.behaviour)
             # # подключаем коммутатор #3
@@ -594,7 +597,7 @@ class Check_psc24_10:
             # assert self.dout_102.command("KL21", "ON")
             # assert self.din_201.check_voltage("KL21", "ON")
             # проверяем состояние
-            assert self.psc24_10.check_behaviour(self.behaviour)
+            # assert self.psc24_10.check_behaviour(self.behaviour)
 
             # таймаут перед опросом датчика тока №1
             self.wait_time(5)
@@ -624,7 +627,6 @@ class Check_psc24_10:
                                      " Фактический ток " + str(self.i_out1_fact) +
                                      " > " + str(self.i_delta_percent), False)
 
-
             # отключаем OUT1
             assert self.dout_103.command("KM14", "OFF")
             assert self.din_202.check_voltage("KM14", "OFF")
@@ -639,8 +641,11 @@ class Check_psc24_10:
             # проверяем состояние
             assert self.psc24_10.check_behaviour(self.behaviour)
 
+            # проверяем состояние
+            assert self.psc24_10.check_behaviour(self.behaviour)
+
             # таймаут перед опросом датчика тока №2
-            self.wait_time(5)
+            self.wait_time(15)
 
             # получаем и рассчитываем измерения OUT2
             # получаем ТИ с OUT2
@@ -669,24 +674,39 @@ class Check_psc24_10:
 
             # проверяем состояние
             assert self.psc24_10.check_behaviour(self.behaviour)
-
-            # подключаем OUT1 и параллелим с OUT2
+            # таймаут перед опросом каналов
+            self.wait_time(5)
+            # подключаем OUT1
             assert self.dout_103.command("KM14", "ON")
             assert self.din_202.check_voltage("KM14", "ON")
+            # таймаут перед опросом каналов
+            self.wait_time(5)
+            # подключаем OUT2
+            assert self.dout_103.command("KM15", "ON")
+            assert self.din_202.check_voltage("KM15", "ON")
+            # проверяем состояние
+            assert self.psc24_10.check_behaviour(self.behaviour)
+
+
 
             # проверяем состояние
             assert self.psc24_10.check_behaviour(self.behaviour)
 
-            # таймаут перед запараллеливанием каналов
-            self.wait_time(15)
+            # таймаут перед опросом каналов
+            self.wait_time(60)
 
             # получаем измерения OUT1
             assert self.psc24_10.check_ti("I_OUT1")
             self.i_out1_fact = self.psc24_10.get_ti()
+            self.current_difference['OUT1'][0] = str(self.i_out1_fact)
+
+            # таймаут перед опросом каналов
+            self.wait_time(5)
 
             # получаем измерения OUT2
             assert self.psc24_10.check_ti("I_OUT2")
             self.i_out2_fact = self.psc24_10.get_ti()
+            self.current_difference['OUT2'][0] = str(self.i_out2_fact)
 
             # проверяем разницу между OUT1 и OUT2 не более 0.5
             self.i_fact_difference = abs(round(self.i_out1_fact - self.i_out2_fact, 2))
@@ -1091,24 +1111,28 @@ class Check_psc24_10:
             assert self.dout_102.off_enabled()
             assert self.dout_103.off_enabled()
             assert self.dout_104.off_enabled()
-            assert self.power_supply.set_voltage(24.0)
+            assert self.power_supply.output("OFF")
+            assert self.power_supply.check_output("OFF")
             self.clear_protocol_data()
             return True
         except:
             return False
 
     def clear_protocol_data(self):
-        behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 0, "error_pwr2": 0,
+        # сбрасываем поведение
+        self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 0, "error_pwr2": 0,
                      "error_btr": 0,
                      "error_out1": 0, "error_out2": 0, "charge_btr": 1, "ten": 0, "apts": 0}
 
+        # сбрасываем данные для протокола
+        self.check_number = {'Порядковый номер': [' ']}
         self.serial_number = {'Серийный номер': [' ']}
         self.soft_version = {'Версия ПО': [' '], 'Фактическая': [' ']}
         self.voltage = {'Канал, U': ['IN1', 'IN2', 'IN3'], 'Unom': ['', '', ''], 'Ufact': ['', '', ''],
                    'Uerror_rate_nom': ['', '', ''], 'Uerror_rate_fact': ['', '', ''], 'result': ['', '', '']}
         self.current = {'Канал, I': ['OUT1', 'OUT2'], 'Inom': ['', ''], 'Ifact': ['', ''], 'Ierror_rate_nom': ['', ''],
                    'Ierror_rate_nom': ['', ''], 'Ierror_rate_fact': ['', ''], 'result': ['', '']}
-        self.current_difference = {'Idifference_nom': [' '], 'Idifference_fact': [' '], 'result': [' ']}
+        self.current_difference = {'OUT1': [' '], 'OUT2': [' '], 'Idifference_nom': [' '], 'Idifference_fact': [' '], 'result': [' ']}
         self.voltage_threesolds = {'Пороги, U': ['min, U', 'nom, U', 'max, U', ''], 'U_IN1': ['', '', '', ''],
                               'ResIN1': ['', '', '', ''], 'U_IN2': ['', '', '', ''], 'ResIN2': ['', '', '', ''],
                               'U_IN3': ['', '', '', ''], 'ResIN3': ['', '', '', '']}
@@ -1124,11 +1148,11 @@ class Check_psc24_10:
             assert modb_dout_101.getConnection("DOUT_101", self.device_com, 101, 115200, self.control_log)
             self.dout_101 = devices.Dout(modb_dout_101.getСonnectivity(), dout_names_101, "DOUT_101", self.control_log, 10)
             self.dout_101.command("KL1", "ON")
-
         except:
             return False
     # главная функция
     def main1(self):
+        # инициализаци стенда
         try:
             # for git
             self.control_log.set_start(False)
@@ -1151,14 +1175,19 @@ class Check_psc24_10:
             return False
 
         flag = False
+        # контроль сброса и аварийного сброса стенда
         off_control = False
-        i = 1
+        # результаты по ходу проверки
+        ok = 0
+        bad = 0
+        i = 3
         while True:
             while i <= count_devices:
                 try:
                     flag = True
                     off_control = False
                     self.control_log.add("Девайс номер ", str(i), True)
+                    self.check_number['Порядковый номер'][0] = str(i)
                     # ОБЯЗАТЕЛЬНО В НАЧАЛЕ ЦИКЛА
                     self.main_log.set_finish(False)
                     self.main_log.set_device_count(i - 1)
@@ -1172,10 +1201,10 @@ class Check_psc24_10:
                     self.wait_time(2)
                     assert self.measurements_check()
                     self.wait_time(2)
-                    assert self.check_voltage_thresholds()
-                    self.wait_time(2)
+                    # assert self.check_voltage_thresholds()
+                    # self.wait_time(2)
 
-                    assert protocol.create_protocol("test_protocol", self.control_log, self.serial_number, self.soft_version,
+                    assert protocol.create_protocol(protocol_time + "_tested_" + str(count_devices), self.control_log, self.check_number, self.serial_number, self.soft_version,
                                              self.voltage, self.current, self.current_difference, self.voltage_threesolds, self.switching_channels,
                                              self.ten, self.emergency_modes)
                     self.wait_time(2)
@@ -1189,14 +1218,17 @@ class Check_psc24_10:
                     # ОБЯЗАТЕЛЬНО В КОНЦЕ ЦИКЛА
                     self.main_log.set_start(True)
                     self.main_log.set_finish(True)
-                    i = i + 1
+                    # i = i + 1
                     self.wait_time(2)
+                    # количество хороших модулей
+                    ok = ok + 1
                 except AssertionError:
-                    protocol.create_protocol("test_protocol", self.control_log, self.serial_number, self.soft_version,
+                    # количество плохих модулей
+                    bad = bad + 1
+                    protocol.create_protocol(protocol_time + "_tested_" + str(count_devices), self.control_log, self.check_number, self.serial_number, self.soft_version,
                                              self.voltage, self.current, self.current_difference,
                                              self.voltage_threesolds, self.switching_channels,
                                              self.ten, self.emergency_modes)
-                    self.clear_protocol_data()
                     if off_control != True:
                         in_off_control = self.off_all_control()
                         if in_off_control:
@@ -1214,7 +1246,7 @@ class Check_psc24_10:
 
                     self.main_log.set_start(False)
                     self.main_log.set_finish(True)
-                    i = i + 1
+                    # i = i + 1
                     time.sleep(2)
             if flag:
                 self.control_log.add("Тестирование", "Тестирование завершено", False)

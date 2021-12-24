@@ -495,6 +495,8 @@ class Psc_10:
                         i = i + 1
                     self.log.add(self.name, "Состояние устройства соответствует", True)
                     return True
+                else:
+                    assert False
             except:
                 self.log.log_data[len(self.log.log_data) - 1] = \
                     time_sec + " " + self.name + \

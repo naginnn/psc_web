@@ -1,0 +1,6 @@
+- fix check OUT1/OUT2 difference
+- add number check device to protocol
+- fix
+- 10:30:24.78 ЛБП: Значение установленного и фактического напряжения отличаются 27.2 В
+    10:30:24.78 Тестирование: Error #5: Ошибка при проверке порогов по нап
+        check IT!

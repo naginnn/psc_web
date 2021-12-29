@@ -684,10 +684,14 @@ class Check_psc24_10:
             # подключаем OUT2
             assert self.dout_103.command("KM15", "ON")
             assert self.din_202.check_voltage("KM15", "ON")
+            # отключаем OUT1
+            assert self.dout_103.command("KM14", "OFF")
+            assert self.din_202.check_voltage("KM14", "OFF")
+            # подключаем OUT1
+            assert self.dout_103.command("KM14", "ON")
+            assert self.din_202.check_voltage("KM14", "ON")
             # проверяем состояние
             assert self.psc24_10.check_behaviour(self.behaviour)
-
-
 
             # проверяем состояние
             assert self.psc24_10.check_behaviour(self.behaviour)
@@ -1180,7 +1184,7 @@ class Check_psc24_10:
         # результаты по ходу проверки
         ok = 0
         bad = 0
-        i = 3
+        i = 1
         while True:
             while i <= count_devices:
                 try:
@@ -1218,7 +1222,7 @@ class Check_psc24_10:
                     # ОБЯЗАТЕЛЬНО В КОНЦЕ ЦИКЛА
                     self.main_log.set_start(True)
                     self.main_log.set_finish(True)
-                    # i = i + 1
+                    i = i + 1
                     self.wait_time(2)
                     # количество хороших модулей
                     ok = ok + 1
@@ -1246,7 +1250,7 @@ class Check_psc24_10:
 
                     self.main_log.set_start(False)
                     self.main_log.set_finish(True)
-                    # i = i + 1
+                    i = i + 1
                     time.sleep(2)
             if flag:
                 self.control_log.add("Тестирование", "Тестирование завершено", False)

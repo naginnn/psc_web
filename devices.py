@@ -482,7 +482,7 @@ class Psc_10:
 
     def check_behaviour(self, behav):
         time_sec = datetime.now().strftime('%H:%M:%S.%f')[:-4]
-        self.log.add(self.name, "Ожидание включения устройства ", True)
+        self.log.add(self.name, "Ожидание включения устройства", True)
         state = True
         for t in range(self.timeout):
             try:

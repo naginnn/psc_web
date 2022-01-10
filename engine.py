@@ -10,7 +10,7 @@ import read_write_eeprom
 dout_names_101 = {"KL1":81,"KL2":82,"KL3":83,"KL4":84,"KL5":85,"KL6":86,"KL7":87,"KL8":88,"KL9":89,"KL10":90,"KL11":91,"KL12":92,"KL13":93,"KL14":94,"KL15":95,"KL16":96}
 dout_names_102 = {"KL17":81,"KL18":82,"KL19":83,"KL20":84,"KL21":85,"KL22":86,"KL23":87,"KL24":88,"KL25":89,"KL26":90,"KL27":91,"KL28":92,"KL29":93,"KL30":94,"KL31":95,"KL32":96}
 dout_names_103 = {"KL33":81,"KM1":82,"KM2":83,"KM3":84,"KM4":85,"KM5":86,"KM6":87,"KM7":88,"KM8":89,"KM9":90,"KM10":91,"KM11":92,"KM14":93,"KM15":94,"KM16":95,"KM17":96}
-dout_names_104 = {"KM18":81,"KM19":82,"KM12":83,"KM13":84,"KM20":85,"KM21":86,"KM22":87,"KM23":88,"KL34":93}
+dout_names_104 = {"KM18":81,"KM19":82,"KM12":83,"KM13":84,"KM20":85,"KM21":86,"KM22":87,"KM23":88,"reserved1":89,"reserved2":90,"reserved3":91,"reserved4":92,"KL34":93,"reserved5":94,"reserved6":95,"reserved7":96}
 din_names_201 = {"KL1":"MW1 - MeanWell 24-67","KL2":"MW2 - MeanWell 24-67","KL3":"MW3 - MeanWell 24-67","KL4":"MW4 - MeanWell 48-67","KL5":"MW5 - MeanWell 48-67",
                  "KL6":"WM1 - WeidMuller 24-10","KL7":"WM1 - WeidMuller 24-10","KL8":"WM2 - WeidMuller 24-10","KL9":"WM3 - WeidMuller 24-40","KL10":"WM4 - WeidMuller 24-40",
                  "KL11":"WM5 - WeidMuller 24-40","KL12":"WM6 - WeidMuller 48-20","KL13":"WM7 - WeidMuller 48-20","KL14":"WM8 - WeidMuller 48-20","KL15":"PW1 - TOPAZ PW 24-4",
@@ -392,6 +392,14 @@ class Check_psc24_10:
             self.din_202 = devices.Din(modb_din_202.getСonnectivity(), din_names_202, "DIN_202", self.control_log, 10)
             self.ammeter_out1 = devices.Ammeter(modb_ammeter_out1.getСonnectivity(), "Амперметр OUT1", self.control_log, 30)
             self.ammeter_out2 = devices.Ammeter(modb_ammeter_out2.getСonnectivity(), "Амперметр OUT2", self.control_log, 30)
+
+            # правильная инициализация modbus
+            modb_psc24_10 = devices.Modb()
+            assert modb_psc24_10.getConnection("PSC24_10", self.device_com, 1, 115200, self.control_log)
+            self.psc24_10 = devices.Psc_10(modb_psc24_10.getСonnectivity(), "PSC24_10", self.control_log, 60)
+            # объект EEPROM
+            self.eeprom = read_write_eeprom.ReadWriteEEprom("EEPROM", self.control_log, self.device_com, 115200, 30)
+
             # читаем конфигурацию assert/ получать setting getter'ом
             config = self.settings.load("settings.cfg")
             # выбираем блоки
@@ -430,10 +438,10 @@ class Check_psc24_10:
             assert self.power_supply.set_voltage(24)
             assert self.power_supply.check_voltage(24)
 
-            # правильная инициализация modbus
-            modb_psc24_10 = devices.Modb()
-            assert modb_psc24_10.getConnection("PSC24_10", self.device_com, 1, 115200, self.control_log)
-            self.psc24_10 = devices.Psc_10(modb_psc24_10.getСonnectivity(), "PSC24_10", self.control_log, 60)
+            # # правильная инициализация modbus ПЕРЕНЕСЕНА В ФУНКЦИЮ FIRST START
+            # modb_psc24_10 = devices.Modb()
+            # assert modb_psc24_10.getConnection("PSC24_10", self.device_com, 1, 115200, self.control_log)
+            # self.psc24_10 = devices.Psc_10(modb_psc24_10.getСonnectivity(), "PSC24_10", self.control_log, 60)
 
             # ждем включения устройства и передаем предполагаемое поведение
             assert self.psc24_10.check_behaviour(self.behaviour)
@@ -446,7 +454,6 @@ class Check_psc24_10:
     def configurate_check(self):
         self.control_log.add(self.name, "Stage 3 Проверка и запись конфигурации", True)
         try:
-            self.eeprom = read_write_eeprom.ReadWriteEEprom("EEPROM", self.control_log, self.device_com, 115200, 30)
             assert self.eeprom.read_soft_version()
             config = self.settings.load("settings.cfg")
             soft_version = config.get("soft_version")
@@ -1120,6 +1127,26 @@ class Check_psc24_10:
     def check_ten(self):
         self.control_log.add(self.name, "Stage #6 Проверка работы ТЭН и обрыва связи с датчиком", True)
         try:
+            # for TEST
+            # подключаем IN1
+            assert self.dout_101.command(self.IN1, "ON")
+            assert self.din_201.check_voltage(self.IN1, "ON")
+
+            # подключаем IN2
+            assert self.dout_101.command(self.IN2, "ON")
+            assert self.din_201.check_voltage(self.IN2, "ON")
+
+            assert self.dout_103.command(self.BTR, "ON")
+            assert self.din_202.check_voltage(self.BTR, "ON")
+
+            self.wait_time(30)
+
+            # предполагаемое поведение
+            self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 0, "error_pwr2": 0,
+                              "error_btr": 0, "error_out1": 0, "error_out2": 0, "charge_btr": 1, "ten": 0, "apts": 0}
+
+            lola = self.psc24_10.check_behaviour(self.behaviour)
+
             # включить ТЭН
             assert self.eeprom.sensor_on()
             self.wait_time(5)
@@ -1131,7 +1158,7 @@ class Check_psc24_10:
 
             # считываем значение датчика
             assert self.psc24_10.check_ti("T1")
-            self.temp_t1 = round(float(self.psc24_10.get_ti()), 2)
+            self.temp_t1 = self.psc24_10.get_ti()
             if (self.temp_t1 > -255.0 and self.psc24_10.check_behaviour(self.behaviour)):
                 self.control_log.add(self.name, "Датчик считан, температура = " + str(self.temp_t1), True)
                 self.ten['Работа датчика'][0] = "ok"
@@ -1156,16 +1183,18 @@ class Check_psc24_10:
                               "error_pwr2": 0, "error_btr": 0, "error_out1": 0, "error_out2": 0, "charge_btr": 1,"ten": 0,"apts": 0}
             # проверка работы датчика
             assert self.psc24_10.check_ti("T1")
-            self.temp_t1 = round(float(self.psc24_10.get_ti()), 2)
+            self.temp_t1 = self.psc24_10.get_ti()
             if (self.temp_t1 == -255.0 and self.psc24_10.check_behaviour(self.behaviour)):
                 self.control_log.add(self.name, "Датчик считан, температура = " + str(self.temp_t1), True)
                 self.control_log.add(self.name, "ТЭН отключен ", True)
+                self.control_log.add(self.name, "Обрыв - успешно ", True)
                 self.ten['Работа ТЭН'][0] = "ok"
                 self.ten['Работа датчика'][0] = "ok"
                 self.emergency_modes['Результат'][2] = "ok"
             else:
                 self.control_log.add(self.name, "Неудалось считать температуру или температура = " + str(self.temp_t1), False)
                 self.control_log.add(self.name, "Неудалось отключить ТЭН", False)
+                self.control_log.add(self.name, "Обрыв - не успешно ", False)
                 self.ten['Работа ТЭН'][0] = "fail"
                 self.ten['Работа датчика'][0] = "fail"
                 self.emergency_modes['Результат'][2] = "fail"
@@ -1180,7 +1209,7 @@ class Check_psc24_10:
                               "error_btr": 0, "error_out1": 0, "error_out2": 0, "charge_btr": 1, "ten": 1, "apts": 0}
             # проверка работы датчика (восстановление)
             assert self.psc24_10.check_ti("T1")
-            self.temp_t1 = round(float(self.psc24_10.get_ti()), 2)
+            self.temp_t1 = self.psc24_10.get_ti()
             if (self.temp_t1 > -255.0 and self.psc24_10.check_behaviour(self.behaviour)):
                 self.control_log.add(self.name, "Датчик считан, температура = " + str(self.temp_t1), True)
                 self.control_log.add(self.name, "ТЭН включен", True)
@@ -1201,15 +1230,15 @@ class Check_psc24_10:
                               "error_btr": 0, "error_out1": 0, "error_out2": 0, "charge_btr": 1, "ten": 0, "apts": 0}
             # проверка работы датчика
             assert self.psc24_10.check_ti("T1")
-            self.temp_t1 = round(float(self.psc24_10.get_ti()), 2)
+            self.temp_t1 = self.psc24_10.get_ti()
             if (self.temp_t1 > -255.0 and self.psc24_10.check_behaviour(self.behaviour)):
                 self.control_log.add(self.name, "Датчик считан, температура = " + str(self.temp_t1), True)
-                self.control_log.add(self.name, "ТЭН включен", True)
+                self.control_log.add(self.name, "ТЭН отключен", True)
                 self.ten['Работа ТЭН'][0] = "ok"
                 self.ten['Работа датчика'][0] = "ok"
             else:
                 self.control_log.add(self.name, "Неудалось считать температуру или температура = " + str(self.temp_t1), False)
-                self.control_log.add(self.name, "Неудалось включить ТЭН", False)
+                self.control_log.add(self.name, "Неудалось отключить ТЭН", False)
                 self.ten['Работа ТЭН'][0] = "fail"
                 self.ten['Работа датчика'][0] = "fail"
 
@@ -1219,7 +1248,7 @@ class Check_psc24_10:
         except:
             self.control_log.add(self.name, "Error #6 Ошибка проверки работы ТЭН и обрыва связи с датчиком", False)
             return False
-    # переключение каналов stage 7
+    # переключение каналов stage 7 (загандонено)
     def switch_channel(self):
         self.control_log.add(self.name, "Stage #7 Переключение каналов (Проверка провалов по напряжению)", True)
         try:
@@ -1229,10 +1258,31 @@ class Check_psc24_10:
             self.control_log.add(self.name, "Error #7 Stage #7 Переключение каналов (Проверка провалов по напряжению)", False)
             return False
     # аварийные режимы работы stage 8
-    def crash_mode(self):
+    def short_curciut_mode(self):
+        # (дополнительно) записать уставку по току OUT1 = 15A: OUT2 = 15A
+        # подать нагрузку на OUT1
+        # проверка поведения
+        # дать КЗ на OUT1 и убедиться что OUT2 работает
+        # проверка поведения
+        # снять КЗ с OUT1
+        # проверка поведения
+        # снять нагрузку OUT1
+        # проверка поведения
+        # подать нагрузку на OUT2
+        # проверка поведения
+        # дать КЗ на OUT2 и убедиться что OUT1 работает
+        # проверка поведения
+        # снять КЗ с OUT2
+        # проверка поведения
+        # подключить нагрузку к OUT1
+        # проверка поведения
+        # дать КЗ на OUT1 и OUT2 убедиться что оба канала ушли в защиту
+        # снять КЗ
+        # проверка поведения
+
         print("Режим перегрузки")
     # аварийные режимы работы stage 9
-    def short_curciut_mode(self):
+    def overload_mode(self):
         print("Режим короткого")
 
     # сбросить все управление
@@ -1269,7 +1319,7 @@ class Check_psc24_10:
                               'U_IN3': ['', '', '', ''], 'ResIN3': ['', '', '', '']}
         self.switching_channels = {'Переключение каналов': ['Под Imin 0A', 'Под Imax 10A', '', ''],
                               'Канал 1': ['', '', '', ''], 'Время, t': ['', '', '', ''], 'Канал 2': ['', '', '', '']}
-        self.ten = {'Работа ТЭН': [' ']}
+        self.ten = {'Работа ТЭН': [' '], 'Работа датчика': [' ']}
         self.emergency_modes = {'Аварийные режимы': ['Режим КЗ', 'Режим перегрузки', 'Обрыв связи датчика', ''],
                            'Результат': ['', '', '', '']}
     # для теста
@@ -1325,15 +1375,17 @@ class Check_psc24_10:
                     time.sleep(2)
                     assert self.dout_103.command(self.device[i], "ON")
                     assert self.din_202.check_voltage(self.device[i], "ON")
-                    self.wait_time(2)
-                    assert self.first_start()
-                    self.wait_time(2)
-                    assert self.configurate_check()
-                    self.wait_time(2)
-                    assert self.measurements_check()
-                    self.wait_time(2)
+                    # self.wait_time(2)
+                    # assert self.first_start()
+                    # self.wait_time(2)
+                    # assert self.configurate_check()
+                    # self.wait_time(2)
+                    # assert self.measurements_check()
+                    # self.wait_time(2)
                     # assert self.check_voltage_thresholds()
                     # self.wait_time(2)
+                    assert self.check_ten()
+                    self.wait_time(2)
 
                     assert protocol.create_protocol(protocol_time + "_tested_" + str(count_devices), self.control_log, self.check_number, self.serial_number, self.soft_version,
                                              self.voltage, self.current, self.current_difference, self.voltage_threesolds, self.switching_channels,

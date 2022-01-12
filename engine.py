@@ -301,7 +301,7 @@ class Check_psc24_10:
     current = {'Канал, I': ['OUT1', 'OUT2'], 'Inom': ['', ''], 'Ifact': ['', ''], 'Ierror_rate_nom': ['', ''], 'Ierror_rate_nom': ['', ''], 'Ierror_rate_fact': ['', ''], 'result': ['', '']}
     current_difference = {'OUT1': [' '], 'OUT2': [' '], 'Idifference_nom': [' '], 'Idifference_fact': [' '], 'result': [' ']}
     voltage_threesolds = {'Пороги, U': ['min, U', 'nom, U', 'max, U', ''], 'U_IN1': ['', '', '', ''], 'ResIN1': ['', '', '', ''], 'U_IN2': ['', '', '', ''], 'ResIN2': ['', '', '', ''], 'U_IN3': ['', '', '', ''], 'ResIN3': ['', '', '', '']}
-    switching_channels = {'Переключение каналов': ['Под Imin 0A', 'Под Imax 10A', '', ''], 'Канал 1': ['', '', '', ''], 'Время, t': ['', '', '', ''], 'Канал 2': ['', '', '', '']}
+    switching_channels = {'Переключение каналов': [' ']}
     ten = {'Работа ТЭН': [' '], 'Работа датчика': [' ']}
     emergency_modes = {'Аварийные режимы': ['Режим КЗ', 'Режим перегрузки', 'Обрыв связи датчика', ''], 'Результат': ['', '', '', '']}
 
@@ -1263,6 +1263,7 @@ class Check_psc24_10:
                 self.control_log.add(self.name, "Связь с роутером есть пинг ОК", True)
             else:
                 self.control_log.add(self.name, "Нет связи с роутером", False)
+                self.switching_channels['Переключение каналов'][0] = "fail"
                 assert False
 
             # отключаем IN2
@@ -1271,6 +1272,8 @@ class Check_psc24_10:
             # отключаем IN1
             assert self.dout_101.command(self.IN1, "OFF")
             assert self.din_201.check_voltage(self.IN1, "OFF")
+
+            self.wait_time(5)
 
             # предполагаемое поведение
             self.behaviour = {"pwr1": 0, "pwr2": 1, "btr": 1, "key1": 1, "key2": 1, "error_pwr1": 1, "error_pwr2": 1,
@@ -1285,6 +1288,8 @@ class Check_psc24_10:
             assert self.dout_101.command(self.IN1, "ON")
             assert self.din_201.check_voltage(self.IN1, "ON")
 
+            self.wait_time(5)
+
             # предполагаемое поведение
             self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 0, "error_pwr2": 0,
                               "error_btr": 0, "error_out1": 0, "error_out2": 0, "charge_btr": 1, "ten": 0, "apts": 0}
@@ -1294,12 +1299,12 @@ class Check_psc24_10:
             # проверяем есть ли пинг
             if self.router.get_result():
                 self.control_log.add(self.name, "Связь с роутером есть пинг ОК", True)
+                self.switching_channels['Переключение каналов'][0] = "ok"
                 self.router.set_result()
             else:
                 self.control_log.add(self.name, "Нет связи с роутером", False)
+                self.switching_channels['Переключение каналов'][0] = "fail"
                 assert False
-
-            # заполнить протокол
 
             self.control_log.add(self.name, "Stage #7 Stage #7 Переключение каналов (Проверка провалов по напряжению)", True)
             return True
@@ -1366,8 +1371,7 @@ class Check_psc24_10:
         self.voltage_threesolds = {'Пороги, U': ['min, U', 'nom, U', 'max, U', ''], 'U_IN1': ['', '', '', ''],
                               'ResIN1': ['', '', '', ''], 'U_IN2': ['', '', '', ''], 'ResIN2': ['', '', '', ''],
                               'U_IN3': ['', '', '', ''], 'ResIN3': ['', '', '', '']}
-        self.switching_channels = {'Переключение каналов': ['Под Imin 0A', 'Под Imax 10A', '', ''],
-                              'Канал 1': ['', '', '', ''], 'Время, t': ['', '', '', ''], 'Канал 2': ['', '', '', '']}
+        self.switching_channels = {'Переключение каналов': [' ']}
         self.ten = {'Работа ТЭН': [' '], 'Работа датчика': [' ']}
         self.emergency_modes = {'Аварийные режимы': ['Режим КЗ', 'Режим перегрузки', 'Обрыв связи датчика', ''],
                            'Результат': ['', '', '', '']}

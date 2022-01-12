@@ -5,6 +5,8 @@ import minimalmodbus
 import engine
 import time
 from datetime import datetime
+from threading import Thread, Lock
+from pythonping import ping
 
 dout_numbers = [81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96]
 dout_names_101 = {"KL1":81,"KL2":82,"KL3":83,"KL4":84,"KL5":85,"KL6":86,"KL7":87,"KL8":88,"KL9":89,"KL10":90,"KL11":91,"KL12":92,"KL13":93,"KL14":94,"KL15":95,"KL16":96}
@@ -951,6 +953,30 @@ class Psc_40:
     #         print('НУ и хорош!')
     #         print("Устройств было проверено ",i)
     #         break
+# функции роутера
+class Router:
+    result = True
+    def __init__(self, ip_adress, name):
+        self.ip_adress = ip_adress
+        self.name = name
+
+    def check_router(self):
+        lock = Lock()
+        while self.result:
+            # time.sleep(0.5)  # rrr
+            response_list = ping(self.ip_adress, size=1, count=1, timeout=0.020)
+            lock.acquire()
+            if (response_list.rtt_max_ms == 20.0):
+                self.result = False
+            else:
+                lock.release()
+            # print(response_list.rtt_max_ms)
+
+    def get_result(self):
+        return self.result
+
+    def start_check(self):
+        Thread(target=self.check_router).start()
 
 
 

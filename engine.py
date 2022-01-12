@@ -316,6 +316,7 @@ class Check_psc24_10:
     power_supply = ()
     ammeter_out1 = ()
     ammeter_out2 = ()
+    router = ()
     IN1 = ""
     IN2 = ""
     BTR = "KM1"
@@ -341,11 +342,9 @@ class Check_psc24_10:
                 time_sec + " " + self.name + \
                 ": Ожидание " + str(t + 1) + " сек"
             time.sleep(1 - time.time() % 1)
-
     # расчет процента
     def percentage(self, percent, whole):
         return (percent * whole) / 100.0
-
     # расчет погрешности, передаем поданное напряжение с ЛБП и фактическое с устройства, получаем результат true/false
     # Для напряжения percent = 5%, для тока percent = 15%
     def check_error_rate(self, nom, fact, nom_percent):
@@ -383,6 +382,8 @@ class Check_psc24_10:
             config = self.settings.load("settings.cfg")
             self.power_supply = devices.PowerSupply(config.get("ip_adress"), config.get("port"), "ЛБП",self.control_log,1)
             assert self.power_supply.connection()
+
+            self.router = devices.Router("192.168.1.1", "Роутер")
 
             self.dout_101 = devices.Dout(modb_dout_101.getСonnectivity(), dout_names_101, "DOUT_101", self.control_log, 10)
             self.dout_102 = devices.Dout(modb_dout_102.getСonnectivity(), dout_names_102, "DOUT_102", self.control_log, 10)
@@ -1252,6 +1253,28 @@ class Check_psc24_10:
     def switch_channel(self):
         self.control_log.add(self.name, "Stage #7 Переключение каналов (Проверка провалов по напряжению)", True)
         try:
+            # Включить IN1, IN2, IN3
+            # Подключить нагрузку и коммутатор с роутером
+            # Даём время для запуска
+            self.wait_time(30)
+            self.router.start_check()
+            # проверяем есть ли пинг
+            if self.router.get_result():
+                self.control_log.add(self.name, "Связь с роутером есть пинг ОК", True)
+            else:
+                self.control_log.add(self.name, "Нет связи с роутером", False)
+                assert False
+            # отключаем IN2 затем IN1
+            # проверяем состояние устройства check_bahavior
+            # проверяем есть ли пинг
+            if self.router.get_result():
+                self.control_log.add(self.name, "Связь с роутером есть пинг ОК", True)
+            else:
+                self.control_log.add(self.name, "Нет связи с роутером", False)
+                assert False
+
+
+
             self.control_log.add(self.name, "Stage #7 Stage #7 Переключение каналов (Проверка провалов по напряжению)", True)
             return True
         except:
@@ -1331,6 +1354,7 @@ class Check_psc24_10:
             self.dout_101.command("KL1", "ON")
         except:
             return False
+
     # главная функция
     def main1(self):
         # инициализация стенда
@@ -1447,28 +1471,6 @@ class Check_psc24_10:
                 #                      False)
                 # self.control_log.set_finish(True)
                 # break
-#     # внутри обернуть по три попытки
-#     # проблема
-#     # добавить try except возвращать true false и метод get в котором возвращать объект соединения если соединение true
-#     modb_psc24_10 = devices.Modb().getConnection("PSC24_10", self.device_com, 1, self.control_log)
-#     assert modb_psc24_10
-#     psc24_10 = devices.Psc_10(modb_psc24_10, "PSC24_10", self.device_com)
-#     if psc24_10 == False:
-#         break
-#     i = i + 1
-# # если прошел сохранять протокол
-# print(IN1)
-# print(IN2)
-# print(BTR)
-# print(count_devices)
-# assert False
 
-
-# главный метод используемый в web'е, перетащить его в класс checking после тестирования
-# if __name__ == "__main__":
-    # check_error_rate(24.0,24.25)
-    # check = Check_psc24_10()
-    # check.main1()
-    # print(";a;a;")
 
 

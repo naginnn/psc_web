@@ -1,29 +1,43 @@
+from threading import Thread, Lock
 import engine
 import time
 from datetime import datetime
 from pythonping import ping
 
-def wait_time(timeout):
-    time_sec = datetime.now().strftime('%H:%M:%S.%f')[:-4]
-    print(time_sec," Ожидание")
-    for t in range(timeout):
-        print(time_sec," Ожидание " + str(t + 1) + " сек")
-        time.sleep(1 - time.time() % 1)
 
-def get_key(self,value):
-    for k, v in self.dout_names.items():
-        if v == value:
-            return k
+
+class Router:
+    result = True
+    def check_router(self):
+        lock = Lock()
+        packets = 0
+        while self.result:
+            # time.sleep(0.5)  # rrr
+            response_list = ping('192.168.1.1', size=1, count=1, timeout=0.020)
+            lock.acquire()
+            if (response_list.rtt_max_ms == 20.0):
+                self.result = False
+            else:
+                lock.release()
+            # print(response_list.rtt_max_ms)
+
+    def get_result(self):
+        return self.result
+
+    def start_check(self):
+        Thread(target=self.check_router).start()
+    #
+    #
+    #     # если ок, разрешить дальнейшую работу потока
+    #     # если bad, заблокировать поток метода check_router и свой
+    #     # метод принудительной остановки потока? Или можно импользовать break?
 
 if __name__ == "__main__":
-    # while True:
-    #     time.sleep(0.5) #rrr
-    #     response_list = ping('192.168.3.127', size=1, count=1, timeout = 0.100)
-    #     if (response_list.rtt_max_ms == 100.0):
-    #         print("Провал зафиксирован")
-    #     else:
-    #         print("ок")
-    #     print(response_list.rtt_max_ms)
-    dout_names_104 = {"KM18": 81, "KM19": 82, "KM12": 83, "KM13": 84, "KM20": 85, "KM21": 86, "KM22": 87, "KM23": 88,
-                      "KL34": 93}
-    print(dout_names_104["KM18"])
+    router = Router()
+    router.start_check()
+    while True:
+        if router.get_result():
+            print("Пинг есть")
+        else:
+            print("Пинга нет")
+            break

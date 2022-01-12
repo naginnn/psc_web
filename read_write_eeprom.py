@@ -668,13 +668,57 @@ class ReadWriteEEprom:
                 if t >= self.timeout - 1:
                     self.log.add(self.name, "Неудалось записать сетевые настройки", False)
                     return False
+    # записываем уставки по току
+    def write_max_current_value(self):
+        time_sec = datetime.now().strftime('%H:%M:%S.%f')[:-4]
+        self.log.add(self.name, "Попытка записать уставки по току", True)
+        f = open('eeprom.cfg', 'r')
+        params = {}
+        for line in f:
+            temp = line.split(':')
+            for t in temp:
+                par_name = t.split("=")
+                params.update({par_name[0]: par_name[1]})
+        for t in range(self.timeout):
+            try:
+                package = []
+                write = FrameCollector()
+                # сетевые настройки
+                # управление питанием outi
+                package.append(write.power_management(register_names.get("outi"), registers_pointer.get(0x07).get("out_i_1"), 15.0))
+                package.append(write.power_management(register_names.get("outi"), registers_pointer.get(0x07).get("out_i_2"), 15.0))
+
+                # через MODBUS
+                ser = serial.Serial(self.com, self.braudrate, timeout=0.3)
+                for frame in package:
+                    values = bytearray(write.write_modbus(frame))
+                    ser.write(values)
+                    response = ser.read(len(values))
+                    if (len(response) == 0):
+                        assert False
+
+                ser.close()
+                self.device_values = device_values
+                self.log.add(self.name, "Уставки по току записаны", True)
+                return True
+            except:
+                ser.close()
+                self.log.log_data[len(self.log.log_data) - 1] = \
+                    time_sec + " " + self.name + \
+                    ": Попытка записать уставки по току " + str(t + 1) + " сек"
+                time.sleep(1 - time.time() % 1)
+                if t >= self.timeout - 1:
+                    self.log.add(self.name, "Неудалось записать уставки по току", False)
+                    return False
+
 # получить версию прошивки!!!!!!!! ДОБАВИТЬ
 # добавить обработку событий!
 # if __name__ == '__main__':
 #     log = engine.Log()
 #     # создаем объект
-#     eeprom = ReadWriteEEprom("EEPROM",log, "com9", 115200, 5)
-#     print(eeprom.read_soft_version())
+#     eeprom = ReadWriteEEprom("EEPROM",log, "com45", 115200, 5)
+#     print(eeprom.write_current_value())
+    # print(eeprom.read_soft_version())
 #     print(eeprom.get_soft_version())
 #     print(eeprom.read_serial_number())
 #     print(eeprom.get_serial_number())

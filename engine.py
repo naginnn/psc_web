@@ -1128,25 +1128,25 @@ class Check_psc24_10:
     def check_ten(self):
         self.control_log.add(self.name, "Stage #6 Проверка работы ТЭН и обрыва связи с датчиком", True)
         try:
-            # for TEST
-            # подключаем IN1
-            assert self.dout_101.command(self.IN1, "ON")
-            assert self.din_201.check_voltage(self.IN1, "ON")
-
-            # подключаем IN2
-            assert self.dout_101.command(self.IN2, "ON")
-            assert self.din_201.check_voltage(self.IN2, "ON")
-
-            assert self.dout_103.command(self.BTR, "ON")
-            assert self.din_202.check_voltage(self.BTR, "ON")
-
-            self.wait_time(30)
+            # # for TEST
+            # # подключаем IN1
+            # assert self.dout_101.command(self.IN1, "ON")
+            # assert self.din_201.check_voltage(self.IN1, "ON")
+            #
+            # # подключаем IN2
+            # assert self.dout_101.command(self.IN2, "ON")
+            # assert self.din_201.check_voltage(self.IN2, "ON")
+            #
+            # assert self.dout_103.command(self.BTR, "ON")
+            # assert self.din_202.check_voltage(self.BTR, "ON")
+            #
+            # self.wait_time(30)
 
             # предполагаемое поведение
             self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 0, "error_pwr2": 0,
                               "error_btr": 0, "error_out1": 0, "error_out2": 0, "charge_btr": 1, "ten": 0, "apts": 0}
 
-            lola = self.psc24_10.check_behaviour(self.behaviour)
+            assert self.psc24_10.check_behaviour(self.behaviour)
 
             # включить ТЭН
             assert self.eeprom.sensor_on()
@@ -1249,7 +1249,7 @@ class Check_psc24_10:
         except:
             self.control_log.add(self.name, "Error #6 Ошибка проверки работы ТЭН и обрыва связи с датчиком", False)
             return False
-    # переключение каналов stage 7 (загандонено)
+    # переключение каналов stage 7 (в работе)
     def switch_channel(self):
         self.control_log.add(self.name, "Stage #7 Переключение каналов (Проверка провалов по напряжению)", True)
         try:
@@ -1264,16 +1264,42 @@ class Check_psc24_10:
             else:
                 self.control_log.add(self.name, "Нет связи с роутером", False)
                 assert False
-            # отключаем IN2 затем IN1
-            # проверяем состояние устройства check_bahavior
+
+            # отключаем IN2
+            assert self.dout_101.command(self.IN2, "OFF")
+            assert self.din_201.check_voltage(self.IN2, "OFF")
+            # отключаем IN1
+            assert self.dout_101.command(self.IN1, "OFF")
+            assert self.din_201.check_voltage(self.IN1, "OFF")
+
+            # предполагаемое поведение
+            self.behaviour = {"pwr1": 0, "pwr2": 1, "btr": 1, "key1": 1, "key2": 1, "error_pwr1": 1, "error_pwr2": 1,
+                              "error_btr": 0, "error_out1": 0, "error_out2": 0, "charge_btr": 1, "ten": 0, "apts": 0}
+
+            assert self.psc24_10.check_behaviour(self.behaviour)
+
+            # подключаем IN2
+            assert self.dout_101.command(self.IN2, "ON")
+            assert self.din_201.check_voltage(self.IN2, "ON")
+            # подключаем IN1
+            assert self.dout_101.command(self.IN1, "ON")
+            assert self.din_201.check_voltage(self.IN1, "ON")
+
+            # предполагаемое поведение
+            self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 0, "error_pwr2": 0,
+                              "error_btr": 0, "error_out1": 0, "error_out2": 0, "charge_btr": 1, "ten": 0, "apts": 0}
+
+            assert self.psc24_10.check_behaviour(self.behaviour)
+
             # проверяем есть ли пинг
             if self.router.get_result():
                 self.control_log.add(self.name, "Связь с роутером есть пинг ОК", True)
+                self.router.set_result()
             else:
                 self.control_log.add(self.name, "Нет связи с роутером", False)
                 assert False
 
-
+            # заполнить протокол
 
             self.control_log.add(self.name, "Stage #7 Stage #7 Переключение каналов (Проверка провалов по напряжению)", True)
             return True

@@ -972,6 +972,10 @@ class Router:
                 lock.release()
             # print(response_list.rtt_max_ms)
 
+
+    def set_result(self):
+        self.result = False
+
     def get_result(self):
         return self.result
 

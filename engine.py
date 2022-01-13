@@ -321,6 +321,7 @@ class Check_psc24_10:
     IN2 = ""
     BTR = "KM1"
     device = [" ","KM7", "KM8", "KM9", "KM10", "KM11"]
+    switches_load = ["KL18", "KL19", "KL20", "KL21", "KL22", "KL23", "KL24", "KL25", "KL26", "KL27", "KL28", "KL29"]
     control_com = ""
     ammeter_com = ""
     device_com = ""
@@ -1128,19 +1129,19 @@ class Check_psc24_10:
     def check_ten(self):
         self.control_log.add(self.name, "Stage #6 Проверка работы ТЭН и обрыва связи с датчиком", True)
         try:
-            # # for TEST
-            # # подключаем IN1
-            # assert self.dout_101.command(self.IN1, "ON")
-            # assert self.din_201.check_voltage(self.IN1, "ON")
-            #
-            # # подключаем IN2
-            # assert self.dout_101.command(self.IN2, "ON")
-            # assert self.din_201.check_voltage(self.IN2, "ON")
-            #
-            # assert self.dout_103.command(self.BTR, "ON")
-            # assert self.din_202.check_voltage(self.BTR, "ON")
-            #
-            # self.wait_time(30)
+            # for TEST
+            # подключаем IN1
+            assert self.dout_101.command(self.IN1, "ON")
+            assert self.din_201.check_voltage(self.IN1, "ON")
+
+            # подключаем IN2
+            assert self.dout_101.command(self.IN2, "ON")
+            assert self.din_201.check_voltage(self.IN2, "ON")
+
+            assert self.dout_103.command(self.BTR, "ON")
+            assert self.din_202.check_voltage(self.BTR, "ON")
+
+            self.wait_time(30)
 
             # предполагаемое поведение
             self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 0, "error_pwr2": 0,
@@ -1312,32 +1313,164 @@ class Check_psc24_10:
             self.control_log.add(self.name, "Error #7 Stage #7 Переключение каналов (Проверка провалов по напряжению)", False)
             return False
     # аварийные режимы работы stage 8
-    def short_curciut_mode(self):
-        # (дополнительно) записать уставку по току OUT1 = 15A: OUT2 = 15A
-        # подать нагрузку на OUT1
-        # проверка поведения
-        # дать КЗ на OUT1 и убедиться что OUT2 работает
-        # проверка поведения
-        # снять КЗ с OUT1
-        # проверка поведения
-        # снять нагрузку OUT1
-        # проверка поведения
-        # подать нагрузку на OUT2
-        # проверка поведения
-        # дать КЗ на OUT2 и убедиться что OUT1 работает
-        # проверка поведения
-        # снять КЗ с OUT2
-        # проверка поведения
-        # подключить нагрузку к OUT1
-        # проверка поведения
-        # дать КЗ на OUT1 и OUT2 убедиться что оба канала ушли в защиту
-        # снять КЗ
-        # проверка поведения
-
-        print("Режим перегрузки")
-    # аварийные режимы работы stage 9
     def overload_mode(self):
-        print("Режим короткого")
+        self.control_log.add(self.name, "Stage #8 Проверка режима перегрузка", True)
+        try:
+            # подключаем OUT1
+            assert self.dout_103.command("KM14", "ON")
+            assert self.din_202.check_voltage("KM14", "ON")
+
+            # отключить OUT2
+            assert self.dout_103.command("KM15", "OFF")
+            assert self.din_202.check_voltage("KM15", "OFF")
+
+            # предполагаемое поведение
+            self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 0,
+                              "error_pwr2": 0, "error_btr": 0, "error_out1": 0, "error_out2": 0, "charge_btr": 1,
+                              "ten": 0,
+                              "apts": 0}
+
+            assert self.psc24_10.check_behaviour(self.behaviour)
+
+            # self.eeprom.write_max_current_value()
+            for load in self.switches_load:
+                # получаем ТИ с OUT1
+                assert self.psc24_10.check_ti("I_OUT1")
+                self.i_out1_fact = self.psc24_10.get_ti()
+                if (self.i_out1_fact >= (self.power_management.get("out_i_1") - 0.6)):
+                    # подключаем коммутатор
+                    assert self.dout_102.command(load, "ON")
+                    assert self.din_201.check_voltage(load, "ON")
+                    break
+                else:
+                    # подключаем коммутатор
+                    assert self.dout_102.command(load, "ON")
+                    assert self.din_201.check_voltage(load, "ON")
+
+                    self.wait_time(5)
+
+                    # предполагаемое поведение
+                    self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 0, "key2": 1, "error_pwr1": 0,
+                                      "error_pwr2": 0, "error_btr": 0, "error_out1": 1, "error_out2": 0, "charge_btr": 1, "ten": 0,
+                                      "apts": 0}
+
+                    assert self.psc24_10.check_behaviour(self.behaviour)
+
+            # отключаем коммутаторы
+            for load in self.switches_load:
+                assert self.dout_102.command(load, "OFF")
+                assert self.din_201.check_voltage(load, "OFF")
+
+            self.wait_time(5)
+
+            # предполагаемое поведение
+            self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 0,
+                              "error_pwr2": 0, "error_btr": 0, "error_out1": 0, "error_out2": 0, "charge_btr": 1, "ten": 0,
+                              "apts": 0}
+
+            # отключаем OUT1 и подключаем OUT2
+
+            # отключаем OUT1
+            assert self.dout_103.command("KM14", "OFF")
+            assert self.din_202.check_voltage("KM14", "OFF")
+
+            # подключить OUT2
+            assert self.dout_103.command("KM15", "ON")
+            assert self.din_202.check_voltage("KM15", "ON")
+
+            # предполагаемое поведение
+            self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 0,
+                              "error_pwr2": 0, "error_btr": 0, "error_out1": 0, "error_out2": 0, "charge_btr": 1,
+                              "ten": 0,
+                              "apts": 0}
+
+            assert self.psc24_10.check_behaviour(self.behaviour)
+
+            for load in self.switches_load:
+                # получаем ТИ с OUT1
+                assert self.psc24_10.check_ti("I_OUT2")
+                self.i_out2_fact = self.psc24_10.get_ti()
+                if (self.i_out2_fact >= (self.power_management.get("out_i_2") - 0.6)):
+                    # подключаем коммутатор
+                    assert self.dout_102.command(load, "ON")
+                    assert self.din_201.check_voltage(load, "ON")
+                    break
+                else:
+                    # подключаем коммутатор
+                    assert self.dout_102.command(load, "ON")
+                    assert self.din_201.check_voltage(load, "ON")
+
+                    self.wait_time(5)
+
+                    # предполагаемое поведение
+                    self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 0, "key2": 1, "error_pwr1": 0,
+                                      "error_pwr2": 0, "error_btr": 0, "error_out1": 1, "error_out2": 0, "charge_btr": 1, "ten": 0,
+                                      "apts": 0}
+
+                    assert self.psc24_10.check_behaviour(self.behaviour)
+
+            # отключаем коммутаторы
+            for load in self.switches_load:
+                assert self.dout_102.command(load, "OFF")
+                assert self.din_201.check_voltage(load, "OFF")
+
+            # отключить OUT2
+            assert self.dout_103.command("KM15", "OFF")
+            assert self.din_202.check_voltage("KM15", "OFF")
+
+            self.emergency_modes['Результат'][1] = "ok"
+            self.control_log.add(self.name, "Stage #8 Проверка режима перегрузка прошла успешно", True)
+            return True
+        except:
+            self.control_log.add(self.name, "Error #8 Ошибка проверки режима перегрузка", False)
+            self.emergency_modes['Результат'][1] = "bad"
+            return False
+
+    # аварийные режимы работы stage 9
+    def short_curciut_mode(self):
+        self.control_log.add(self.name, "Stage #9 Проверка режима короткого замыкания", True)
+        try:
+            assert self.eeprom.write_max_current_value(12)
+
+            # подключаем OUT1
+            assert self.dout_103.command("KM14", "ON")
+            assert self.din_202.check_voltage("KM14", "ON")
+
+            # предполагаемое поведение
+            self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 0,
+                              "error_pwr2": 0, "error_btr": 0, "error_out1": 0, "error_out2": 0, "charge_btr": 1,
+                              "ten": 0, "apts": 0}
+
+            assert self.psc24_10.check_behaviour(self.behaviour)
+
+            for load in self.switches_load:
+                # получаем ТИ с OUT1
+                assert self.psc24_10.check_ti("I_OUT1")
+                self.i_out1_fact = self.psc24_10.get_ti()
+                if (self.i_out1_fact >= (self.power_management.get("out_i_1") - 1.2)):
+                    # подключаем коммутатор
+                    assert self.dout_102.command(load, "ON")
+                    assert self.din_201.check_voltage(load, "ON")
+                    assert self.psc24_10.check_ti("I_OUT1")
+                    self.i_out1_fact = self.psc24_10.get_ti()
+                    self.control_log.add(self.name, "Нагрузка на OUT1 " + str(self.i_out1_fact) + " A", True)
+                    break
+                else:
+                    # подключаем коммутатор
+                    assert self.dout_102.command(load, "ON")
+                    assert self.din_201.check_voltage(load, "ON")
+
+                    self.wait_time(5)
+
+                    # КЗ на OUT1
+
+            self.emergency_modes['Результат'][0] = "ok"
+            self.control_log.add(self.name, "Stage #9 Проверка режима короткого замыкания прошла успешно", True)
+            return True
+        except:
+            self.control_log.add(self.name, "Error #9 Ошибка проверки режима короткое замыкание", False)
+            self.emergency_modes['Результат'][0] = "bad"
+            return False
 
     # сбросить все управление
     def off_all_control(self):
@@ -1439,6 +1572,8 @@ class Check_psc24_10:
                     # assert self.check_voltage_thresholds()
                     # self.wait_time(2)
                     assert self.check_ten()
+                    self.wait_time(2)
+                    assert self.switching_channels()
                     self.wait_time(2)
 
                     assert protocol.create_protocol(protocol_time + "_tested_" + str(count_devices), self.control_log, self.check_number, self.serial_number, self.soft_version,

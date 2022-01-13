@@ -1277,7 +1277,7 @@ class Check_psc24_10:
             self.wait_time(5)
 
             # предполагаемое поведение
-            self.behaviour = {"pwr1": 0, "pwr2": 1, "btr": 1, "key1": 1, "key2": 1, "error_pwr1": 1, "error_pwr2": 1,
+            self.behaviour = {"pwr1": 0, "pwr2": 0, "btr": 1, "key1": 1, "key2": 1, "error_pwr1": 1, "error_pwr2": 1,
                               "error_btr": 0, "error_out1": 0, "error_out2": 0, "charge_btr": 1, "ten": 0, "apts": 0}
 
             assert self.psc24_10.check_behaviour(self.behaviour)
@@ -1293,7 +1293,7 @@ class Check_psc24_10:
 
             # предполагаемое поведение
             self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 0, "error_pwr2": 0,
-                              "error_btr": 0, "error_out1": 0, "error_out2": 0, "charge_btr": 1, "ten": 0, "apts": 0}
+                              "error_btr": 0, "error_out1":    0, "error_out2": 0, "charge_btr": 1, "ten": 0, "apts": 0}
 
             assert self.psc24_10.check_behaviour(self.behaviour)
 
@@ -1573,7 +1573,7 @@ class Check_psc24_10:
                     # self.wait_time(2)
                     assert self.check_ten()
                     self.wait_time(2)
-                    assert self.switching_channels()
+                    assert self.switch_channel()
                     self.wait_time(2)
 
                     assert protocol.create_protocol(protocol_time + "_tested_" + str(count_devices), self.control_log, self.check_number, self.serial_number, self.soft_version,

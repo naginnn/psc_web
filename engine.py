@@ -317,11 +317,14 @@ class Check_psc24_10:
     ammeter_out1 = ()
     ammeter_out2 = ()
     router = ()
+    out_i_1_temp = ()
+    out_i_2_temp = ()
+    out_i_max = 11.0
     IN1 = ""
     IN2 = ""
     BTR = "KM1"
     device = [" ","KM7", "KM8", "KM9", "KM10", "KM11"]
-    switches_load = ["KL18", "KL19", "KL20", "KL21", "KL22", "KL23", "KL24", "KL25", "KL26", "KL27", "KL28", "KL29"]
+    switches_load = [" ","KL18", "KL19", "KL20", "KL21", "KL22", "KL23", "KL24", "KL25", "KL26", "KL27", "KL28", "KL29"]
     control_com = ""
     ammeter_com = ""
     device_com = ""
@@ -1256,8 +1259,6 @@ class Check_psc24_10:
         try:
             # Включить IN1, IN2, IN3
             # Подключить нагрузку и коммутатор с роутером
-            # Даём время для запуска
-            self.wait_time(30)
             self.router.start_check()
             # проверяем есть ли пинг
             if self.router.get_result():
@@ -1274,11 +1275,11 @@ class Check_psc24_10:
             assert self.dout_101.command(self.IN1, "OFF")
             assert self.din_201.check_voltage(self.IN1, "OFF")
 
-            self.wait_time(5)
+            # self.wait_time(5)
 
             # предполагаемое поведение
             self.behaviour = {"pwr1": 0, "pwr2": 0, "btr": 1, "key1": 1, "key2": 1, "error_pwr1": 1, "error_pwr2": 1,
-                              "error_btr": 0, "error_out1": 0, "error_out2": 0, "charge_btr": 1, "ten": 0, "apts": 0}
+                              "error_btr": 0, "error_out1": 0, "error_out2": 0, "charge_btr": 0, "ten": 0, "apts": 0}
 
             assert self.psc24_10.check_behaviour(self.behaviour)
 
@@ -1310,6 +1311,7 @@ class Check_psc24_10:
             self.control_log.add(self.name, "Stage #7 Stage #7 Переключение каналов (Проверка провалов по напряжению)", True)
             return True
         except:
+            self.switching_channels['Переключение каналов'][0] = "fail"
             self.control_log.add(self.name, "Error #7 Stage #7 Переключение каналов (Проверка провалов по напряжению)", False)
             return False
     # аварийные режимы работы stage 8
@@ -1337,7 +1339,7 @@ class Check_psc24_10:
                 # получаем ТИ с OUT1
                 assert self.psc24_10.check_ti("I_OUT1")
                 self.i_out1_fact = self.psc24_10.get_ti()
-                if (self.i_out1_fact >= (self.power_management.get("out_i_1") - 0.6)):
+                if (self.i_out1_fact >= (float(self.power_management.get("out_i_1")) - 0.6)):
                     # подключаем коммутатор
                     assert self.dout_102.command(load, "ON")
                     assert self.din_201.check_voltage(load, "ON")
@@ -1347,14 +1349,14 @@ class Check_psc24_10:
                     assert self.dout_102.command(load, "ON")
                     assert self.din_201.check_voltage(load, "ON")
 
-                    self.wait_time(5)
+            self.wait_time(5)
 
-                    # предполагаемое поведение
-                    self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 0, "key2": 1, "error_pwr1": 0,
-                                      "error_pwr2": 0, "error_btr": 0, "error_out1": 1, "error_out2": 0, "charge_btr": 1, "ten": 0,
-                                      "apts": 0}
+            # предполагаемое поведение
+            self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 0, "key2": 1, "error_pwr1": 0,
+                              "error_pwr2": 0, "error_btr": 0, "error_out1": 1, "error_out2": 0, "charge_btr": 1, "ten": 0,
+                              "apts": 0}
 
-                    assert self.psc24_10.check_behaviour(self.behaviour)
+            assert self.psc24_10.check_behaviour(self.behaviour)
 
             # отключаем коммутаторы
             for load in self.switches_load:
@@ -1386,11 +1388,12 @@ class Check_psc24_10:
 
             assert self.psc24_10.check_behaviour(self.behaviour)
 
+            # self.eeprom.write_max_current_value()
             for load in self.switches_load:
                 # получаем ТИ с OUT1
-                assert self.psc24_10.check_ti("I_OUT2")
+                assert self.psc24_10.check_ti("I_OUT1")
                 self.i_out2_fact = self.psc24_10.get_ti()
-                if (self.i_out2_fact >= (self.power_management.get("out_i_2") - 0.6)):
+                if (self.i_out2_fact >= (float(self.power_management.get("out_i_2")) - 0.6)):
                     # подключаем коммутатор
                     assert self.dout_102.command(load, "ON")
                     assert self.din_201.check_voltage(load, "ON")
@@ -1400,19 +1403,28 @@ class Check_psc24_10:
                     assert self.dout_102.command(load, "ON")
                     assert self.din_201.check_voltage(load, "ON")
 
-                    self.wait_time(5)
+            self.wait_time(5)
 
-                    # предполагаемое поведение
-                    self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 0, "key2": 1, "error_pwr1": 0,
-                                      "error_pwr2": 0, "error_btr": 0, "error_out1": 1, "error_out2": 0, "charge_btr": 1, "ten": 0,
-                                      "apts": 0}
+            # предполагаемое поведение
+            self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 0, "error_pwr1": 0,
+                              "error_pwr2": 0, "error_btr": 0, "error_out1": 0, "error_out2": 1, "charge_btr": 1,
+                              "ten": 0,
+                              "apts": 0}
 
-                    assert self.psc24_10.check_behaviour(self.behaviour)
+            assert self.psc24_10.check_behaviour(self.behaviour)
 
             # отключаем коммутаторы
             for load in self.switches_load:
                 assert self.dout_102.command(load, "OFF")
                 assert self.din_201.check_voltage(load, "OFF")
+
+            self.wait_time(5)
+
+            # предполагаемое поведение
+            self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 0,
+                              "error_pwr2": 0, "error_btr": 0, "error_out1": 0, "error_out2": 0, "charge_btr": 1,
+                              "ten": 0,
+                              "apts": 0}
 
             # отключить OUT2
             assert self.dout_103.command("KM15", "OFF")
@@ -1430,7 +1442,30 @@ class Check_psc24_10:
     def short_curciut_mode(self):
         self.control_log.add(self.name, "Stage #9 Проверка режима короткого замыкания", True)
         try:
-            assert self.eeprom.write_max_current_value(12)
+            # for TEST
+            # подключаем IN1
+            assert self.dout_101.command(self.IN1, "ON")
+            assert self.din_201.check_voltage(self.IN1, "ON")
+
+            # подключаем IN2
+            assert self.dout_101.command(self.IN2, "ON")
+            assert self.din_201.check_voltage(self.IN2, "ON")
+
+            assert self.dout_103.command(self.BTR, "ON")
+            assert self.din_202.check_voltage(self.BTR, "ON")
+
+            self.wait_time(30)
+
+            # предполагаемое поведение
+            self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 0, "error_pwr2": 0,
+                              "error_btr": 0, "error_out1": 0, "error_out2": 0, "charge_btr": 1, "ten": 0, "apts": 0}
+
+            assert self.psc24_10.check_behaviour(self.behaviour)
+
+            assert self.configurate_check()
+            self.out_i_1_temp = self.power_management.get("out_i_1")
+            self.out_i_2_temp = self.power_management.get("out_i_2")
+            assert self.eeprom.write_max_current_value(self.out_i_max)
 
             # подключаем OUT1
             assert self.dout_103.command("KM14", "ON")
@@ -1447,28 +1482,142 @@ class Check_psc24_10:
                 # получаем ТИ с OUT1
                 assert self.psc24_10.check_ti("I_OUT1")
                 self.i_out1_fact = self.psc24_10.get_ti()
-                if (self.i_out1_fact >= (self.power_management.get("out_i_1") - 1.2)):
+                if (self.i_out1_fact >= (self.out_i_max - 1.2)):
                     # подключаем коммутатор
-                    assert self.dout_102.command(load, "ON")
-                    assert self.din_201.check_voltage(load, "ON")
                     assert self.psc24_10.check_ti("I_OUT1")
                     self.i_out1_fact = self.psc24_10.get_ti()
-                    self.control_log.add(self.name, "Нагрузка на OUT1 " + str(self.i_out1_fact) + " A", True)
                     break
                 else:
                     # подключаем коммутатор
                     assert self.dout_102.command(load, "ON")
                     assert self.din_201.check_voltage(load, "ON")
-
                     self.wait_time(5)
 
-                    # КЗ на OUT1
+            self.control_log.add(self.name, "Нагрузка на OUT1 " + str(self.i_out1_fact) + " A", True)
+
+            # предполагаемое поведение
+            self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 0,
+                              "error_pwr2": 0, "error_btr": 0, "error_out1": 0, "error_out2": 0,
+                              "charge_btr": 1, "ten": 0, "apts": 0}
+
+            assert self.psc24_10.check_behaviour(self.behaviour)
+
+            # КЗ на OUT1
+            assert self.dout_104.command("KM18", "ON")
+            assert self.din_202.check_voltage("KM18", "ON")
+
+            # предполагаемое поведение во время КЗ
+            self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 0, "key2": 1, "error_pwr1": 0,
+                              "error_pwr2": 0, "error_btr": 1, "error_out1": 1, "error_out2": 0,
+                              "charge_btr": 1, "ten": 0, "apts": 0}
+
+            assert self.psc24_10.check_behaviour(self.behaviour)
+
+            # снять КЗ на OUT1
+            assert self.dout_104.command("KM18", "OFF")
+            assert self.din_202.check_voltage("KM18", "OFF")
+
+            self.wait_time(10)
+
+            # предполагаемое поведение после КЗ
+            self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 0,
+                              "error_pwr2": 0, "error_btr": 1, "error_out1": 0, "error_out2": 0,
+                              "charge_btr": 1, "ten": 0, "apts": 0}
+
+            assert self.psc24_10.check_behaviour(self.behaviour)
+
+            # отключаем коммутаторы
+            for load in self.switches_load:
+                assert self.dout_102.command(load, "OFF")
+                assert self.din_201.check_voltage(load, "OFF")
+
+            # отключаем OUT1
+            assert self.dout_103.command("KM14", "OFF")
+            assert self.din_202.check_voltage("KM14", "OFF")
+
+            # подключаем OUT2
+            assert self.dout_103.command("KM15", "ON")
+            assert self.din_202.check_voltage("KM15", "ON")
+
+            # предполагаемое поведение после КЗ
+            self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 0,
+                              "error_pwr2": 0, "error_btr": 1, "error_out1": 0, "error_out2": 0,
+                              "charge_btr": 1, "ten": 0, "apts": 0}
+
+            assert self.psc24_10.check_behaviour(self.behaviour)
+
+            for load in self.switches_load:
+                # получаем ТИ с OUT2
+                assert self.psc24_10.check_ti("I_OUT2")
+                self.i_out2_fact = self.psc24_10.get_ti()
+                if (self.i_out2_fact >= (self.out_i_max - 1.2)):
+                    # подключаем коммутатор
+                    assert self.psc24_10.check_ti("I_OUT1")
+                    self.i_out1_fact = self.psc24_10.get_ti()
+                    self.control_log.add(self.name, "Нагрузка на OUT2 " + str(self.i_out1_fact) + " A", True)
+                    break
+                else:
+                    # подключаем коммутатор
+                    assert self.dout_102.command(load, "ON")
+                    assert self.din_201.check_voltage(load, "ON")
+                    self.wait_time(5)
+
+            # предполагаемое поведение
+            self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 0,
+                              "error_pwr2": 0, "error_btr": 1, "error_out1": 0, "error_out2": 0,
+                              "charge_btr": 1, "ten": 0, "apts": 0}
+
+            assert self.psc24_10.check_behaviour(self.behaviour)
+
+            # КЗ на OUT2
+            assert self.dout_104.command("KM19", "ON")
+            assert self.din_202.check_voltage("KM19", "ON")
+
+            # добавить задержку
+
+            # предполагаемое поведение во время КЗ
+            self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 0, "key2": 1, "error_pwr1": 0,
+                              "error_pwr2": 0, "error_btr": 1, "error_out1": 0, "error_out2": 1,
+                              "charge_btr": 1, "ten": 0, "apts": 0}
+
+            assert self.psc24_10.check_behaviour(self.behaviour)
+
+            # снять КЗ на OUT2
+            assert self.dout_104.command("KM19", "OFF")
+            assert self.din_202.check_voltage("KM19", "OFF")
+
+            self.wait_time(5)
+
+            # предполагаемое поведение после КЗ
+            self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 0,
+                              "error_pwr2": 0, "error_btr": 1, "error_out1": 0, "error_out2": 0,
+                              "charge_btr": 1, "ten": 0, "apts": 0}
+
+            assert self.psc24_10.check_behaviour(self.behaviour)
+
+            # отключаем коммутаторы
+            for load in self.switches_load:
+                assert self.dout_102.command(load, "OFF")
+                assert self.din_201.check_voltage(load, "OFF")
+
+            # отключить OUT2
+            assert self.dout_103.command("KM15", "OFF")
+            assert self.din_202.check_voltage("KM15", "OFF")
+
+            self.wait_time(70)
+
+            # предполагаемое поведение после КЗ
+            self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 0,
+                              "error_pwr2": 0, "error_btr": 0, "error_out1": 0, "error_out2": 0,
+                              "charge_btr": 1, "ten": 0, "apts": 0}
+
+            assert self.psc24_10.check_behaviour(self.behaviour)
 
             self.emergency_modes['Результат'][0] = "ok"
             self.control_log.add(self.name, "Stage #9 Проверка режима короткого замыкания прошла успешно", True)
             return True
         except:
-            self.control_log.add(self.name, "Error #9 Ошибка проверки режима короткое замыкание", False)
+            self.control_log.add(self.name, "Error #9 Ошибка проверки режима короткоткого замыкания", False)
             self.emergency_modes['Результат'][0] = "bad"
             return False
 
@@ -1517,7 +1666,6 @@ class Check_psc24_10:
             self.dout_101.command("KL1", "ON")
         except:
             return False
-
     # главная функция
     def main1(self):
         # инициализация стенда
@@ -1571,9 +1719,13 @@ class Check_psc24_10:
                     # self.wait_time(2)
                     # assert self.check_voltage_thresholds()
                     # self.wait_time(2)
-                    assert self.check_ten()
-                    self.wait_time(2)
-                    assert self.switch_channel()
+                    # assert self.check_ten()
+                    # self.wait_time(2)
+                    # assert self.switch_channel()
+                    # self.wait_time(2)
+                    # assert self.overload_mode()
+                    # self.wait_time(2)
+                    assert self.short_curciut_mode()
                     self.wait_time(2)
 
                     assert protocol.create_protocol(protocol_time + "_tested_" + str(count_devices), self.control_log, self.check_number, self.serial_number, self.soft_version,
@@ -1584,8 +1736,7 @@ class Check_psc24_10:
                     # отключать все dout'ы в случае успешной проверки
                     off_control = self.off_all_control()
                     assert off_control
-                    self.control_log.add(self.name,
-                                         "Сброс управления выполнен", False)
+                    self.control_log.add(self.name, "Сброс управления выполнен", False)
 
                     # ОБЯЗАТЕЛЬНО В КОНЦЕ ЦИКЛА
                     self.main_log.set_start(True)

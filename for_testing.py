@@ -34,13 +34,19 @@ from pythonping import ping
     #     # если ок, разрешить дальнейшую работу потока
     #     # если bad, заблокировать поток метода check_router и свой
     #     # метод принудительной остановки потока? Или можно импользовать break?
-
+def int_to_bytes(x: int) -> bytes:
+    return x.to_bytes((x.bit_length() + 7) // 8, 'big')
 if __name__ == "__main__":
-    ser = serial.Serial('com10', 2400, timeout=0.3)
+    ser = serial.Serial('com6', 2400, timeout=0.3)
     while True:
-        ser.write(0x27)
-        response = ser.read(10)
+        print("Введите команду 1 или 2: ")
+        command = int(input())
+        ser.write(int_to_bytes(command))
+        response = ser.readline()
+
+
         print(response)
+        time.sleep(0.5)
     # router = Router()
     # router.start_check()
     # while True:

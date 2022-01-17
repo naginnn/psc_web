@@ -669,7 +669,7 @@ class ReadWriteEEprom:
                     self.log.add(self.name, "Неудалось записать сетевые настройки", False)
                     return False
     # записываем уставки по току
-    def write_max_current_value(self,current):
+    def write_max_current_value(self,current1, current2):
         time_sec = datetime.now().strftime('%H:%M:%S.%f')[:-4]
         self.log.add(self.name, "Попытка записать уставки по току", True)
         f = open('eeprom.cfg', 'r')
@@ -685,8 +685,8 @@ class ReadWriteEEprom:
                 write = FrameCollector()
                 # сетевые настройки
                 # управление питанием outi
-                package.append(write.power_management(register_names.get("outi"), registers_pointer.get(0x07).get("out_i_1"), current))
-                package.append(write.power_management(register_names.get("outi"), registers_pointer.get(0x07).get("out_i_2"), current))
+                package.append(write.power_management(register_names.get("outi"), registers_pointer.get(0x07).get("out_i_1"), current1))
+                package.append(write.power_management(register_names.get("outi"), registers_pointer.get(0x07).get("out_i_2"), current2))
 
                 # через MODBUS
                 ser = serial.Serial(self.com, self.braudrate, timeout=0.3)

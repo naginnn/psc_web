@@ -272,6 +272,7 @@ class Check_psc24_10:
                     "I_OUT1": {"i_nom": 0.0, "i_fact": 0.0, "error_rate": 0.0},
                     "I_OUT2": {"i_nom": 0.0, "i_fact": 0.0, "error_rate": 0.0},
                     }
+
     # предполагаемое поведение
     behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 0, "error_pwr2": 0, "error_btr": 0,
                  "error_out1": 0, "error_out2": 0, "charge_btr": 1, "ten": 0, "apts": 0}
@@ -331,12 +332,14 @@ class Check_psc24_10:
     config = {}
     eeprom = ()
     power_management = ()
+
     # добавляем два лога и ком-порт модулям управления и psc
     def __init__(self, name, control_log, main_log, settings):
         self.name = name
         self.control_log = control_log
         self.main_log = main_log
         self.settings = settings
+
     # время ожидания (перерыва)
     def wait_time(self, timeout):
         time_sec = datetime.now().strftime('%H:%M:%S.%f')[:-4]
@@ -346,6 +349,7 @@ class Check_psc24_10:
                 time_sec + " " + self.name + \
                 ": Ожидание " + str(t + 1) + " сек"
             time.sleep(1 - time.time() % 1)
+
     # расчет процента
     def percentage(self, percent, whole):
         return (percent * whole) / 100.0
@@ -358,6 +362,7 @@ class Check_psc24_10:
         if (self.delta_fact_percent <= nom_percent):
             return True
         return False
+
     # подготовка Stage 1
     def prepare(self):
         # Инициализируем модули управления
@@ -387,7 +392,8 @@ class Check_psc24_10:
             self.power_supply = devices.PowerSupply(config.get("ip_adress"), config.get("port"), "ЛБП",self.control_log,1)
             assert self.power_supply.connection()
 
-            self.router = devices.Router("192.168.1.1", "Роутер")
+            # заменить просто проверкой что пинг доступен добавить ассерт
+            # self.router = devices.Router("192.168.1.1", "Роутер")
 
             self.dout_101 = devices.Dout(modb_dout_101.getСonnectivity(), dout_names_101, "DOUT_101", self.control_log, 10)
             self.dout_102 = devices.Dout(modb_dout_102.getСonnectivity(), dout_names_102, "DOUT_102", self.control_log, 10)
@@ -428,6 +434,7 @@ class Check_psc24_10:
         except:
             self.control_log.add(self.name, "Error #1: Ошибка инициализации модулей управления", False)
             return False
+
     # первое включение проверка состояния Stage 2
     def first_start(self):
         self.control_log.add(self.name, "Stage 2 Подготовка к первому запуску", True)
@@ -461,6 +468,7 @@ class Check_psc24_10:
         except:
             self.control_log.add(self.name, "Error #2: Подготовка к первому запуску не прошла", False)
             return False
+
     #  считывание и проверка конфигурации Stage 3
     def configurate_check(self):
         self.control_log.add(self.name, "Stage 3 Проверка и запись конфигурации", True)
@@ -494,6 +502,9 @@ class Check_psc24_10:
             assert self.eeprom.read_power_management()
             self.power_management = self.eeprom.get_power_management()
 
+            # записываем уставки по току out1 = 9.7; out2 = 0.2
+            assert self.eeprom.write_max_current_value(5, 5)
+
             # считываем состояние
             assert self.psc24_10.check_behaviour(self.behaviour)
             self.control_log.add(self.name, "Stage #3: Проверка и запись конфигурации завершено", True)
@@ -501,6 +512,7 @@ class Check_psc24_10:
         except:
             self.control_log.add(self.name, "Error #3: Ошибка при проверке и записи конфигурации", False)
             return False
+
     # проверка телеизмерения Stage 4
     def measurements_check(self):
         self.control_log.add(self.name, "Stage 4 Проверка измерений", True)
@@ -690,19 +702,6 @@ class Check_psc24_10:
                                      " > " + str(self.i_delta_percent), False)
 
 
-            # подключаем коммутатор #1
-            assert self.dout_102.command("KL18", "OFF")
-            assert self.din_201.check_voltage("KL18", "OFF")
-            # проверяем состояние
-            assert self.psc24_10.check_behaviour(self.behaviour)
-            # подключаем коммутатор #2
-            assert self.dout_102.command("KL19", "OFF")
-            assert self.din_201.check_voltage("KL19", "OFF")
-
-            # проверяем состояние
-            assert self.psc24_10.check_behaviour(self.behaviour)
-            # таймаут перед опросом каналов
-            self.wait_time(5)
             # подключаем OUT1
             assert self.dout_103.command("KM14", "ON")
             assert self.din_202.check_voltage("KM14", "ON")
@@ -711,6 +710,15 @@ class Check_psc24_10:
             # подключаем OUT2
             assert self.dout_103.command("KM15", "ON")
             assert self.din_202.check_voltage("KM15", "ON")
+
+            # подключаем коммутатор #1
+            assert self.dout_102.command("KL18", "OFF")
+            assert self.din_201.check_voltage("KL18", "OFF")
+            # проверяем состояние
+            assert self.psc24_10.check_behaviour(self.behaviour)
+            # подключаем коммутатор #2
+            assert self.dout_102.command("KL19", "OFF")
+            assert self.din_201.check_voltage("KL19", "OFF")
 
             # проверяем состояние
             assert self.psc24_10.check_behaviour(self.behaviour)
@@ -795,6 +803,7 @@ class Check_psc24_10:
             return False
         # если токовые каналы в параллель то проверить, что разница между ними
         # не более 500mA
+
     # Проверка порогов по напряжению работаем здесь stage 5
     def check_voltage_thresholds(self):
         self.control_log.add(self.name, "Stage 5 Проверка порогов по напряжению", True)
@@ -1024,11 +1033,20 @@ class Check_psc24_10:
 
             self.wait_time(80)
 
+
             # предполагаемое поведение
             self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 0, "error_pwr2": 0,
                               "error_btr": 1, "error_out1": 0, "error_out2": 0, "charge_btr": 0, "ten": 0, "apts": 0}
 
-            assert self.psc24_10.check_behaviour(self.behaviour)
+
+            # ошибку АКБ ловить двумя способами u_min , и u_max
+            if self.psc24_10.check_behaviour(self.behaviour):
+                self.voltage_threesolds['ResIN3'][3] = "ok"
+            else:
+                self.voltage_threesolds['ResIN3'][3] = "bad"
+            self.control_log.add(self.name,
+                                 "Результат работы срабатывания ошибки АКБ: " + self.voltage_threesolds['ResIN3'][3],
+                                 True)
 
             # включить АКБ
             assert self.dout_103.command(self.BTR, "ON")
@@ -1140,11 +1158,11 @@ class Check_psc24_10:
             # assert self.din_202.check_voltage("KL33", "OFF")
             #
             self.control_log.add(self.name, "Stage #5: Проверка порогов по напряжению завершена", True)
-            self.wait_time(10)
             return True
         except:
             self.control_log.add(self.name, "Error #5: Ошибка при проверке порогов по напряжению", False)
             return False
+
     # проверка ТЭН'а и обрыв связи с датчиком stage 6 (готово)
     def check_ten(self):
         self.control_log.add(self.name, "Stage #6 Проверка работы ТЭН и обрыва связи с датчиком", True)
@@ -1270,10 +1288,13 @@ class Check_psc24_10:
         except:
             self.control_log.add(self.name, "Error #6 Ошибка проверки работы ТЭН и обрыва связи с датчиком", False)
             return False
+
     # переключение каналов stage 7 (в работе)
     def switch_channel(self):
         self.control_log.add(self.name, "Stage #7 Переключение каналов (Проверка провалов по напряжению)", True)
         try:
+            # создать новый объект роутером
+            self.router = devices.Router("192.168.1.1", "Роутер")
             # Включить IN1, IN2, IN3
             # Подключить нагрузку и коммутатор с роутером
             self.router.start_check()
@@ -1331,6 +1352,7 @@ class Check_psc24_10:
             self.switching_channels['Переключение каналов'][0] = "fail"
             self.control_log.add(self.name, "Error #7 Stage #7 Переключение каналов (Проверка провалов по напряжению)", False)
             return False
+
     # аварийные режимы работы stage 8
     def overload_mode(self):
         self.control_log.add(self.name, "Stage #8 Проверка режима перегрузка", True)
@@ -1487,7 +1509,6 @@ class Check_psc24_10:
 
             assert self.psc24_10.check_behaviour(self.behaviour)
 
-            assert self.configurate_check()
             self.out_i_1_temp = self.power_management.get("out_i_1")
             self.out_i_2_temp = self.power_management.get("out_i_2")
             # записываем уставки по току out1 = 9.7; out2 = 0.2
@@ -1545,9 +1566,11 @@ class Check_psc24_10:
             assert self.dout_104.command("KM19", "ON")
             assert self.din_202.check_voltage("KM19", "ON")
 
+            self.wait_time(10)
+
             # предполагаемое поведение во время КЗ
             self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 0, "key2": 1, "error_pwr1": 0,
-                              "error_pwr2": 0, "error_btr": 1, "error_out1": 1, "error_out2": 0,
+                              "error_pwr2": 0, "error_btr": 0, "error_out1": 1, "error_out2": 0,
                               "charge_btr": 1, "ten": 0, "apts": 0}
 
             assert self.psc24_10.check_behaviour(self.behaviour)
@@ -1616,22 +1639,17 @@ class Check_psc24_10:
             #     else:
             #         break
 
-            # предполагаемое поведение
-            self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 0,
-                              "error_pwr2": 0, "error_btr": 0, "error_out1": 0, "error_out2": 0,
-                              "charge_btr": 1, "ten": 0, "apts": 0}
-
-            assert self.psc24_10.check_behaviour(self.behaviour)
 
             # КЗ на OUT2 ПРОВЕРИТЬ!!!! out1  РАБОТАЕТ!
             assert self.dout_104.command("KM19", "ON")
             assert self.din_202.check_voltage("KM19", "ON")
 
             # добавить задержку
+            self.wait_time(10)
 
             # предполагаемое поведение во время КЗ
             self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 0, "error_pwr1": 0,
-                              "error_pwr2": 0, "error_btr": 1, "error_out1": 0, "error_out2": 1,
+                              "error_pwr2": 0, "error_btr": 0, "error_out1": 0, "error_out2": 1,
                               "charge_btr": 1, "ten": 0, "apts": 0}
 
             assert self.psc24_10.check_behaviour(self.behaviour)
@@ -1699,6 +1717,7 @@ class Check_psc24_10:
             return True
         except:
             return False
+
     # чистка протокола и поведения
     def clear_protocol_data(self):
         # сбрасываем поведение
@@ -1722,6 +1741,7 @@ class Check_psc24_10:
         self.ten = {'Работа ТЭН': [' '], 'Работа датчика': [' ']}
         self.emergency_modes = {'Аварийные режимы': ['Режим КЗ', 'Режим перегрузки', 'Обрыв связи датчика', ''],
                            'Результат': ['', '', '', '']}
+
     # для теста
     def for_test(self):
         try:
@@ -1731,6 +1751,7 @@ class Check_psc24_10:
             self.dout_101.command("KL1", "ON")
         except:
             return False
+
     # главная функция
     def main1(self):
         # инициализация стенда
@@ -1828,10 +1849,7 @@ class Check_psc24_10:
                                                  False)
                             break
 
-
-
                     # отключать все dout'ы в случае неудачи
-
                     self.main_log.set_start(False)
                     self.main_log.set_finish(True)
                     i = i + 1
@@ -1842,16 +1860,6 @@ class Check_psc24_10:
                 self.control_log.set_finish(True)
                 # time.sleep(2)
                 break
-
-
-                # self.control_log.add("Тестирование", "Тестирование завершено", False)
-                # # закончить опрос backend'a
-                # self.control_log.set_finish(True)
-                # self.control_log.add("Тестирование",
-                #                      "В связи с неисправностью стенда или вспомогательных средств дальнейшая проверка невозможна",
-                #                      False)
-                # self.control_log.set_finish(True)
-                # break
 
 
 

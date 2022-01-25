@@ -322,7 +322,7 @@ class Check_psc24_10:
     ammeter_out2 = ()
     router = ()
     # KM2 переделать под 48 В
-    power_supply = {"pw24_5" : ["KL15", "KL16", "KM1"],
+    power_input = {"pw24_5" : ["KL15", "KL16", "KM1"],
                     "wm24_10" : ["KL7", "KL8", "KM1"],
                     "wm24_40" : ["KL9","KL10","KM1"],
                     "mw24_67" : ["KL1","KL2","KM1"],
@@ -331,6 +331,7 @@ class Check_psc24_10:
     IN1 = ""
     IN2 = ""
     BTR = ""
+    power_supply_voltage = 0.0
     device = [" ","KM7", "KM8", "KM9", "KM10", "KM11"]
     switches_load = ["KL18", "KL19", "KL20", "KL21", "KL22", "KL23", "KL24", "KL25", "KL26", "KL27", "KL28", "KL29"]
     control_com = ""
@@ -419,17 +420,16 @@ class Check_psc24_10:
             self.eeprom = read_write_eeprom.ReadWriteEEprom("EEPROM", self.control_log, self.device_com, 115200, 30)
 
             # читаем конфигурацию assert/ получать setting getter'ом
-            config = self.settings.load("settings.cfg")
-            # выбираем блоки
-            # if config.get("power_supply_type") == "wm24_10":
-            #     self.IN1 = "KL7"
-            #     self.IN2 = "KL8"
-            # if config.get("power_supply_type") == "pw24_5":
-            #     self.IN1 = "KL15"
-            #     self.IN2 = "KL16"
-            self.IN1 = self.power_supply[config.get("power_supply_type")][0]
-            self.IN2 = self.power_supply[config.get("power_supply_type")][1]
-            self.BTR = self.power_supply[config.get("power_supply_type")][2]
+            self.config = self.settings.load("settings.cfg")
+
+            if config.get("device_name") == "psc24_10":
+                self.power_supply_voltage = 24.0
+            if config.get("device_name") == "psc48_10":
+                self.power_supply_voltage = 48.0
+
+            self.IN1 = self.power_input[config.get("power_supply_type")][0]
+            self.IN2 = self.power_input[config.get("power_supply_type")][1]
+            self.BTR = self.power_input[config.get("power_supply_type")][2]
 
             assert self.din_202.check_voltage("SF4", "ON")
             assert self.din_202.check_voltage("SF5", "ON")
@@ -458,8 +458,8 @@ class Check_psc24_10:
             assert self.din_201.check_voltage("KL31", "ON")
             assert self.dout_103.command("KL33", "ON")
             assert self.din_202.check_voltage("KL33", "ON")
-            assert self.power_supply.set_voltage(24)
-            assert self.power_supply.check_voltage(24)
+            assert self.power_supply.set_voltage(self.power_supply_voltage)
+            assert self.power_supply.check_voltage(self.power_supply_voltage)
 
             # # правильная инициализация modbus ПЕРЕНЕСЕНА В ФУНКЦИЮ FIRST START
             # modb_psc24_10 = devices.Modb()
@@ -524,7 +524,7 @@ class Check_psc24_10:
         try:
             ##############  IN1  ##############
             # получаем номинальное напряжение канала на устройстве
-            self.u_nom = float(self.power_management.get("pw1_u_nom"))
+            self.u_nom = round(float(self.power_management.get("pw1_u_nom")),2)
             # устанавливаем номинальное напряжение на ЛБП
             assert self.power_supply.set_voltage(self.u_nom)
             assert self.power_supply.check_voltage(self.u_nom)
@@ -551,7 +551,7 @@ class Check_psc24_10:
 
             ##############  IN2  ##############
             # получаем номинальное напряжение канала на устройстве
-            self.u_nom = float(self.power_management.get("pw2_u_nom"))
+            self.u_nom = round(float(self.power_management.get("pw2_u_nom")),2)
             # устанавливаем номинальное напряжение на ЛБП
             assert self.power_supply.set_voltage(self.u_nom)
             assert self.power_supply.check_voltage(self.u_nom)
@@ -580,7 +580,7 @@ class Check_psc24_10:
 
             ##############  IN3(АКБ)  ##############
             # получаем номинальное напряжение канала на устройстве
-            self.u_nom = float(self.power_management.get("btr_u_nom"))
+            self.u_nom = round(float(self.power_management.get("btr_u_nom")),2)
             # устанавливаем номинальное напряжение на ЛБП
             assert self.power_supply.set_voltage(self.u_nom)
             assert self.power_supply.check_voltage(self.u_nom)
@@ -821,6 +821,8 @@ class Check_psc24_10:
             assert self.dout_103.command("KL33", "OFF")
             assert self.din_202.check_voltage("KL33", "OFF")
 
+            self.wait_time(5)
+
             # подключаем IN2
             assert self.dout_101.command(self.IN2, "ON")
             assert self.din_201.check_voltage(self.IN2, "ON")
@@ -850,8 +852,8 @@ class Check_psc24_10:
             # расчитываем погрешность для IN1 u_min
             self.u_delta = self.percentage(self.u_delta_percent, self.u_in_min)
             # установить минимальный порог на ЛБП с учетом погрешности
-            assert self.power_supply.set_voltage(self.u_in_min - self.u_delta)
-            assert self.power_supply.check_voltage(self.u_in_min - self.u_delta)
+            assert self.power_supply.set_voltage(round(self.u_in_min - self.u_delta,2))
+            assert self.power_supply.check_voltage(round(self.u_in_min - self.u_delta,2))
 
             # предполагаемое поведение
             self.behaviour = {"pwr1": 0, "pwr2": 1, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 1, "error_pwr2": 0,"error_btr": 0,
@@ -867,8 +869,8 @@ class Check_psc24_10:
                                  True)
 
             # устанавливаем номинальное напряжение
-            assert self.power_supply.set_voltage(self.u_nom)
-            assert self.power_supply.check_voltage(self.u_nom)
+            assert self.power_supply.set_voltage(round(self.u_nom, 2))
+            assert self.power_supply.check_voltage(round(self.u_nom, 2))
 
             # предполагаемое поведение
             self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 0, "error_pwr2": 0,
@@ -887,8 +889,8 @@ class Check_psc24_10:
             # расчитываем погрешность для IN1 u_max
             self.u_delta = self.percentage(self.u_delta_percent, self.u_in_max)
             # установить максимальный порог на ЛБП с учетом погрешности
-            assert self.power_supply.set_voltage(self.u_in_max + self.u_delta)
-            assert self.power_supply.check_voltage(self.u_in_max + self.u_delta)
+            assert self.power_supply.set_voltage(round(self.u_in_max + self.u_delta,2))
+            assert self.power_supply.check_voltage(round(self.u_in_max + self.u_delta,2))
 
             # предполагаемое поведение
             self.behaviour = {"pwr1": 0, "pwr2": 1, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 1, "error_pwr2": 0,
@@ -904,8 +906,8 @@ class Check_psc24_10:
                                  True)
 
             # устанавливаем номинальное напряжение
-            assert self.power_supply.set_voltage(self.u_nom)
-            assert self.power_supply.check_voltage(self.u_nom)
+            assert self.power_supply.set_voltage(round(self.u_nom, 2))
+            assert self.power_supply.check_voltage(round(self.u_nom, 2))
 
             self.wait_time(10)
 
@@ -947,8 +949,8 @@ class Check_psc24_10:
             # расчитываем погрешность для IN2 u_min
             self.u_delta = self.percentage(self.u_delta_percent, self.u_in_min)
             # установить минимальный порог на ЛБП с учетом погрешности
-            assert self.power_supply.set_voltage(self.u_in_min - self.u_delta)
-            assert self.power_supply.check_voltage(self.u_in_min - self.u_delta)
+            assert self.power_supply.set_voltage(round(self.u_in_min - self.u_delta, 2))
+            assert self.power_supply.check_voltage(round(self.u_in_min - self.u_delta, 2))
 
             # предполагаемое поведение
             self.behaviour = {"pwr1": 0, "pwr2": 0, "btr": 1, "key1": 1, "key2": 1, "error_pwr1": 1, "error_pwr2": 1,
@@ -964,8 +966,8 @@ class Check_psc24_10:
                                  True)
 
             # устанавливаем номинальное напряжение
-            assert self.power_supply.set_voltage(self.u_nom)
-            assert self.power_supply.check_voltage(self.u_nom)
+            assert self.power_supply.set_voltage(round(self.u_nom, 2))
+            assert self.power_supply.check_voltage(round(self.u_nom, 2))
 
             # предполагаемое поведение
             self.behaviour = {"pwr1": 0, "pwr2": 1, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 1, "error_pwr2": 0,
@@ -984,8 +986,8 @@ class Check_psc24_10:
             # расчитываем погрешность для IN2 u_max
             self.u_delta = self.percentage(self.u_delta_percent, self.u_in_max)
             # установить максимальный порог на ЛБП с учетом погрешности
-            assert self.power_supply.set_voltage(self.u_in_max + self.u_delta)
-            assert self.power_supply.check_voltage(self.u_in_max + self.u_delta)
+            assert self.power_supply.set_voltage(round(self.u_in_max + self.u_delta, 2))
+            assert self.power_supply.check_voltage(round(self.u_in_max + self.u_delta, 2))
 
             # предполагаемое поведение
             self.behaviour = {"pwr1": 0, "pwr2": 0, "btr": 1, "key1": 1, "key2": 1, "error_pwr1": 1, "error_pwr2": 1,
@@ -1000,8 +1002,8 @@ class Check_psc24_10:
                                  True)
 
             # устанавливаем номинальное напряжение
-            assert self.power_supply.set_voltage(self.u_nom)
-            assert self.power_supply.check_voltage(self.u_nom)
+            assert self.power_supply.set_voltage(round(self.u_nom, 2))
+            assert self.power_supply.check_voltage(round(self.u_nom, 2))
 
             self.wait_time(10)
 
@@ -1486,27 +1488,6 @@ class Check_psc24_10:
     def short_curciut_mode(self):
         self.control_log.add(self.name, "Stage #9 Проверка режима короткого замыкания", True)
         try:
-            # for TEST
-            # # подключаем IN1
-            # assert self.dout_101.command(self.IN1, "ON")
-            # assert self.din_201.check_voltage(self.IN1, "ON")
-            #
-            # # подключаем IN2
-            # assert self.dout_101.command(self.IN2, "ON")
-            # assert self.din_201.check_voltage(self.IN2, "ON")
-
-            # # подключаем IN1
-            # assert self.dout_101.command("KL9", "ON")
-            # assert self.din_201.check_voltage("KL9", "ON")
-            #
-            # # подключаем IN2
-            # assert self.dout_101.command("KL10", "ON")
-            # assert self.din_201.check_voltage("KL10", "ON")
-            #
-            # assert self.dout_103.command(self.BTR, "ON")
-            # assert self.din_202.check_voltage(self.BTR, "ON")
-            #
-            # self.wait_time(30)
 
             # предполагаемое поведение
             self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 0, "error_pwr2": 0,
@@ -1527,9 +1508,15 @@ class Check_psc24_10:
             assert self.dout_103.command("KM16", "ON")
             assert self.din_202.check_voltage("KM16", "ON")
 
+            # если версия 48V то подаём 6А
             # подаем нагрузку с реостата 10А
-            assert self.dout_104.command("KM13", "ON")
-            assert self.din_202.check_voltage("KM13", "ON")
+            if self.config.get("device_name") == "psc24_10":
+                assert self.dout_104.command("KM13", "ON")
+                assert self.din_202.check_voltage("KM13", "ON")
+            if self.config.get("device_name") == "psc48_10":
+                assert self.dout_104.command("KM12", "ON")
+                assert self.din_202.check_voltage("KM12", "ON")
+
 
             self.wait_time(5)
 
@@ -1593,6 +1580,8 @@ class Check_psc24_10:
 
             assert self.psc24_10.check_behaviour(self.behaviour)
 
+            assert self.dout_104.command("KM12", "OFF")
+            assert self.din_202.check_voltage("KM12", "OFF")
             assert self.dout_104.command("KM13", "OFF")
             assert self.din_202.check_voltage("KM13", "OFF")
 
@@ -1620,9 +1609,14 @@ class Check_psc24_10:
             assert self.dout_103.command("KM17", "ON")
             assert self.din_202.check_voltage("KM17", "ON")
 
+            # если версия 48V то подаём 6А
             # подаем нагрузку с реостата 10А
-            assert self.dout_104.command("KM13", "ON")
-            assert self.din_202.check_voltage("KM13", "ON")
+            if self.config.get("device_name") == "psc24_10":
+                assert self.dout_104.command("KM13", "ON")
+                assert self.din_202.check_voltage("KM13", "ON")
+            if self.config.get("device_name") == "psc48_10":
+                assert self.dout_104.command("KM12", "ON")
+                assert self.din_202.check_voltage("KM12", "ON")
 
             # предполагаемое поведение после подключения OUT2
             self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 0,
@@ -1677,7 +1671,9 @@ class Check_psc24_10:
                 assert self.dout_102.command(load, "OFF")
                 assert self.din_201.check_voltage(load, "OFF")
 
-            # снимаем нагрузку с реостата 10А
+            # снимаем нагрузку с реостата 10А или 6А
+            assert self.dout_104.command("KM12", "OFF")
+            assert self.din_202.check_voltage("KM12", "OFF")
             assert self.dout_104.command("KM13", "OFF")
             assert self.din_202.check_voltage("KM13", "OFF")
 

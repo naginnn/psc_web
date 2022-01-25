@@ -37,16 +37,20 @@ from pythonping import ping
 def int_to_bytes(x: int) -> bytes:
     return x.to_bytes((x.bit_length() + 7) // 8, 'big')
 if __name__ == "__main__":
-    ser = serial.Serial('com6', 2400, timeout=0.3)
-    while True:
-        print("Введите команду 1 или 2: ")
-        command = int(input())
-        ser.write(int_to_bytes(command))
-        response = ser.readline()
+    print("Enter serial number")
+    serial_number = int(input()[3:])
+    print(serial_number)
 
-
-        print(response)
-        time.sleep(0.5)
+    # ser = serial.Serial('com6', 2400, timeout=0.3)
+    # while True:
+    #     print("Введите команду 1 или 2: ")
+    #     command = int(input())
+    #     ser.write(int_to_bytes(command))
+    #     response = ser.readline()
+    #
+    #
+    #     print(response)
+    #     time.sleep(0.5)
     # router = Router()
     # router.start_check()
     # while True:

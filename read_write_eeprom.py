@@ -625,6 +625,41 @@ class ReadWriteEEprom:
     # Получить серийный номер устройства
     def get_serial_number(self):
         return self.serial_number
+
+    # записать серийный номер ИЗМЕНИТЬ
+    def write_serial_number(self):
+        time_sec = datetime.now().strftime('%H:%M:%S.%f')[:-4]
+        self.log.add(self.name, "Попытка получить серийный номер", True)
+        for t in range(self.timeout):
+            try:
+                package = []
+                read = FrameCollector()
+                package.append(read.serial_number(0xB3, 0))
+                ser = serial.Serial(self.com, self.braudrate, timeout=0.3)
+                val = 0
+                for frame in package:
+                    modb_frame = read.write_modbus(frame)
+                    values = bytearray(modb_frame)
+                    ser.write(values)
+                    response = ser.read(len(values))
+                    if (len(response) == 0):
+                        assert False
+                    val = read.hex_to_float(response[:len(response) - 2])
+                ser.close()
+                self.serial_number = 4710000000 + val
+                if self.serial_number > 9000000000:
+                    self.serial_number = 4710000000
+                self.log.add(self.name, "Серийный номер устройства получен: " + str(self.serial_number), True)
+                return True
+            except:
+                ser.close()
+                self.log.log_data[len(self.log.log_data) - 1] = \
+                    time_sec + " " + self.name + \
+                    ": Попытка получить серийный номер " + str(t + 1) + " сек"
+                time.sleep(1 - time.time() % 1)
+                if t >= self.timeout - 1:
+                    self.log.add(self.name, "Неудалось получить серийный номер", False)
+                    return False
     # записываем сетевые настройки
     def write_network_settings(self):
         time_sec = datetime.now().strftime('%H:%M:%S.%f')[:-4]

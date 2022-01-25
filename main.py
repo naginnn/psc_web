@@ -112,6 +112,7 @@ def shemeilogic():
 def configuration():
     data = {}
     if request.method == 'POST':
+
         soft_version = request.form.get('soft_version')
         ip_adress = request.form.get('ip_adress')
         port = request.form.get('port')
@@ -128,13 +129,7 @@ def configuration():
         return jsonify({"result": result})
 
     if request.method == 'GET':
-        soft_version = "0"
-        ip_adress = "0"
-        port = "0"
 
-        control_com = "0"
-        ammeter_com = "0"
-        device_com = "0"
 
         psc24_10 = "0"
         psc24_40 = "0"
@@ -200,8 +195,9 @@ def configuration():
             checked_5 = "selected"
         return render_template('configuration.html',soft_version = soft_version, ip_adress = ip_adress, port = port,
                                control_com = control_com, ammeter_com = ammeter_com, device_com = device_com, psc24_10 = psc24_10, psc24_40 = psc24_40,
-                               psc48_10 = psc48_10, psc48_40 = psc48_40, wm24_10 = wm24_10, pw24_5 = pw24_5, wm24_40 = wm24_40, mw24_67 = mw24_67, wm48_20 = wm48_20,
-                               mw48_67 = mw48_67, checked_1 = checked_1, checked_2 = checked_2, checked_3 = checked_3, checked_4 = checked_4,checked_5 = checked_5)
+                               psc48_10 = psc48_10, psc48_40 = psc48_40,
+                               wm24_10 = wm24_10, pw24_5 = pw24_5, wm24_40 = wm24_40, mw24_67 = mw24_67, wm48_20 = wm48_20, mw48_67 = mw48_67,
+                               checked_1 = checked_1, checked_2 = checked_2, checked_3 = checked_3, checked_4 = checked_4,checked_5 = checked_5)
 
 if __name__ == "__main__":
    app.run(debug=True)

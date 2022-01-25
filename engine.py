@@ -321,9 +321,16 @@ class Check_psc24_10:
     ammeter_out1 = ()
     ammeter_out2 = ()
     router = ()
+    # KM2 переделать под 48 В
+    power_supply = {"pw24_5" : ["KL15", "KL16", "KM1"],
+                    "wm24_10" : ["KL7", "KL8", "KM1"],
+                    "wm24_40" : ["KL9","KL10","KM1"],
+                    "mw24_67" : ["KL1","KL2","KM1"],
+                    "wm48_20" : ["KL12","KL13","KM2"],
+                    "wm48_67" : ["KL4","KL5","KM2"]}
     IN1 = ""
     IN2 = ""
-    BTR = "KM1"
+    BTR = ""
     device = [" ","KM7", "KM8", "KM9", "KM10", "KM11"]
     switches_load = ["KL18", "KL19", "KL20", "KL21", "KL22", "KL23", "KL24", "KL25", "KL26", "KL27", "KL28", "KL29"]
     control_com = ""
@@ -420,12 +427,10 @@ class Check_psc24_10:
             # if config.get("power_supply_type") == "pw24_5":
             #     self.IN1 = "KL15"
             #     self.IN2 = "KL16"
-            if config.get("power_supply_type") == "wm24_10":
-                self.IN1 = "KL9"
-                self.IN2 = "KL10"
-            if config.get("power_supply_type") == "pw24_5":
-                self.IN1 = "KL9"
-                self.IN2 = "KL10"
+            self.IN1 = self.power_supply[config.get("power_supply_type")][0]
+            self.IN2 = self.power_supply[config.get("power_supply_type")][1]
+            self.BTR = self.power_supply[config.get("power_supply_type")][2]
+
             assert self.din_202.check_voltage("SF4", "ON")
             assert self.din_202.check_voltage("SF5", "ON")
             assert self.din_202.check_voltage("SF6", "ON")

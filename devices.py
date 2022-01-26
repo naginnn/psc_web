@@ -2,7 +2,6 @@ import datetime
 import socket
 import re
 import minimalmodbus
-import engine
 import time
 from datetime import datetime
 from threading import Thread, Lock
@@ -482,19 +481,17 @@ class Psc_10:
                     self.log.add(self.name, "Неудалось получить телеизмерение с устройства", False)
                     return False
     ### изменить или написать новую чтобы можно было передавать один или несколько тс'ов отработать в тест модуле
-    def check_behaviour(self, behav):
+
+    def check_behaviour(self, alleged_behavior):
         time_sec = datetime.now().strftime('%H:%M:%S.%f')[:-4]
         self.log.add(self.name, "Ожидание включения устройства", True)
-        state = True
         for t in range(self.timeout):
             try:
-                behaviour = self.get_all_ts()
-                if (behaviour != False):
-                    i = 0
-                    for key in behav:
-                        if behav[key] != behaviour[i]:
+                behaviour_list = self.get_all_ts()
+                if (behaviour_list != False):
+                    for alleged_name in alleged_behavior:
+                        if alleged_behavior[alleged_name] != behaviour_list[alleged_name]:
                             assert False
-                        i = i + 1
                     self.log.add(self.name, "Состояние устройства соответствует", True)
                     return True
                 else:
@@ -509,10 +506,15 @@ class Psc_10:
                     return False
 
     def get_all_ts(self):
+        behaviour_list = {"pwr1": 0, "pwr2": 0, "btr": 0, "key1": 0, "key2": 0, "error_pwr1": 0, "error_pwr2": 0,
+                              "error_btr": 0, "error_out1": 0, "error_out2": 0, "charge_btr": 0, "ten": 0, "apts": 0}
         try:
             behaviour = self.instrument.read_registers(1, 13, 3)
             if (len(behaviour) == 13):
-                return behaviour
+                for name in behaviour_list:
+                    behaviour_list[name] = behaviour[i]
+                    i = i + 1
+                return behaviour_list
         except:
             return False
 # функции проверяемого устройства

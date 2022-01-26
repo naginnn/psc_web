@@ -297,6 +297,10 @@ class Check_psc24_10:
     out_i_1_temp = 0.0
     out_i_2_temp = 0.0
     out_i_max = 10
+    charge_level = 0.0
+    discharge_level = 0.0
+    charge_i_stable = 0.0
+    charge_u_stable = 0.0
     # списки для будущего протокола
     check_number = {'Порядковый номер': [' ']}
     serial_number = {'Серийный номер': [' ']}
@@ -304,7 +308,7 @@ class Check_psc24_10:
     voltage = {'Канал, U': ['IN1', 'IN2', 'IN3'], 'Unom': ['', '', ''], 'Ufact': ['', '', ''], 'Uerror_rate_nom': ['', '', ''], 'Uerror_rate_fact': ['', '', ''], 'result': ['', '', '']}
     current = {'Канал, I': ['OUT1', 'OUT2'], 'Inom': ['', ''], 'Ifact': ['', ''], 'Ierror_rate_nom': ['', ''], 'Ierror_rate_nom': ['', ''], 'Ierror_rate_fact': ['', ''], 'result': ['', '']}
     current_difference = {'OUT1': [' '], 'OUT2': [' '], 'Idifference_nom': [' '], 'Idifference_fact': [' '], 'result': [' ']}
-    voltage_threesolds = {'Пороги, U': ['min, U', 'nom, U', 'max, U', ''], 'U_IN1': ['', '', '', ''], 'ResIN1': ['', '', '', ''], 'U_IN2': ['', '', '', ''], 'ResIN2': ['', '', '', ''], 'U_IN3': ['', '', '', ''], 'ResIN3': ['', '', '', '']}
+    voltage_threesolds = {'Пороги, U': ['min, U', 'nom, U', 'max, U', ''], 'U_IN1': ['', '', '', ''], 'ResIN1': ['', '', '', ''], 'U_IN2': ['', '', '', ''], 'ResIN2': ['', '', '', ''], 'U_IN3': ['', '', '', ''], 'ResIN3': ['', '', '', ''], 'ChargeBTR': ['', '', '', ''] }
     switching_channels = {'Переключение каналов': [' ']}
     ten = {'Работа ТЭН': [' '], 'Работа датчика': [' ']}
     emergency_modes = {'Аварийные режимы': ['Режим КЗ', 'Режим перегрузки', 'Обрыв связи датчика', ''], 'Результат': ['', '', '', '']}
@@ -461,13 +465,13 @@ class Check_psc24_10:
             assert self.power_supply.set_voltage(self.power_supply_voltage)
             assert self.power_supply.check_voltage(self.power_supply_voltage)
 
-            # # правильная инициализация modbus ПЕРЕНЕСЕНА В ФУНКЦИЮ FIRST START
-            # modb_psc24_10 = devices.Modb()
-            # assert modb_psc24_10.getConnection("PSC24_10", self.device_com, 1, 115200, self.control_log)
-            # self.psc24_10 = devices.Psc_10(modb_psc24_10.getСonnectivity(), "PSC24_10", self.control_log, 60)
             self.wait_time(30)
+
+            # предполагаемое поведение
+            self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1}
             # ждем включения устройства и передаем предполагаемое поведение
             assert self.psc24_10.check_behaviour(self.behaviour)
+
             self.control_log.add(self.name, "Stage #2: Подготовка к первому запуска завершена", True)
             return True
         except:
@@ -510,8 +514,11 @@ class Check_psc24_10:
             # записываем уставки по току out1 = 9.7; out2 = 0.2
             assert self.eeprom.write_max_current_value(5, 5)
 
-            # считываем состояние
+            # предполагаемое поведение
+            self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1}
+            # проверяем состояние состояние
             assert self.psc24_10.check_behaviour(self.behaviour)
+
             self.control_log.add(self.name, "Stage #3: Проверка и запись конфигурации завершено", True)
             return True
         except:
@@ -608,9 +615,6 @@ class Check_psc24_10:
                                      " > " + str(self.u_delta_percent), False)
 
             # подать токи на выхода
-
-            # проверяем состояние
-            assert self.psc24_10.check_behaviour(self.behaviour)
             # подключаем коммутатор #1
             assert self.dout_102.command("KL18", "ON")
             assert self.din_201.check_voltage("KL18", "ON")
@@ -623,18 +627,11 @@ class Check_psc24_10:
             # подключаем OUT1
             assert self.dout_103.command("KM14", "ON")
             assert self.din_202.check_voltage("KM14", "ON")
-            # проверяем состояние
+
+            # предполагаемое поведение
+            self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1}
+            # проверяем состояние состояние
             assert self.psc24_10.check_behaviour(self.behaviour)
-            # # подключаем коммутатор #3
-            # assert self.dout_102.command("KL20", "ON")
-            # assert self.din_201.check_voltage("KL20", "ON")
-            # # проверяем состояние
-            # assert self.psc24_10.check_behaviour(self.behaviour)
-            # # подключаем коммутатор #4
-            # assert self.dout_102.command("KL21", "ON")
-            # assert self.din_201.check_voltage("KL21", "ON")
-            # проверяем состояние
-            # assert self.psc24_10.check_behaviour(self.behaviour)
 
             # таймаут перед опросом датчика тока №1
             self.wait_time(5)
@@ -668,18 +665,17 @@ class Check_psc24_10:
             assert self.dout_103.command("KM14", "OFF")
             assert self.din_202.check_voltage("KM14", "OFF")
 
-            # проверяем состояние
-            assert self.psc24_10.check_behaviour(self.behaviour)
-
             # включаем OUT2
             assert self.dout_103.command("KM15", "ON")
             assert self.din_202.check_voltage("KM15", "ON")
 
-            # проверяем состояние
+            # предполагаемое поведение
+            self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1}
+            # проверяем состояние состояние
             assert self.psc24_10.check_behaviour(self.behaviour)
 
             # таймаут перед опросом датчика тока №2
-            self.wait_time(15)
+            self.wait_time(5)
 
             # получаем и рассчитываем измерения OUT2
             # получаем ТИ с OUT2
@@ -706,50 +702,38 @@ class Check_psc24_10:
                                      " Фактический ток " + str(self.i_out1_fact) +
                                      " > " + str(self.i_delta_percent), False)
 
+            # отключаем коммутатор #1
+            assert self.dout_102.command("KL18", "OFF")
+            assert self.din_201.check_voltage("KL18", "OFF")
+
+            # отключаем коммутатор #2
+            assert self.dout_102.command("KL19", "OFF")
+            assert self.din_201.check_voltage("KL19", "OFF")
 
             # подключаем OUT1
             assert self.dout_103.command("KM14", "ON")
             assert self.din_202.check_voltage("KM14", "ON")
-            # таймаут перед опросом каналов
-            self.wait_time(5)
-            # подключаем OUT2
-            assert self.dout_103.command("KM15", "ON")
-            assert self.din_202.check_voltage("KM15", "ON")
-
-            # подключаем коммутатор #1
-            assert self.dout_102.command("KL18", "OFF")
-            assert self.din_201.check_voltage("KL18", "OFF")
-            # проверяем состояние
-            assert self.psc24_10.check_behaviour(self.behaviour)
-            # подключаем коммутатор #2
-            assert self.dout_102.command("KL19", "OFF")
-            assert self.din_201.check_voltage("KL19", "OFF")
-
-            # проверяем состояние
-            assert self.psc24_10.check_behaviour(self.behaviour)
 
             # подключаем коммутатор #1
             assert self.dout_102.command("KL18", "ON")
             assert self.din_201.check_voltage("KL18", "ON")
-            # проверяем состояние
-            assert self.psc24_10.check_behaviour(self.behaviour)
+
             # подключаем коммутатор #2
             assert self.dout_102.command("KL19", "ON")
             assert self.din_201.check_voltage("KL19", "ON")
 
-            # проверяем состояние
+            # предполагаемое поведение
+            self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1}
+            # проверяем состояние состояние
             assert self.psc24_10.check_behaviour(self.behaviour)
 
-            # таймаут перед опросом каналов
-            self.wait_time(15)
+            # таймаут перед опросом каналов (возможно увеличить)
+            self.wait_time(5)
 
             # получаем измерения OUT1
             assert self.psc24_10.check_ti("I_OUT1")
             self.i_out1_fact = self.psc24_10.get_ti()
             self.current_difference['OUT1'][0] = str(self.i_out1_fact)
-
-            # таймаут перед опросом каналов
-            self.wait_time(5)
 
             # получаем измерения OUT2
             assert self.psc24_10.check_ti("I_OUT2")
@@ -767,8 +751,14 @@ class Check_psc24_10:
                 self.current_difference['result'][0] = "bad"
                 self.control_log.add(self.name, "Разница между каналами по току " + str(self.i_fact_difference) + " mA", False)
 
-            # проверяем состояние
-            assert self.psc24_10.check_behaviour(self.behaviour)
+            # отключаем коммутатор #1
+            assert self.dout_102.command("KL18", "OFF")
+            assert self.din_201.check_voltage("KL18", "OFF")
+
+            # отключаем коммутатор #2
+            assert self.dout_102.command("KL19", "OFF")
+            assert self.din_201.check_voltage("KL19", "OFF")
+
             # отключаем OUT1
             assert self.dout_103.command("KM14", "OFF")
             assert self.din_202.check_voltage("KM14", "OFF")
@@ -777,30 +767,11 @@ class Check_psc24_10:
             assert self.dout_103.command("KM15", "OFF")
             assert self.din_202.check_voltage("KM15", "OFF")
 
-            # проверяем состояние
+            # предполагаемое поведение
+            self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1}
+            # проверяем состояние состояние
             assert self.psc24_10.check_behaviour(self.behaviour)
 
-            # довыключить всю нагрузку (ВРЕМЕННО ДЛЯ ТЕСТА А МОЖЕТ И НЕТ)
-            # отключаем коммутатор #1
-            # assert self.dout_102.command("KL18", "OFF")
-            # assert self.din_201.check_voltage("KL18", "OFF")
-            # # проверяем состояние
-            # assert self.psc24_10.check_behaviour(self.behaviour)
-            # # отключаем коммутатор #2
-            # assert self.dout_102.command("KL19", "OFF")
-            # assert self.din_201.check_voltage("KL19", "OFF")
-            # # проверяем состояние
-            # assert self.psc24_10.check_behaviour(self.behaviour)
-            # # отключаем OUT1
-            # assert self.dout_103.command("KM14", "OFF")
-            # assert self.din_202.check_voltage("KM14", "OFF")
-            # # проверяем состояние
-            # assert self.psc24_10.check_behaviour(self.behaviour)
-            # # отключаем OUT2
-            # assert self.dout_103.command("KM15", "OFF")
-            # assert self.din_202.check_voltage("KM15", "OFF")
-            # # проверяем состояние
-            # assert self.psc24_10.check_behaviour(self.behaviour)
             self.control_log.add(self.name, "Stage #4: Проверка измерений завершена", True)
             return True
         except:
@@ -835,7 +806,9 @@ class Check_psc24_10:
 
             self.wait_time(5)
 
-            # предполагаемое поведение после коммутации
+            # предполагаемое поведение
+            self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1}
+            # проверяем состояние состояние
             assert self.psc24_10.check_behaviour(self.behaviour)
 
             # получаем пороги
@@ -851,13 +824,14 @@ class Check_psc24_10:
             self.voltage_threesolds['U_IN1'][2] = str(self.u_in_max)
             # расчитываем погрешность для IN1 u_min
             self.u_delta = self.percentage(self.u_delta_percent, self.u_in_min)
+
             # установить минимальный порог на ЛБП с учетом погрешности
-            assert self.power_supply.set_voltage(round(self.u_in_min - self.u_delta,2))
-            assert self.power_supply.check_voltage(round(self.u_in_min - self.u_delta,2))
+            assert self.power_supply.set_voltage(round(self.u_in_min - self.u_delta, 2))
+            assert self.power_supply.check_voltage(round(self.u_in_min - self.u_delta, 2))
 
             # предполагаемое поведение
-            self.behaviour = {"pwr1": 0, "pwr2": 1, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 1, "error_pwr2": 0,"error_btr": 0,
-                              "error_out1": 0, "error_out2": 0, "charge_btr": 1, "ten": 0, "apts": 0}
+            self.behaviour = {"pwr1": 0, "pwr2": 1, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 1, "error_pwr2": 0,
+                 "error_out1": 0, "error_out2": 0}
 
             # определяем по поведению сработал ли порог
             if self.psc24_10.check_behaviour(self.behaviour):
@@ -874,7 +848,7 @@ class Check_psc24_10:
 
             # предполагаемое поведение
             self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 0, "error_pwr2": 0,
-                              "error_btr": 0, "error_out1": 0, "error_out2": 0, "charge_btr": 1, "ten": 0, "apts": 0}
+                              "error_out1": 0, "error_out2": 0}
 
             # проверяем состояние, убеждаемся в переключении на IN1
             # определяем по поведению сработал ли порог по u_nom
@@ -894,7 +868,7 @@ class Check_psc24_10:
 
             # предполагаемое поведение
             self.behaviour = {"pwr1": 0, "pwr2": 1, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 1, "error_pwr2": 0,
-                              "error_btr": 0, "error_out1": 0, "error_out2": 0, "charge_btr": 1, "ten": 0, "apts": 0}
+                              "error_out1": 0, "error_out2": 0}
 
             # определяем по поведению сработал ли порог по u_max
             if self.psc24_10.check_behaviour(self.behaviour):
@@ -913,7 +887,7 @@ class Check_psc24_10:
 
             # предполагаемое поведение
             self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 0, "error_pwr2": 0,
-                              "error_btr": 0, "error_out1": 0, "error_out2": 0, "charge_btr": 1, "ten": 0, "apts": 0}
+                              "error_out1": 0, "error_out2": 0}
 
             # проверяем переход на IN1
             assert self.psc24_10.check_behaviour(self.behaviour)
@@ -930,9 +904,10 @@ class Check_psc24_10:
 
             # IN1=null IN2=ЛБП IN3=АКБ
             self.wait_time(5)
+
             # предполагаемое поведение
             self.behaviour = {"pwr1": 0, "pwr2": 1, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 1, "error_pwr2": 0,
-                              "error_btr": 0, "error_out1": 0, "error_out2": 0, "charge_btr": 1, "ten": 0, "apts": 0}
+                              "error_out1": 0, "error_out2": 0}
 
             # проверяем переход на IN2
             assert self.psc24_10.check_behaviour(self.behaviour)
@@ -954,7 +929,7 @@ class Check_psc24_10:
 
             # предполагаемое поведение
             self.behaviour = {"pwr1": 0, "pwr2": 0, "btr": 1, "key1": 1, "key2": 1, "error_pwr1": 1, "error_pwr2": 1,
-                              "error_btr": 0, "error_out1": 0, "error_out2": 0, "charge_btr": 0, "ten": 0, "apts": 0}
+                              "error_out1": 0, "error_out2": 0}
 
             # определяем по поведению сработал ли порог
             if self.psc24_10.check_behaviour(self.behaviour):
@@ -971,7 +946,7 @@ class Check_psc24_10:
 
             # предполагаемое поведение
             self.behaviour = {"pwr1": 0, "pwr2": 1, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 1, "error_pwr2": 0,
-                              "error_btr": 0, "error_out1": 0, "error_out2": 0, "charge_btr": 0, "ten": 0, "apts": 0}
+                              "error_out1": 0, "error_out2": 0}
 
             # проверяем переход на IN2
             # определяем по поведению сработал ли порог u_nom
@@ -991,7 +966,7 @@ class Check_psc24_10:
 
             # предполагаемое поведение
             self.behaviour = {"pwr1": 0, "pwr2": 0, "btr": 1, "key1": 1, "key2": 1, "error_pwr1": 1, "error_pwr2": 1,
-                              "error_btr": 0, "error_out1": 0, "error_out2": 0, "charge_btr": 0, "ten": 0, "apts": 0}
+                              "error_out1": 0, "error_out2": 0}
 
             if self.psc24_10.check_behaviour(self.behaviour):
                 self.voltage_threesolds['ResIN2'][2] = "ok"
@@ -1009,7 +984,7 @@ class Check_psc24_10:
 
             # предполагаемое поведение
             self.behaviour = {"pwr1": 0, "pwr2": 1, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 1, "error_pwr2": 0,
-                              "error_btr": 0, "error_out1": 0, "error_out2": 0, "charge_btr": 0, "ten": 0, "apts": 0}
+                              "error_out1": 0, "error_out2": 0}
 
             assert self.psc24_10.check_behaviour(self.behaviour)
 
@@ -1040,87 +1015,68 @@ class Check_psc24_10:
 
             self.wait_time(10)
 
-
             # предполагаемое поведение
-            self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 0, "error_pwr2": 0,
-                              "error_btr": 0, "error_out1": 0, "error_out2": 0, "charge_btr": 0, "ten": 0, "apts": 0}
-
-
-            # # ошибку АКБ ловить двумя способами u_min , и u_max
-            # if self.psc24_10.check_behaviour(self.behaviour):
-            #     self.voltage_threesolds['ResIN3'][3] = "ok"
-            # else:
-            #     self.voltage_threesolds['ResIN3'][3] = "bad"
-            # self.control_log.add(self.name,
-            #                      "Результат работы срабатывания ошибки АКБ: " + self.voltage_threesolds['ResIN3'][3],
-            #                      True)
-            #
-            # # включить АКБ
-            # assert self.dout_103.command(self.BTR, "ON")
-            # assert self.din_202.check_voltage(self.BTR, "ON")
-            #
-            # self.wait_time(10)
-            #
-            # # предполагаемое поведение
-            # self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 0, "error_pwr2": 0,
-            #                   "error_btr": 0, "error_out1": 0, "error_out2": 0, "charge_btr": 1, "ten": 0, "apts": 0}
-            #
-            # assert self.psc24_10.check_behaviour(self.behaviour)
+            self.behaviour = {"pwr1": 0, "pwr2": 1, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 1, "error_pwr2": 0,
+                              "error_out1": 0, "error_out2": 0}
 
             # проверяем переключения
             assert self.psc24_10.check_behaviour(self.behaviour)
+
             # получаем пороги
             self.u_in_min = float(self.power_management.get("btr_u_min"))
             self.u_nom = float(self.power_management.get("btr_u_nom"))
             self.u_in_max = float(self.power_management.get("btr_u_max"))
-            u_charge_max_btr = float(self.power_management.get("charge_u_max"))
-            u_charge_min_btr = float(self.power_management.get("charge_u_min"))
-            u_charge_stable_btr = float(self.power_management.get("charge_u_stable"))
+
+            self.charge_level = float(self.power_management.get("charge_u_max"))
+            self.discharge_level = float(self.power_management.get("charge_u_min"))
+            self.charge_u_stable = float(self.power_management.get("charge_u_stable"))
+            self.charge_i_stable = float(self.power_management.get("charge_i_stable"))
 
             # сохраняем протокол
             self.voltage_threesolds['U_IN3'][0] = str(self.u_in_min)
             self.voltage_threesolds['U_IN3'][1] = str(self.u_nom)
             self.voltage_threesolds['U_IN3'][2] = str(self.u_in_max)
-            # расчитываем погрешность для IN3 BTR u_min
-            self.u_delta = self.percentage(self.u_delta_percent, self.u_in_min)
+            # ток заряда
+            # наряжение заряда
+
+            # расчитываем погрешность и проверяем зарядку АКБ
+            self.u_delta = self.percentage(self.u_delta_percent, self.discharge_level)
             # установить минимальный порог на ЛБП с учетом погрешности
-            assert self.power_supply.set_voltage(self.u_in_min - self.u_delta)
-            assert self.power_supply.check_voltage(self.u_in_min - self.u_delta)
+            assert self.power_supply.set_voltage(self.discharge_level - self.u_delta)
+            assert self.power_supply.check_voltage(self.discharge_level - self.u_delta)
 
-            # ожидаем пропажу АКБ
+            # ожидаем заряда
             self.wait_time(70)
+            # добавить напряжение и ток заряда проверить
 
             # предполагаемое поведение
             self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 0, "error_pwr2": 0,
-                              "error_btr": 1, "error_out1": 0, "error_out2": 0, "charge_btr": 1, "ten": 0, "apts": 0}
+                              "error_btr": 0, "error_out1": 0, "error_out2": 0, "charge_btr": 1}
+            assert self.psc24_10.check_behaviour(self.behaviour)
+            self.control_log.add(self.name, "Имитация процесса зарядки АКБ - исправно", True)
 
-            # определяем по поведению сработал ли порог u_min
-            if self.psc24_10.check_behaviour(self.behaviour):
-                self.voltage_threesolds['ResIN3'][0] = "ok"
-            else:
-                self.voltage_threesolds['ResIN3'][0] = "bad"
-            self.control_log.add(self.name,
-                                 "Результат работы срабатывания по u_min: " + self.voltage_threesolds['ResIN3'][0],
-                                 True)
+            # расчитываем погрешность и проверяем полный заряд АКБ
+            self.u_delta = self.percentage(self.u_delta_percent, self.charge_level)
+            # установить минимальный порог на ЛБП с учетом погрешности
+            assert self.power_supply.set_voltage(self.charge_level + self.u_delta)
+            assert self.power_supply.check_voltage(self.charge_level + self.u_delta)
 
-            # устанавливаем номинальное напряжение
-            assert self.power_supply.set_voltage(self.u_nom)
-            assert self.power_supply.check_voltage(self.u_nom)
-
+            # ожидаем заряда
             self.wait_time(70)
+            # добавить напряжение и ток заряда проверить
 
             # предполагаемое поведение
             self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 0, "error_pwr2": 0,
-                              "error_btr": 0, "error_out1": 0, "error_out2": 0, "charge_btr": 1, "ten": 0, "apts": 0}
+                              "error_btr": 0, "error_out1": 0, "error_out2": 0, "charge_btr": 0}
+            assert self.psc24_10.check_behaviour(self.behaviour)
+            self.control_log.add(self.name, "Имитация полного заряда АКБ - исправно", True)
 
-            # определяем по поведению сработал ли порог u_nom
+            # определяем работает ли зарядка АКБ в итоге
             if self.psc24_10.check_behaviour(self.behaviour):
-                self.voltage_threesolds['ResIN3'][1] = "ok"
+                self.voltage_threesolds['ChargeBTR'][0] = "ok"
             else:
-                self.voltage_threesolds['ResIN3'][1] = "bad"
-            self.control_log.add(self.name,
-                                 "Результат работы срабатывания по u_nom: " + self.voltage_threesolds['ResIN3'][1],
-                                 True)
+                self.voltage_threesolds['ChargeBTR'][0] = "bad"
+
 
             # расчитываем погрешность для IN3 u_max
             self.u_delta = self.percentage(self.u_delta_percent, self.u_in_max)
@@ -1133,7 +1089,7 @@ class Check_psc24_10:
 
             # предполагаемое поведение
             self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 0, "error_pwr2": 0,
-                              "error_btr": 1, "error_out1": 0, "error_out2": 0, "charge_btr": 0, "ten": 0, "apts": 0}
+                              "error_btr": 1, "error_out1": 0, "error_out2": 0, "charge_btr": 0}
 
             if self.psc24_10.check_behaviour(self.behaviour):
                 self.voltage_threesolds['ResIN3'][2] = "ok"
@@ -1144,19 +1100,48 @@ class Check_psc24_10:
                                  True)
 
             # устанавливаем номинальное напряжение
-            # расчитываем погрешность для IN3 u_max
-            self.u_delta = self.percentage(self.u_delta_percent, u_charge_max_btr)
-            assert self.power_supply.set_voltage(u_charge_max_btr + self.u_delta)
-            assert self.power_supply.check_voltage(u_charge_max_btr + self.u_delta)
+            assert self.power_supply.set_voltage(self.u_nom)
+            assert self.power_supply.check_voltage(self.u_nom)
 
+            # ожидаем заряда
+            self.wait_time(70)
+            # добавить напряжение и ток заряда проверить
+
+            # предполагаемое поведение
+            self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 0, "error_pwr2": 0,
+                              "error_btr": 0, "error_out1": 0, "error_out2": 0, "charge_btr": 1}
+
+            # определяем по поведению сработал ли порог u_nom
+            if self.psc24_10.check_behaviour(self.behaviour):
+                self.voltage_threesolds['ResIN3'][1] = "ok"
+            else:
+                self.voltage_threesolds['ResIN3'][1] = "bad"
+            self.control_log.add(self.name,
+                                 "Результат работы срабатывания по u_nom: " + self.voltage_threesolds['ResIN3'][1],
+                                 True)
+
+
+            # расчитываем погрешность для IN3 u_min
+            self.u_delta = self.percentage(self.u_delta_percent, self.u_in_min)
+            # установить максимальный порог на ЛБП с учетом погрешности
+            assert self.power_supply.set_voltage(self.u_in_min - self.u_delta)
+            assert self.power_supply.check_voltage(self.u_in_min - self.u_delta)
+
+            # ожидаем пропажу АКБ
             self.wait_time(70)
 
             # предполагаемое поведение
             self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 0, "error_pwr2": 0,
-                              "error_btr": 0, "error_out1": 0, "error_out2": 0, "charge_btr": 0, "ten": 0, "apts": 0}
+                              "error_btr": 1, "error_out1": 0, "error_out2": 0, "charge_btr": 1}
 
-            # определяем по поведению сработал ли порог u_stable
-            assert self.psc24_10.check_behaviour(self.behaviour)
+            # определяем по поведению сработал ли порог u_min
+            if self.psc24_10.check_behaviour(self.behaviour):
+                self.voltage_threesolds['ResIN3'][0] = "ok"
+            else:
+                self.voltage_threesolds['ResIN3'][0] = "bad"
+            self.control_log.add(self.name,
+                                 "Результат работы срабатывания по u_min: " + self.voltage_threesolds['ResIN3'][0],
+                                 True)
 
             # отключаем АКБ
             assert self.dout_103.command(self.BTR, "ON")
@@ -1170,9 +1155,9 @@ class Check_psc24_10:
 
             # предполагаемое поведение
             self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 0, "error_pwr2": 0,
-                              "error_btr": 0, "error_out1": 0, "error_out2": 0, "charge_btr": 1, "ten": 0, "apts": 0}
+                              "error_btr": 0, "error_out1": 0, "error_out2": 0}
 
-            # определяем по поведению сработал ли порог u_stable
+            # проверяем поведение
             assert self.psc24_10.check_behaviour(self.behaviour)
 
             self.control_log.add(self.name, "Stage #5: Проверка порогов по напряжению завершена", True)

@@ -1173,7 +1173,7 @@ class Check_psc24_10:
 
             # предполагаемое поведение
             self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 0, "error_pwr2": 0,
-                              "error_btr": 0, "error_out1": 0, "error_out2": 0, "charge_btr": 1, "ten": 0, "apts": 0}
+                              "error_btr": 0, "error_out1": 0, "error_out2": 0, "ten": 0, "apts": 0}
 
             assert self.psc24_10.check_behaviour(self.behaviour)
 
@@ -1184,7 +1184,7 @@ class Check_psc24_10:
             # проверка работы датчика
             # предполагаемое поведение
             self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 0, "error_pwr2": 0,
-                              "error_btr": 0, "error_out1": 0, "error_out2": 0, "charge_btr": 1, "ten": 1, "apts": 0}
+                              "error_btr": 0, "error_out1": 0, "error_out2": 0, "ten": 1, "apts": 0}
 
             # считываем значение датчика
             assert self.psc24_10.check_ti("T1")
@@ -1210,7 +1210,7 @@ class Check_psc24_10:
 
             # предполагаемое поведение
             self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 0,
-                              "error_pwr2": 0, "error_btr": 0, "error_out1": 0, "error_out2": 0, "charge_btr": 1,"ten": 0,"apts": 0}
+                              "error_pwr2": 0, "error_btr": 0, "error_out1": 0, "error_out2": 0, "ten": 0,"apts": 0}
             # проверка работы датчика
             assert self.psc24_10.check_ti("T1")
             self.temp_t1 = self.psc24_10.get_ti()
@@ -1236,7 +1236,7 @@ class Check_psc24_10:
             self.wait_time(15)
             # предполагаемое поведение
             self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 0, "error_pwr2": 0,
-                              "error_btr": 0, "error_out1": 0, "error_out2": 0, "charge_btr": 1, "ten": 1, "apts": 0}
+                              "error_btr": 0, "error_out1": 0, "error_out2": 0, "ten": 1, "apts": 0}
             # проверка работы датчика (восстановление)
             assert self.psc24_10.check_ti("T1")
             self.temp_t1 = self.psc24_10.get_ti()
@@ -1257,7 +1257,7 @@ class Check_psc24_10:
 
             # предполагаемое поведение
             self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 0, "error_pwr2": 0,
-                              "error_btr": 0, "error_out1": 0, "error_out2": 0, "charge_btr": 1, "ten": 0, "apts": 0}
+                              "error_btr": 0, "error_out1": 0, "error_out2": 0, "ten": 0, "apts": 0}
             # проверка работы датчика
             assert self.psc24_10.check_ti("T1")
             self.temp_t1 = self.psc24_10.get_ti()
@@ -1307,7 +1307,7 @@ class Check_psc24_10:
 
             # предполагаемое поведение
             self.behaviour = {"pwr1": 0, "pwr2": 0, "btr": 1, "key1": 1, "key2": 1, "error_pwr1": 1, "error_pwr2": 1,
-                              "error_btr": 0, "error_out1": 0, "error_out2": 0, "charge_btr": 0, "ten": 0, "apts": 0}
+                              "error_btr": 0, "error_out1": 0, "error_out2": 0}
 
             assert self.psc24_10.check_behaviour(self.behaviour)
 
@@ -1322,7 +1322,7 @@ class Check_psc24_10:
 
             # предполагаемое поведение
             self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 0, "error_pwr2": 0,
-                              "error_btr": 0, "error_out1":    0, "error_out2": 0, "charge_btr": 1, "ten": 0, "apts": 0}
+                              "error_btr": 0, "error_out1":    0, "error_out2": 0}
 
             assert self.psc24_10.check_behaviour(self.behaviour)
 
@@ -1357,9 +1357,7 @@ class Check_psc24_10:
 
             # предполагаемое поведение
             self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 0,
-                              "error_pwr2": 0, "error_btr": 0, "error_out1": 0, "error_out2": 0, "charge_btr": 1,
-                              "ten": 0,
-                              "apts": 0}
+                              "error_pwr2": 0, "error_btr": 0, "error_out1": 0, "error_out2": 0}
 
             assert self.psc24_10.check_behaviour(self.behaviour)
 
@@ -1382,8 +1380,7 @@ class Check_psc24_10:
 
             # предполагаемое поведение
             self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 0, "key2": 1, "error_pwr1": 0,
-                              "error_pwr2": 0, "error_btr": 0, "error_out1": 1, "error_out2": 0, "charge_btr": 1, "ten": 0,
-                              "apts": 0}
+                              "error_pwr2": 0, "error_btr": 0, "error_out1": 1, "error_out2": 0}
 
             assert self.psc24_10.check_behaviour(self.behaviour)
 
@@ -1396,8 +1393,7 @@ class Check_psc24_10:
 
             # предполагаемое поведение
             self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 0,
-                              "error_pwr2": 0, "error_btr": 0, "error_out1": 0, "error_out2": 0, "charge_btr": 1, "ten": 0,
-                              "apts": 0}
+                              "error_pwr2": 0, "error_btr": 0, "error_out1": 0, "error_out2": 0}
 
             # отключаем OUT1 и подключаем OUT2
 
@@ -1411,9 +1407,7 @@ class Check_psc24_10:
 
             # предполагаемое поведение
             self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 0,
-                              "error_pwr2": 0, "error_btr": 0, "error_out1": 0, "error_out2": 0, "charge_btr": 1,
-                              "ten": 0,
-                              "apts": 0}
+                              "error_pwr2": 0, "error_btr": 0, "error_out1": 0, "error_out2": 0}
 
             assert self.psc24_10.check_behaviour(self.behaviour)
 
@@ -1436,9 +1430,7 @@ class Check_psc24_10:
 
             # предполагаемое поведение
             self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 0, "error_pwr1": 0,
-                              "error_pwr2": 0, "error_btr": 0, "error_out1": 0, "error_out2": 1, "charge_btr": 1,
-                              "ten": 0,
-                              "apts": 0}
+                              "error_pwr2": 0, "error_btr": 0, "error_out1": 0, "error_out2": 1}
 
             assert self.psc24_10.check_behaviour(self.behaviour)
 
@@ -1451,9 +1443,7 @@ class Check_psc24_10:
 
             # предполагаемое поведение
             self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 0,
-                              "error_pwr2": 0, "error_btr": 0, "error_out1": 0, "error_out2": 0, "charge_btr": 1,
-                              "ten": 0,
-                              "apts": 0}
+                              "error_pwr2": 0, "error_btr": 0, "error_out1": 0, "error_out2": 0}
 
             # отключить OUT2
             assert self.dout_103.command("KM15", "OFF")
@@ -1474,7 +1464,7 @@ class Check_psc24_10:
 
             # предполагаемое поведение
             self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 0, "error_pwr2": 0,
-                              "error_btr": 0, "error_out1": 0, "error_out2": 0, "charge_btr": 1, "ten": 0, "apts": 0}
+                              "error_btr": 0, "error_out1": 0, "error_out2": 0}
 
             assert self.psc24_10.check_behaviour(self.behaviour)
 
@@ -1505,8 +1495,7 @@ class Check_psc24_10:
 
             # предполагаемое поведение
             self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 0,
-                              "error_pwr2": 0, "error_btr": 0, "error_out1": 0, "error_out2": 0, "charge_btr": 1,
-                              "ten": 0, "apts": 0}
+                              "error_pwr2": 0, "error_btr": 0, "error_out1": 0, "error_out2": 0}
 
             assert self.psc24_10.check_behaviour(self.behaviour)
 
@@ -1532,8 +1521,7 @@ class Check_psc24_10:
 
             # предполагаемое поведение
             self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 0,
-                              "error_pwr2": 0, "error_btr": 0, "error_out1": 0, "error_out2": 0,
-                              "charge_btr": 1, "ten": 0, "apts": 0}
+                              "error_pwr2": 0, "error_btr": 0, "error_out1": 0, "error_out2": 0}
 
             assert self.psc24_10.check_behaviour(self.behaviour)
 
@@ -1545,8 +1533,7 @@ class Check_psc24_10:
 
             # предполагаемое поведение во время КЗ
             self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 0, "key2": 1, "error_pwr1": 0,
-                              "error_pwr2": 0, "error_btr": 0, "error_out1": 1, "error_out2": 0,
-                              "charge_btr": 1, "ten": 0, "apts": 0}
+                              "error_pwr2": 0, "error_btr": 0, "error_out1": 1, "error_out2": 0}
 
             assert self.psc24_10.check_behaviour(self.behaviour)
 
@@ -1558,8 +1545,7 @@ class Check_psc24_10:
 
             # предполагаемое поведение после КЗ
             self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 0,
-                              "error_pwr2": 0, "error_btr": 0, "error_out1": 0, "error_out2": 0,
-                              "charge_btr": 1, "ten": 0, "apts": 0}
+                              "error_pwr2": 0, "error_btr": 0, "error_out1": 0, "error_out2": 0}
 
             assert self.psc24_10.check_behaviour(self.behaviour)
 
@@ -1603,8 +1589,7 @@ class Check_psc24_10:
 
             # предполагаемое поведение после подключения OUT2
             self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 0,
-                              "error_pwr2": 0, "error_btr": 0, "error_out1": 0, "error_out2": 0,
-                              "charge_btr": 1, "ten": 0, "apts": 0}
+                              "error_pwr2": 0, "error_btr": 0, "error_out1": 0, "error_out2": 0}
 
             assert self.psc24_10.check_behaviour(self.behaviour)
 
@@ -1631,8 +1616,7 @@ class Check_psc24_10:
 
             # предполагаемое поведение во время КЗ
             self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 0, "error_pwr1": 0,
-                              "error_pwr2": 0, "error_btr": 0, "error_out1": 0, "error_out2": 1,
-                              "charge_btr": 1, "ten": 0, "apts": 0}
+                              "error_pwr2": 0, "error_btr": 0, "error_out1": 0, "error_out2": 1}
 
             assert self.psc24_10.check_behaviour(self.behaviour)
 
@@ -1644,8 +1628,7 @@ class Check_psc24_10:
             # в дальнейшем следует сделать проверку отдельных тс ов, а не всех сразу
             # предполагаемое поведение после КЗ
             self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 0,
-                              "error_pwr2": 0, "error_btr": 0, "error_out1": 0, "error_out2": 0,
-                              "charge_btr": 1, "ten": 0, "apts": 0}
+                              "error_pwr2": 0, "error_btr": 0, "error_out1": 0, "error_out2": 0}
 
             assert self.psc24_10.check_behaviour(self.behaviour)
 
@@ -1672,8 +1655,7 @@ class Check_psc24_10:
 
             # предполагаемое поведение после КЗ
             self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 0,
-                              "error_pwr2": 0, "error_btr": 0, "error_out1": 0, "error_out2": 0,
-                              "charge_btr": 1, "ten": 0, "apts": 0}
+                              "error_pwr2": 0, "error_btr": 0, "error_out1": 0, "error_out2": 0}
 
             assert self.psc24_10.check_behaviour(self.behaviour)
 

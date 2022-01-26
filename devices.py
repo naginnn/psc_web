@@ -481,7 +481,7 @@ class Psc_10:
                 if t >= self.timeout - 1:
                     self.log.add(self.name, "Неудалось получить телеизмерение с устройства", False)
                     return False
-
+    ### изменить или написать новую чтобы можно было передавать один или несколько тс'ов отработать в тест модуле
     def check_behaviour(self, behav):
         time_sec = datetime.now().strftime('%H:%M:%S.%f')[:-4]
         self.log.add(self.name, "Ожидание включения устройства", True)

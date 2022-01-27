@@ -506,6 +506,7 @@ class Psc_10:
                     return False
 
     def get_all_ts(self):
+        i = 0
         behaviour_list = {"pwr1": 0, "pwr2": 0, "btr": 0, "key1": 0, "key2": 0, "error_pwr1": 0, "error_pwr2": 0,
                               "error_btr": 0, "error_out1": 0, "error_out2": 0, "charge_btr": 0, "ten": 0, "apts": 0}
         try:

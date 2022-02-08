@@ -112,7 +112,6 @@ def shemeilogic():
 def configuration():
     data = {}
     if request.method == 'POST':
-
         soft_version = request.form.get('soft_version')
         ip_adress = request.form.get('ip_adress')
         port = request.form.get('port')

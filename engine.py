@@ -512,6 +512,8 @@ class Check_psc24_10:
             assert self.eeprom.read_power_management()
             self.power_management = self.eeprom.get_power_management()
 
+            self.out_i_1_temp = self.power_management.get("out_i_1")
+            self.out_i_2_temp = self.power_management.get("out_i_2")
             # записываем уставки по току out1 = 9.7; out2 = 0.2
             assert self.eeprom.write_max_current_value(5, 5)
 
@@ -615,6 +617,10 @@ class Check_psc24_10:
                                          self.u_nom) + " Фактическое напряжение " + str(self.u_in1_fact) +
                                      " > " + str(self.u_delta_percent), False)
 
+            # подключаем OUT1
+            assert self.dout_103.command("KM14", "ON")
+            assert self.din_202.check_voltage("KM14", "ON")
+
             # подать токи на выхода
             # подключаем коммутатор #1
             assert self.dout_102.command("KL18", "ON")
@@ -624,10 +630,6 @@ class Check_psc24_10:
             # подключаем коммутатор #2
             assert self.dout_102.command("KL19", "ON")
             assert self.din_201.check_voltage("KL19", "ON")
-
-            # подключаем OUT1
-            assert self.dout_103.command("KM14", "ON")
-            assert self.din_202.check_voltage("KM14", "ON")
 
             # предполагаемое поведение
             self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1}
@@ -662,6 +664,16 @@ class Check_psc24_10:
                                      " Фактический ток " + str(self.i_out1_fact) +
                                      " > " + str(self.i_delta_percent), False)
 
+            # подать токи на выхода
+            # отключаем коммутатор #1
+            assert self.dout_102.command("KL18", "OFF")
+            assert self.din_201.check_voltage("KL18", "OFF")
+            # проверяем состояние
+            assert self.psc24_10.check_behaviour(self.behaviour)
+            # отключаем коммутатор #2
+            assert self.dout_102.command("KL19", "OFF")
+            assert self.din_201.check_voltage("KL19", "OFF")
+
             # отключаем OUT1
             assert self.dout_103.command("KM14", "OFF")
             assert self.din_202.check_voltage("KM14", "OFF")
@@ -669,6 +681,16 @@ class Check_psc24_10:
             # включаем OUT2
             assert self.dout_103.command("KM15", "ON")
             assert self.din_202.check_voltage("KM15", "ON")
+
+            # подать токи на выхода
+            # подключаем коммутатор #1
+            assert self.dout_102.command("KL18", "ON")
+            assert self.din_201.check_voltage("KL18", "ON")
+            # проверяем состояние
+            assert self.psc24_10.check_behaviour(self.behaviour)
+            # подключаем коммутатор #2
+            assert self.dout_102.command("KL19", "ON")
+            assert self.din_201.check_voltage("KL19", "ON")
 
             # предполагаемое поведение
             self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1}
@@ -1293,7 +1315,7 @@ class Check_psc24_10:
             self.control_log.add(self.name, "Error #6 Ошибка проверки работы ТЭН и обрыва связи с датчиком", False)
             return False
 
-    # переключение каналов stage 7 (в работе)
+    # переключение каналов stage 7 (в работе добавить нагрузку и коммутатор)
     def switch_channel(self):
         self.control_log.add(self.name, "Stage #7 Переключение каналов (Проверка провалов по напряжению)", True)
         try:
@@ -1350,24 +1372,31 @@ class Check_psc24_10:
                 self.switching_channels['Переключение каналов'][0] = "fail"
                 assert False
 
-            self.control_log.add(self.name, "Stage #7 Stage #7 Переключение каналов (Проверка провалов по напряжению)", True)
+            self.control_log.add(self.name, "Stage #7 Переключение каналов (Проверка провалов по напряжению пройдена)", True)
             return True
         except:
             self.switching_channels['Переключение каналов'][0] = "fail"
-            self.control_log.add(self.name, "Error #7 Stage #7 Переключение каналов (Проверка провалов по напряжению)", False)
+            self.control_log.add(self.name, "Error #7 Переключение каналов (Проверка провалов по напряжению не пройдена)", False)
             return False
 
     # аварийные режимы работы stage 8
     def overload_mode(self):
         self.control_log.add(self.name, "Stage #8 Проверка режима перегрузка", True)
         try:
-            # подключаем OUT1
-            assert self.dout_103.command("KM14", "ON")
-            assert self.din_202.check_voltage("KM14", "ON")
-
-            # отключить OUT2
-            assert self.dout_103.command("KM15", "OFF")
-            assert self.din_202.check_voltage("KM15", "OFF")
+            #
+            # ###########ONLY FOR TEST###############
+            # # подключаем IN1
+            # assert self.dout_101.command(self.IN1, "ON")
+            # assert self.din_201.check_voltage(self.IN1, "ON")
+            #
+            # # подключаем IN2
+            # assert self.dout_101.command(self.IN2, "ON")
+            # assert self.din_201.check_voltage(self.IN2, "ON")
+            #
+            # # подключаем АКБ
+            # assert self.dout_103.command(self.BTR, "ON")
+            # assert self.din_202.check_voltage(self.BTR, "ON")
+            # ###########ONLY FOR TEST###############
 
             # предполагаемое поведение
             self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 0,
@@ -1375,20 +1404,26 @@ class Check_psc24_10:
 
             assert self.psc24_10.check_behaviour(self.behaviour)
 
-            # self.eeprom.write_max_current_value()
-            for load in self.switches_load:
-                # получаем ТИ с OUT1
-                assert self.psc24_10.check_ti("I_OUT1")
-                self.i_out1_fact = self.psc24_10.get_ti()
-                if (self.i_out1_fact >= (float(self.power_management.get("out_i_1")) - 0.6)):
-                    # подключаем коммутатор
-                    assert self.dout_102.command(load, "ON")
-                    assert self.din_201.check_voltage(load, "ON")
-                    break
-                else:
-                    # подключаем коммутатор
-                    assert self.dout_102.command(load, "ON")
-                    assert self.din_201.check_voltage(load, "ON")
+            # подключаем OUT1 реостат
+            assert self.dout_103.command("KM16", "ON")
+            assert self.din_202.check_voltage("KM16", "ON")
+
+            # предполагаемое поведение
+            self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 0,
+                              "error_pwr2": 0, "error_btr": 0, "error_out1": 0, "error_out2": 0}
+
+            assert self.psc24_10.check_behaviour(self.behaviour)
+
+            # записываем уставки по току out1 = 9; out2 = 1
+            assert self.eeprom.write_max_current_value(9, 1)
+
+            assert self.dout_104.command("KM12", "ON")
+            assert self.din_202.check_voltage("KM12", "ON")
+
+            assert self.psc24_10.check_behaviour(self.behaviour)
+
+            assert self.dout_104.command("KM13", "ON")
+            assert self.din_202.check_voltage("KM13", "ON")
 
             self.wait_time(5)
 
@@ -1398,12 +1433,14 @@ class Check_psc24_10:
 
             assert self.psc24_10.check_behaviour(self.behaviour)
 
-            # отключаем коммутаторы
-            for load in self.switches_load:
-                assert self.dout_102.command(load, "OFF")
-                assert self.din_201.check_voltage(load, "OFF")
+            # отключаем нагрузку
+            assert self.dout_104.command("KM12", "OFF")
+            assert self.din_202.check_voltage("KM12", "OFF")
 
-            self.wait_time(5)
+            assert self.dout_104.command("KM13", "OFF")
+            assert self.din_202.check_voltage("KM13", "OFF")
+
+            self.wait_time(15)
 
             # предполагаемое поведение
             self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 0,
@@ -1411,13 +1448,20 @@ class Check_psc24_10:
 
             # отключаем OUT1 и подключаем OUT2
 
-            # отключаем OUT1
-            assert self.dout_103.command("KM14", "OFF")
-            assert self.din_202.check_voltage("KM14", "OFF")
+            assert self.psc24_10.check_behaviour(self.behaviour)
 
-            # подключить OUT2
-            assert self.dout_103.command("KM15", "ON")
-            assert self.din_202.check_voltage("KM15", "ON")
+            # отключаем OUT1
+            assert self.dout_103.command("KM16", "OFF")
+            assert self.din_202.check_voltage("KM16", "OFF")
+
+            self.wait_time(10)
+
+            # подключаем OUT2 реостат
+            assert self.dout_103.command("KM17", "ON")
+            assert self.din_202.check_voltage("KM17", "ON")
+
+            # записываем уставки по току out1 = 1; out2 = 9
+            assert self.eeprom.write_max_current_value(1, 9)
 
             # предполагаемое поведение
             self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 0,
@@ -1425,22 +1469,17 @@ class Check_psc24_10:
 
             assert self.psc24_10.check_behaviour(self.behaviour)
 
-            # self.eeprom.write_max_current_value()
-            for load in self.switches_load:
-                # получаем ТИ с OUT1
-                assert self.psc24_10.check_ti("I_OUT1")
-                self.i_out2_fact = self.psc24_10.get_ti()
-                if (self.i_out2_fact >= (float(self.power_management.get("out_i_2")) - 0.6)):
-                    # подключаем коммутатор
-                    assert self.dout_102.command(load, "ON")
-                    assert self.din_201.check_voltage(load, "ON")
-                    break
-                else:
-                    # подключаем коммутатор
-                    assert self.dout_102.command(load, "ON")
-                    assert self.din_201.check_voltage(load, "ON")
-
             self.wait_time(5)
+
+            assert self.dout_104.command("KM12", "ON")
+            assert self.din_202.check_voltage("KM12", "ON")
+
+            assert self.psc24_10.check_behaviour(self.behaviour)
+
+            assert self.dout_104.command("KM13", "ON")
+            assert self.din_202.check_voltage("KM13", "ON")
+
+            self.wait_time(10)
 
             # предполагаемое поведение
             self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 0, "error_pwr1": 0,
@@ -1448,10 +1487,12 @@ class Check_psc24_10:
 
             assert self.psc24_10.check_behaviour(self.behaviour)
 
-            # отключаем коммутаторы
-            for load in self.switches_load:
-                assert self.dout_102.command(load, "OFF")
-                assert self.din_201.check_voltage(load, "OFF")
+            # отключаем нагрузку
+            assert self.dout_104.command("KM12", "OFF")
+            assert self.din_202.check_voltage("KM12", "OFF")
+
+            assert self.dout_104.command("KM13", "OFF")
+            assert self.din_202.check_voltage("KM13", "OFF")
 
             self.wait_time(5)
 
@@ -1459,9 +1500,20 @@ class Check_psc24_10:
             self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 0,
                               "error_pwr2": 0, "error_btr": 0, "error_out1": 0, "error_out2": 0}
 
+            assert self.psc24_10.check_behaviour(self.behaviour)
+
             # отключить OUT2
-            assert self.dout_103.command("KM15", "OFF")
-            assert self.din_202.check_voltage("KM15", "OFF")
+            assert self.dout_103.command("KM17", "OFF")
+            assert self.din_202.check_voltage("KM17", "OFF")
+
+            # записываем уставки по току out1 = default; out2 = default
+            assert self.eeprom.write_max_current_value(5, 5)
+
+            # предполагаемое поведение
+            self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 0,
+                              "error_pwr2": 0, "error_btr": 0, "error_out1": 0, "error_out2": 0}
+
+            assert self.psc24_10.check_behaviour(self.behaviour)
 
             self.emergency_modes['Результат'][1] = "ok"
             self.control_log.add(self.name, "Stage #8 Проверка режима перегрузка прошла успешно", True)
@@ -1475,23 +1527,16 @@ class Check_psc24_10:
     def short_curciut_mode(self):
         self.control_log.add(self.name, "Stage #9 Проверка режима короткого замыкания", True)
         try:
-
             # предполагаемое поведение
             self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 0, "error_pwr2": 0,
                               "error_btr": 0, "error_out1": 0, "error_out2": 0}
 
             assert self.psc24_10.check_behaviour(self.behaviour)
 
-            self.out_i_1_temp = self.power_management.get("out_i_1")
-            self.out_i_2_temp = self.power_management.get("out_i_2")
-            # записываем уставки по току out1 = 9.7; out2 = 0.2
+            # записываем уставки по току out1 = 9; out2 = 0
             assert self.eeprom.write_max_current_value(9, 1)
 
-            # подключаем OUT1 коммутаторы
-            assert self.dout_103.command("KM14", "ON")
-            assert self.din_202.check_voltage("KM14", "ON")
-
-            # отключаем OUT1 реостат
+            # подключаем OUT1 реостат
             assert self.dout_103.command("KM16", "ON")
             assert self.din_202.check_voltage("KM16", "ON")
 
@@ -1504,34 +1549,17 @@ class Check_psc24_10:
                 assert self.dout_104.command("KM12", "ON")
                 assert self.din_202.check_voltage("KM12", "ON")
 
-
-            self.wait_time(5)
-
             # предполагаемое поведение
             self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 0,
                               "error_pwr2": 0, "error_btr": 0, "error_out1": 0, "error_out2": 0}
 
             assert self.psc24_10.check_behaviour(self.behaviour)
 
-
+            self.wait_time(10)
 
             assert self.psc24_10.check_ti("I_OUT1")
             self.i_out1_fact = self.psc24_10.get_ti()
             self.control_log.add(self.name, "Нагрузка на OUT1 " + str(self.i_out1_fact) + " A", True)
-
-            # for load in self.switches_load:
-            #     # получаем ТИ с OUT1
-            #     assert self.psc24_10.check_ti("I_OUT1")
-            #     self.i_out1_fact = self.psc24_10.get_ti()
-            #     self.control_log.add(self.name, "Нагрузка на OUT1 " + str(self.i_out1_fact) + " A", True)
-            #     if (self.i_out1_fact < 8):
-            #         # подключаем коммутатор
-            #         assert self.dout_102.command(load, "ON")
-            #         assert self.din_201.check_voltage(load, "ON")
-            #         self.wait_time(3)
-            #     else:
-            #         break
-
 
             # предполагаемое поведение
             self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 0,
@@ -1543,7 +1571,7 @@ class Check_psc24_10:
             assert self.dout_104.command("KM19", "ON")
             assert self.din_202.check_voltage("KM19", "ON")
 
-            self.wait_time(10)
+            self.wait_time(20)
 
             # предполагаемое поведение во время КЗ
             self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 0, "key2": 1, "error_pwr1": 0,
@@ -1555,7 +1583,7 @@ class Check_psc24_10:
             assert self.dout_104.command("KM19", "OFF")
             assert self.din_202.check_voltage("KM19", "OFF")
 
-            self.wait_time(70)
+            self.wait_time(20)
 
             # предполагаемое поведение после КЗ
             self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 0,
@@ -1568,25 +1596,12 @@ class Check_psc24_10:
             assert self.dout_104.command("KM13", "OFF")
             assert self.din_202.check_voltage("KM13", "OFF")
 
-            # отключаем коммутаторы
-            for load in self.switches_load:
-                assert self.dout_102.command(load, "OFF")
-                assert self.din_201.check_voltage(load, "OFF")
-
-            # отключаем OUT1 коммутаторы
-            assert self.dout_103.command("KM14", "OFF")
-            assert self.din_202.check_voltage("KM14", "OFF")
-
             # отключаем OUT1 реостат
             assert self.dout_103.command("KM16", "OFF")
             assert self.din_202.check_voltage("KM16", "OFF")
 
             # записываем уставки по току out2 = 0.2; out1 = 9.7
             assert self.eeprom.write_max_current_value(1, 9)
-
-            # подключаем OUT2 коммутаторы
-            assert self.dout_103.command("KM15", "ON")
-            assert self.din_202.check_voltage("KM15", "ON")
 
             # подключаем OUT2 реостат
             assert self.dout_103.command("KM17", "ON")
@@ -1607,26 +1622,18 @@ class Check_psc24_10:
 
             assert self.psc24_10.check_behaviour(self.behaviour)
 
-            # for load in self.switches_load:
-            #     # получаем ТИ с OUT2
-            #     assert self.psc24_10.check_ti("I_OUT2")
-            #     self.i_out2_fact = self.psc24_10.get_ti()
-            #     self.control_log.add(self.name, "Нагрузка на OUT2 " + str(self.i_out2_fact) + " A", True)
-            #     if (self.i_out2_fact < 8):
-            #         # подключаем коммутатор
-            #         assert self.dout_102.command(load, "ON")
-            #         assert self.din_201.check_voltage(load, "ON")
-            #         self.wait_time(3)
-            #     else:
-            #         break
+            assert self.psc24_10.check_ti("I_OUT2")
+            self.i_out2_fact = self.psc24_10.get_ti()
+            self.control_log.add(self.name, "Нагрузка на OUT2 " + str(self.i_out2_fact) + " A", True)
 
+            self.wait_time(10)
 
             # КЗ на OUT2 ПРОВЕРИТЬ!!!! out1  РАБОТАЕТ!
             assert self.dout_104.command("KM19", "ON")
             assert self.din_202.check_voltage("KM19", "ON")
 
             # добавить задержку
-            self.wait_time(10)
+            self.wait_time(20)
 
             # предполагаемое поведение во время КЗ
             self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 0, "error_pwr1": 0,
@@ -1638,28 +1645,20 @@ class Check_psc24_10:
             assert self.dout_104.command("KM19", "OFF")
             assert self.din_202.check_voltage("KM19", "OFF")
 
-            self.wait_time(70)
-            # в дальнейшем следует сделать проверку отдельных тс ов, а не всех сразу
+            self.wait_time(20)
+
             # предполагаемое поведение после КЗ
             self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 0,
                               "error_pwr2": 0, "error_btr": 0, "error_out1": 0, "error_out2": 0}
 
             assert self.psc24_10.check_behaviour(self.behaviour)
 
-            # отключаем коммутаторы
-            for load in self.switches_load:
-                assert self.dout_102.command(load, "OFF")
-                assert self.din_201.check_voltage(load, "OFF")
 
             # снимаем нагрузку с реостата 10А или 6А
             assert self.dout_104.command("KM12", "OFF")
             assert self.din_202.check_voltage("KM12", "OFF")
             assert self.dout_104.command("KM13", "OFF")
             assert self.din_202.check_voltage("KM13", "OFF")
-
-            # отключить OUT2 коммутаторы
-            assert self.dout_103.command("KM15", "OFF")
-            assert self.din_202.check_voltage("KM15", "OFF")
 
             # отключить OUT2 реостат
             assert self.dout_103.command("KM17", "OFF")

@@ -678,6 +678,8 @@ class Check_psc24_10:
             assert self.dout_103.command("KM14", "OFF")
             assert self.din_202.check_voltage("KM14", "OFF")
 
+            self.wait_time(10)
+
             # включаем OUT2
             assert self.dout_103.command("KM15", "ON")
             assert self.din_202.check_voltage("KM15", "ON")
@@ -1383,7 +1385,7 @@ class Check_psc24_10:
     def overload_mode(self):
         self.control_log.add(self.name, "Stage #8 Проверка режима перегрузка", True)
         try:
-            #
+
             # ###########ONLY FOR TEST###############
             # # подключаем IN1
             # assert self.dout_101.command(self.IN1, "ON")
@@ -1425,7 +1427,7 @@ class Check_psc24_10:
             assert self.dout_104.command("KM13", "ON")
             assert self.din_202.check_voltage("KM13", "ON")
 
-            self.wait_time(5)
+            self.wait_time(15)
 
             # предполагаемое поведение
             self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 0, "key2": 1, "error_pwr1": 0,
@@ -1440,7 +1442,7 @@ class Check_psc24_10:
             assert self.dout_104.command("KM13", "OFF")
             assert self.din_202.check_voltage("KM13", "OFF")
 
-            self.wait_time(15)
+            self.wait_time(25)
 
             # предполагаемое поведение
             self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 0,
@@ -1479,7 +1481,7 @@ class Check_psc24_10:
             assert self.dout_104.command("KM13", "ON")
             assert self.din_202.check_voltage("KM13", "ON")
 
-            self.wait_time(10)
+            self.wait_time(15)
 
             # предполагаемое поведение
             self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 0, "error_pwr1": 0,
@@ -1494,7 +1496,7 @@ class Check_psc24_10:
             assert self.dout_104.command("KM13", "OFF")
             assert self.din_202.check_voltage("KM13", "OFF")
 
-            self.wait_time(5)
+            self.wait_time(25)
 
             # предполагаемое поведение
             self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 0,
@@ -1571,7 +1573,7 @@ class Check_psc24_10:
             assert self.dout_104.command("KM19", "ON")
             assert self.din_202.check_voltage("KM19", "ON")
 
-            self.wait_time(20)
+            self.wait_time(15)
 
             # предполагаемое поведение во время КЗ
             self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 0, "key2": 1, "error_pwr1": 0,
@@ -1583,7 +1585,7 @@ class Check_psc24_10:
             assert self.dout_104.command("KM19", "OFF")
             assert self.din_202.check_voltage("KM19", "OFF")
 
-            self.wait_time(20)
+            self.wait_time(25)
 
             # предполагаемое поведение после КЗ
             self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 0,
@@ -1626,14 +1628,12 @@ class Check_psc24_10:
             self.i_out2_fact = self.psc24_10.get_ti()
             self.control_log.add(self.name, "Нагрузка на OUT2 " + str(self.i_out2_fact) + " A", True)
 
-            self.wait_time(10)
 
             # КЗ на OUT2 ПРОВЕРИТЬ!!!! out1  РАБОТАЕТ!
             assert self.dout_104.command("KM19", "ON")
             assert self.din_202.check_voltage("KM19", "ON")
 
-            # добавить задержку
-            self.wait_time(20)
+            self.wait_time(15)
 
             # предполагаемое поведение во время КЗ
             self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 0, "error_pwr1": 0,
@@ -1645,7 +1645,7 @@ class Check_psc24_10:
             assert self.dout_104.command("KM19", "OFF")
             assert self.din_202.check_voltage("KM19", "OFF")
 
-            self.wait_time(20)
+            self.wait_time(25)
 
             # предполагаемое поведение после КЗ
             self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 0,

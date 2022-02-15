@@ -338,7 +338,7 @@ class Check_psc24_10:
     BTR = ""
     power_supply_voltage = 0.0
     device = [" ","KM7", "KM8", "KM9", "KM10", "KM11"]
-    switches_load = ["KL18", "KL19", "KL20", "KL21", "KL22", "KL23", "KL24", "KL25", "KL26", "KL27", "KL28", "KL29"]
+    switches_load = ["KL18", "KL19", "KL20", "KL21", "KL22", "KL23", "KL24", "KL25", "KL27", "KL28", "KL29"]
     control_com = ""
     ammeter_com = ""
     device_com = ""
@@ -402,8 +402,9 @@ class Check_psc24_10:
             assert modb_ammeter_out2 .getConnection("Амперметр OUT2", self.ammeter_com, 6, 19200, self.control_log)
 
             config = self.settings.load("settings.cfg")
-            # self.power_supply = devices.PowerSupply(config.get("ip_adress"), config.get("port"), "ЛБП",self.control_log,1)
-            # assert self.power_supply.connection()
+            # не забыть ввести в работу
+            self.power_supply = devices.PowerSupply(config.get("ip_adress"), config.get("port"), "ЛБП",self.control_log,1)
+            assert self.power_supply.connection()
 
             # заменить просто проверкой что пинг доступен добавить ассерт
             # self.router = devices.Router("192.168.1.1", "Роутер")
@@ -427,9 +428,9 @@ class Check_psc24_10:
             # читаем конфигурацию assert/ получать setting getter'ом
             self.config = self.settings.load("settings.cfg")
 
-            if config.get("device_name") == "psc24_10":
+            if self.config.get("device_name") == "psc24_10":
                 self.power_supply_voltage = 24.0
-            if config.get("device_name") == "psc48_10":
+            if self.config.get("device_name") == "psc48_10":
                 self.power_supply_voltage = 48.0
 
             self.IN1 = self.power_input[config.get("power_supply_type")][0]
@@ -1461,7 +1462,7 @@ class Check_psc24_10:
         self.control_log.add(self.name, "Stage #8 Проверка режима перегрузка", True)
         try:
 
-            ###########ONLY FOR TEST###############
+            ##########ONLY FOR TEST###############
             # подключаем IN1
             assert self.dout_101.command(self.IN1, "ON")
             assert self.din_201.check_voltage(self.IN1, "ON")
@@ -1473,11 +1474,11 @@ class Check_psc24_10:
             # подключаем АКБ
             assert self.dout_103.command(self.BTR, "ON")
             assert self.din_202.check_voltage(self.BTR, "ON")
-            ###########ONLY FOR TEST###############
+            ##########ONLY FOR TEST###############
 
             # предполагаемое поведение
             self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 0,
-                              "error_pwr2": 0, "error_btr": 0, "error_out1": 0, "error_out2": 0}
+                              "error_pwr2": 0, "error_out1": 0, "error_out2": 0}
 
             assert self.psc24_10.check_behaviour(self.behaviour)
 
@@ -1485,55 +1486,90 @@ class Check_psc24_10:
             assert self.dout_103.command("KM16", "ON")
             assert self.din_202.check_voltage("KM16", "ON")
 
+            # подключаем OUT1 коммутаторы
+            assert self.dout_103.command("KM14", "ON")
+            assert self.din_202.check_voltage("KM14", "ON")
+
             # предполагаемое поведение
             self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 0,
-                              "error_pwr2": 0, "error_btr": 0, "error_out1": 0, "error_out2": 0}
+                              "error_pwr2": 0,  "error_out1": 0, "error_out2": 0}
 
             assert self.psc24_10.check_behaviour(self.behaviour)
 
             # записываем уставки по току out1 = 9; out2 = 1
             assert self.eeprom.write_max_current_value(9, 1)
 
-            assert self.dout_104.command("KM12", "ON")
-            assert self.din_202.check_voltage("KM12", "ON")
+            # assert self.dout_104.command("KM12", "ON")
+            # assert self.din_202.check_voltage("KM12", "ON")
 
             assert self.psc24_10.check_behaviour(self.behaviour)
 
-            assert self.dout_104.command("KM13", "ON")
-            assert self.din_202.check_voltage("KM13", "ON")
+            if self.config.get("device_name") == "psc24_10":
+                assert self.dout_104.command("KM13", "ON")
+                assert self.din_202.check_voltage("KM13", "ON")
+            if self.config.get("device_name") == "psc48_10":
+                assert self.dout_104.command("KM12", "ON")
+                assert self.din_202.check_voltage("KM12", "ON")
 
-            self.wait_time(15)
+            for load in self.switches_load:
+                assert self.dout_102.command(load, "ON")
+                assert self.din_201.check_voltage(load, "ON")
+                self.wait_time(2)
+                assert self.ammeter_out1.check_ti()
+                self.i_nom = self.ammeter_out1.get_ti()
+                self.control_log.add(self.name, "Ток out1 " + str(self.i_nom), True)
+                if self.i_nom > 9.5:
+                    self.control_log.add(self.name, "Устройство не уходит в защиту на out1 " + str(self.i_nom), False)
+                    assert False
+                if self.i_nom == 0.0 or self.i_nom == -0.0:
+                    break
+
+            self.wait_time(5)
 
             # предполагаемое поведение
             self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 0, "key2": 1, "error_pwr1": 0,
-                              "error_pwr2": 0, "error_btr": 0, "error_out1": 1, "error_out2": 0}
+                              "error_pwr2": 0, "error_out1": 1, "error_out2": 0}
 
             assert self.psc24_10.check_behaviour(self.behaviour)
 
-            # отключаем нагрузку
+            # # отключаем нагрузку
+            # assert self.dout_104.command("KM12", "OFF")
+            # assert self.din_202.check_voltage("KM12", "OFF")
+
             assert self.dout_104.command("KM12", "OFF")
             assert self.din_202.check_voltage("KM12", "OFF")
-
             assert self.dout_104.command("KM13", "OFF")
             assert self.din_202.check_voltage("KM13", "OFF")
+
+            for load in self.switches_load:
+                assert self.dout_102.command(load, "OFF")
+                assert self.din_201.check_voltage(load, "OFF")
 
             self.wait_time(25)
 
             # предполагаемое поведение
             self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 0,
-                              "error_pwr2": 0, "error_btr": 0, "error_out1": 0, "error_out2": 0}
+                              "error_pwr2": 0, "error_out1": 0, "error_out2": 0}
 
             # отключаем OUT1 и подключаем OUT2
 
             assert self.psc24_10.check_behaviour(self.behaviour)
 
-            # отключаем OUT1
+            # отключаем OUT1 коммутаторы
+            assert self.dout_103.command("KM14", "OFF")
+            assert self.din_202.check_voltage("KM14", "OFF")
+
+            # отключаем OUT1 реостат
             assert self.dout_103.command("KM16", "OFF")
             assert self.din_202.check_voltage("KM16", "OFF")
 
             self.wait_time(10)
 
             # подключаем OUT2 реостат
+            assert self.dout_103.command("KM15", "ON")
+            assert self.din_202.check_voltage("KM15", "ON")
+
+            # подключаем OUT2 коммутаторы
             assert self.dout_103.command("KM17", "ON")
             assert self.din_202.check_voltage("KM17", "ON")
 
@@ -1542,44 +1578,70 @@ class Check_psc24_10:
 
             # предполагаемое поведение
             self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 0,
-                              "error_pwr2": 0, "error_btr": 0, "error_out1": 0, "error_out2": 0}
+                              "error_pwr2": 0, "error_out1": 0, "error_out2": 0}
 
             assert self.psc24_10.check_behaviour(self.behaviour)
+
+            # assert self.dout_104.command("KM12", "ON")
+            # assert self.din_202.check_voltage("KM12", "ON")
+
+            assert self.psc24_10.check_behaviour(self.behaviour)
+
+            if self.config.get("device_name") == "psc24_10":
+                assert self.dout_104.command("KM13", "ON")
+                assert self.din_202.check_voltage("KM13", "ON")
+            if self.config.get("device_name") == "psc48_10":
+                assert self.dout_104.command("KM12", "ON")
+                assert self.din_202.check_voltage("KM12", "ON")
+
+            for load in self.switches_load:
+                assert self.dout_102.command(load, "ON")
+                assert self.din_201.check_voltage(load, "ON")
+                self.wait_time(2)
+                assert self.ammeter_out2.check_ti()
+                self.i_nom = self.ammeter_out2.get_ti()
+                self.control_log.add(self.name, "Ток out2 " + str(self.i_nom), True)
+                if self.i_nom > 9.5:
+                    self.control_log.add(self.name, "Устройство не уходит в защиту на out2 " + str(self.i_nom), False)
+                    assert False
+                if self.i_nom == 0.0 or self.i_nom == -0.0:
+                    break
 
             self.wait_time(5)
 
-            assert self.dout_104.command("KM12", "ON")
-            assert self.din_202.check_voltage("KM12", "ON")
-
-            assert self.psc24_10.check_behaviour(self.behaviour)
-
-            assert self.dout_104.command("KM13", "ON")
-            assert self.din_202.check_voltage("KM13", "ON")
-
-            self.wait_time(15)
 
             # предполагаемое поведение
             self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 0, "error_pwr1": 0,
-                              "error_pwr2": 0, "error_btr": 0, "error_out1": 0, "error_out2": 1}
+                              "error_pwr2": 0, "error_out1": 0, "error_out2": 1}
 
             assert self.psc24_10.check_behaviour(self.behaviour)
 
-            # отключаем нагрузку
+            # # отключаем нагрузку
+            # assert self.dout_104.command("KM12", "OFF")
+            # assert self.din_202.check_voltage("KM12", "OFF")
+
             assert self.dout_104.command("KM12", "OFF")
             assert self.din_202.check_voltage("KM12", "OFF")
-
             assert self.dout_104.command("KM13", "OFF")
             assert self.din_202.check_voltage("KM13", "OFF")
+
+            for load in self.switches_load:
+                assert self.dout_102.command(load, "OFF")
+                assert self.din_201.check_voltage(load, "OFF")
 
             self.wait_time(25)
 
             # предполагаемое поведение
             self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 0,
-                              "error_pwr2": 0, "error_btr": 0, "error_out1": 0, "error_out2": 0}
+                              "error_pwr2": 0, "error_out1": 0, "error_out2": 0}
 
             assert self.psc24_10.check_behaviour(self.behaviour)
 
-            # отключить OUT2
+            # отключить OUT2 коммутаторы
+            assert self.dout_103.command("KM15", "OFF")
+            assert self.din_202.check_voltage("KM15", "OFF")
+
+            # отключить OUT2 реостат
             assert self.dout_103.command("KM17", "OFF")
             assert self.din_202.check_voltage("KM17", "OFF")
 
@@ -1588,7 +1650,7 @@ class Check_psc24_10:
 
             # предполагаемое поведение
             self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 0,
-                              "error_pwr2": 0, "error_btr": 0, "error_out1": 0, "error_out2": 0}
+                              "error_pwr2": 0, "error_out1": 0, "error_out2": 0}
 
             assert self.psc24_10.check_behaviour(self.behaviour)
 
@@ -1596,6 +1658,8 @@ class Check_psc24_10:
             self.control_log.add(self.name, "Stage #8 Проверка режима перегрузка прошла успешно", True)
             return True
         except:
+            # записываем уставки по току out1 = default; out2 = default
+            assert self.eeprom.write_max_current_value(5, 5)
             self.control_log.add(self.name, "Error #8 Ошибка проверки режима перегрузка", False)
             self.emergency_modes['Результат'][1] = "bad"
             return False
@@ -1813,7 +1877,6 @@ class Check_psc24_10:
             # for git
             self.control_log.set_start(False)
             protocol_time = str(datetime.now().strftime('%d.%m.%Y-%H-%M'))
-            # обработать try false и добавить метод get
             self.config = self.settings.load("settings.cfg")
             self.control_com = self.config.get("control_com")
             self.ammeter_com = self.config.get("ammeter_com")
@@ -1851,22 +1914,22 @@ class Check_psc24_10:
                     assert self.dout_103.command(self.device[i], "ON")
                     assert self.din_202.check_voltage(self.device[i], "ON")
                     self.wait_time(2)
-                    # assert self.first_start()
-                    # self.wait_time(2)
-                    # assert self.configurate_check()
-                    # self.wait_time(2)
-                    # assert self.measurements_check()
-                    # self.wait_time(2)
-                    # assert self.check_voltage_thresholds()
-                    # self.wait_time(2)
-                    # assert self.check_ten()
-                    # self.wait_time(2)
-                    # assert self.switch_channel()
-                    # self.wait_time(2)
+                    assert self.first_start()
+                    self.wait_time(2)
+                    assert self.configurate_check()
+                    self.wait_time(2)
+                    assert self.measurements_check()
+                    self.wait_time(2)
+                    assert self.check_voltage_thresholds()
+                    self.wait_time(2)
+                    assert self.check_ten()
+                    self.wait_time(2)
+                    assert self.switch_channel()
+                    self.wait_time(2)
                     assert self.overload_mode()
                     self.wait_time(2)
-                    # assert self.short_curciut_mode()
-                    # self.wait_time(2)
+                    assert self.short_curciut_mode()
+                    self.wait_time(2)
 
                     assert protocol.create_protocol(protocol_time + "_tested_" + str(count_devices), self.control_log, self.check_number, self.serial_number, self.soft_version,
                                              self.voltage, self.current, self.current_difference, self.voltage_threesolds, self.switching_channels,

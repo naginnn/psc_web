@@ -76,18 +76,43 @@
                                 <option {{psc48_40}} value="psc48_40">PSC 48V-40A</option>
                             </select>
                         </div>
-
-                        <div class="room-selector">
-                            <p>Тип блоков питания:</p>
-                            <select id="power_supply_type"  class="form-control">
-                                <option {{pw24_5}} value="pw24_5">Topaz PW 24V 5A</option>
-                                <option {{wm24_10}} value="wm24_10">WeidMuller 24V 10A</option>
-                                <option {{wm24_40}} value="wm24_40">WeidMuller 24V 40A</option>
-                                <option {{wm48_20}} value="wm48_20">WeidMuller 48V 20A</option>
-                                <option {{mw24_67}} value="mw24_67">MeanWell 24V 67A</option>
-                                <option {{mw48_67}} value="mw48_67">MeanWell 48V 67A</option>
-                            </select>
+                                                <div class="room-selector">
+                            <p>Тип блоков питания</p>
+                            <select id="power_supply_type" class="form-control"></select>
                         </div>
+                        <script>
+                            var syncList1 = new syncList;
+                            syncList1.dataList = {
+                              'psc24_10':{
+                                  // 'wm24_10':'WeidMuller 24V 10A',
+                                  'wm24_40':'WeidMuller 24V 40A'
+                              },
+                              'psc24_40':{
+                                  'wm24_40':'WeidMuller 24V 40A',
+                                  'mw24_67':'MeanWell 24V 67A'
+                              },
+                              'psc48_10':{
+                                  'wm48_20':'WeidMuller 48V 20A'
+                              },
+
+                              'psc48_40':{
+                                  'mw48_67':'MeanWell 48V 67A'
+                              }
+                            };
+                            syncList1.sync("device_name","power_supply_type");
+
+                        </script>
+<!--                        <div class="room-selector">-->
+<!--                            <p>Тип блоков питания:</p>-->
+<!--                            <select id="power_supply_type"  class="form-control">-->
+<!--                                <option {{pw24_5}} value="pw24_5">Topaz PW 24V 5A</option>-->
+<!--                                <option {{wm24_10}} value="wm24_10">WeidMuller 24V 10A</option>-->
+<!--                                <option {{wm24_40}} value="wm24_40">WeidMuller 24V 40A</option>-->
+<!--                                <option {{wm48_20}} value="wm48_20">WeidMuller 48V 20A</option>-->
+<!--                                <option {{mw24_67}} value="mw24_67">MeanWell 24V 67A</option>-->
+<!--                                <option {{mw48_67}} value="mw48_67">MeanWell 48V 67A</option>-->
+<!--                            </select>-->
+<!--                        </div>-->
 
                 <div class="room-selector">
                     <label>Кол-во проверяемых устройств:</label>

@@ -154,111 +154,57 @@ class Diagnostics:
     # переделать циклы со списками
     def diagnostics(self, key):
         self.log.set_start(False)
-        self.modb_dout_101 = devices.Modb().getConnection("DOUT_101", 'com1', 101, self.log)
-        self.modb_dout_102 = devices.Modb().getConnection("DOUT_102", 'com1', 102, self.log)
-        self.modb_dout_103 = devices.Modb().getConnection("DOUT_103", 'com1', 103, self.log)
-        self.modb_dout_104 = devices.Modb().getConnection("DOUT_104", 'com1', 104, self.log)
-        self.modb_din_201 = devices.Modb().getConnection("DIN_201", 'com1', 201, self.log)
-        self.modb_din_202 = devices.Modb().getConnection("DIN_202", 'com1', 202, self.log)
+        # Инициализируем модули управления
+        try:
+            self.control_log.add(self.name, "Stage 1: Инициализация модулей управления", True)
+            # модули DOUT
+            modb_dout_101 = devices.Modb()
+            assert modb_dout_101.getConnection("DOUT_101", self.control_com, 101, 115200, self.control_log)
+            modb_dout_102 = devices.Modb()
+            assert modb_dout_102.getConnection("DOUT_102", self.control_com, 102, 115200, self.control_log)
+            modb_dout_103 = devices.Modb()
+            assert modb_dout_103.getConnection("DOUT_103", self.control_com, 103, 115200, self.control_log)
+            modb_dout_104 = devices.Modb()
+            assert modb_dout_104.getConnection("DOUT_104", self.control_com, 104, 115200, self.control_log)
+            modb_din_201 = devices.Modb()
+            # модули DIN
+            assert modb_din_201.getConnection("DIN_201", self.control_com, 201, 115200, self.control_log)
+            modb_din_202 = devices.Modb()
+            assert modb_din_202.getConnection("DIN_202", self.control_com, 202, 115200, self.control_log)
+            # амперметры
+            modb_ammeter_out1 = devices.Modb()
+            assert modb_ammeter_out1.getConnection("Амперметр OUT1", self.ammeter_com, 5, 19200, self.control_log)
+            modb_ammeter_out2 = devices.Modb()
+            assert modb_ammeter_out2.getConnection("Амперметр OUT2", self.ammeter_com, 6, 19200, self.control_log)
 
-        self.dout_101 = devices.Dout(self.modb_dout_101, dout_names_101, "DOUT_101", self.log)
-        self.dout_102 = devices.Dout(self.modb_dout_102, dout_names_102, "DOUT_102", self.log)
-        self.dout_103 = devices.Dout(self.modb_dout_103, dout_names_103, "DOUT_103", self.log)
-        self.dout_104 = devices.Dout(self.modb_dout_104, dout_names_104, "DOUT_104", self.log)
-        self.din_201 = devices.Din(self.modb_din_201, din_names_201, "DIN_201", self.log)
-        self.din_202 = devices.Din(self.modb_din_202, din_names_202, "DIN_202", self.log)
-        error_code = False
-        error_count = 0
-        i = 0
-        command_101 = list(dout_names_101.keys())
-        command_102 = list(dout_names_102.keys())
-        command_103 = list(dout_names_103.keys())
-        command_104 = list(dout_names_104.keys())
-        #dds
-        if ((self.modb_dout_101 != False) and (self.modb_din_201 != False)):
-            while i < len(dout_names_101):
-                if self.dout_101.command(command_101[i],key):
-                    self.din_201.check_voltage(command_101[i], key)
-                    time.sleep(1)
-                    if self.dout_101.command(command_101[i],"OFF"):
-                        self.din_201.check_voltage(command_101[i], "OFF")
-                    else:
-                        error_code = True
-                        error_count = error_count + 1
-                else:
-                    error_code = True
-                    error_count = error_count + 1
-                time.sleep(1)
-                i = i + 1
-        else:
-            error_code = True
-            error_count = error_count + 2
+            config = self.settings.load("settings.cfg")
+            # не забыть ввести в работу
+            self.power_supply = devices.PowerSupply(config.get("ip_adress"), config.get("port"), "ЛБП",
+                                                    self.control_log, 1)
+            assert self.power_supply.connection()
 
-        i = 0
-        if ((self.modb_dout_102 != False) and (self.modb_din_201 != False)):
-            while i < len(dout_names_102):
-                if self.dout_102.command(command_102[i],key):
-                    self.din_201.check_voltage(command_102[i],key)
-                    time.sleep(1)
-                    if self.dout_102.command(command_102[i], "OFF"):
-                        self.din_201.check_voltage(command_102[i], "OFF")
-                    else:
-                        error_code = True
-                        error_count = error_count + 1
-                else:
-                    error_code = True
-                    error_count = error_count + 1
-                time.sleep(0.5)
-                i = i + 1
-        else:
-            error_code = True
-            error_count = error_count + 2
+            # заменить просто проверкой что пинг доступен добавить ассерт
+            # self.router = devices.Router("192.168.1.1", "Роутер")
 
-        i = 0
-        if ((self.modb_dout_103 != False) and (self.modb_din_202 != False)):
-            while i < len(dout_names_103):
-                if self.dout_103.command(command_103[i],key):
-                    self.din_202.check_voltage(command_103[i], key)
-                    time.sleep(1)
-                    if self.dout_103.command(command_103[i], "OFF"):
-                        self.din_202.check_voltage(command_103[i], "OFF")
-                    else:
-                        error_code = True
-                        error_count = error_count + 1
-                else:
-                    error_code = True
-                    error_count = error_count + 1
-                time.sleep(1)
-                i = i + 1
-        else:
-            error_code = True
-            error_count = error_count + 2
+            self.dout_101 = devices.Dout(modb_dout_101.getСonnectivity(), dout_names_101, "DOUT_101", self.control_log,
+                                         10)
+            self.dout_102 = devices.Dout(modb_dout_102.getСonnectivity(), dout_names_102, "DOUT_102", self.control_log,
+                                         10)
+            self.dout_103 = devices.Dout(modb_dout_103.getСonnectivity(), dout_names_103, "DOUT_103", self.control_log,
+                                         10)
+            self.dout_104 = devices.Dout(modb_dout_104.getСonnectivity(), dout_names_104, "DOUT_104", self.control_log,
+                                         10)
+            self.din_201 = devices.Din(modb_din_201.getСonnectivity(), din_names_201, "DIN_201", self.control_log, 10)
+            self.din_202 = devices.Din(modb_din_202.getСonnectivity(), din_names_202, "DIN_202", self.control_log, 10)
+            self.ammeter_out1 = devices.Ammeter(modb_ammeter_out1.getСonnectivity(), "Амперметр OUT1", self.control_log,
+                                                30)
+            self.ammeter_out2 = devices.Ammeter(modb_ammeter_out2.getСonnectivity(), "Амперметр OUT2", self.control_log,
+                                                30)
+            self.log.set_finish(True)
+        except:
+            self.control_log.add(self.name, "Error #1: Ошибка инициализации модулей управления", False)
+            return False
 
-        i = 0
-        if ((self.modb_dout_104 != False) and (self.modb_din_202 != False)):
-            while i < len(dout_names_104):
-                if self.dout_104.command(command_104[i],key):
-                    self.din_202.check_voltage(command_104[i], key)
-                    time.sleep(1)
-                    if self.dout_104.command(command_104[i], "OFF"):
-                        self.din_202.check_voltage(command_104[i], "OFF")
-                    else:
-                        error_code = True
-                        error_count = error_count + 1
-                else:
-                    error_code = True
-                    error_count = error_count + 1
-                time.sleep(1)
-                i = i + 1
-        else:
-            error_code = True
-            error_count = error_count + 2
-
-        if error_code:
-            self.log.add(self.name, "Диагностика завершена, ошибок: " + str(error_count), True)
-        else:
-            self.log.add(self.name, "Диагностика завершена, нет ошибок", True)
-        self.log.set_finish(True)
 
 # Проверка устройства psc24_10
 class Check_psc24_10:
@@ -451,11 +397,7 @@ class Check_psc24_10:
         self.control_log.add(self.name, "Stage 2 Подготовка к первому запуску", True)
         # подаём 3 канала с ЛБП
         try:
-            # Конфигурируем ЛБП
-            assert self.power_supply.remote("ON")
-            assert self.power_supply.check_remote("REMOTE")
-            assert self.power_supply.output("ON")
-            assert self.power_supply.check_output("ON")
+
 
             # Подключаем входа
             assert self.dout_102.command("KL30", "ON")
@@ -464,6 +406,13 @@ class Check_psc24_10:
             assert self.din_201.check_voltage("KL31", "ON")
             assert self.dout_103.command("KL33", "ON")
             assert self.din_202.check_voltage("KL33", "ON")
+
+            # Конфигурируем ЛБП
+            assert self.power_supply.remote("ON")
+            assert self.power_supply.check_remote("REMOTE")
+            assert self.power_supply.output("ON")
+            assert self.power_supply.check_output("ON")
+
             assert self.power_supply.set_voltage(self.power_supply_voltage)
             assert self.power_supply.check_voltage(self.power_supply_voltage)
 
@@ -809,6 +758,11 @@ class Check_psc24_10:
     def check_voltage_thresholds(self):
         self.control_log.add(self.name, "Stage 5 Проверка порогов по напряжению", True)
         try:
+            assert self.power_supply.output("OFF")
+            assert self.power_supply.check_output("OFF")
+
+            self.wait_time(5)
+
             # делаем перекоммутацию IN2 с ЛБП на БП
             assert self.dout_102.command("KL31", "OFF")
             assert self.din_201.check_voltage("KL31", "OFF")
@@ -816,8 +770,6 @@ class Check_psc24_10:
             # Отключаем ЛБП IN3
             assert self.dout_103.command("KL33", "OFF")
             assert self.din_202.check_voltage("KL33", "OFF")
-
-            self.wait_time(5)
 
             # подключаем IN2
             assert self.dout_101.command(self.IN2, "ON")
@@ -827,9 +779,12 @@ class Check_psc24_10:
             assert self.dout_103.command(self.BTR, "ON")
             assert self.din_202.check_voltage(self.BTR, "ON")
 
+            assert self.power_supply.output("ON")
+            assert self.power_supply.check_output("ON")
+
             # вход IN1=ЛБП IN2=WM IN3=BTR
 
-            self.wait_time(10)
+            # self.wait_time(10)
 
             # предполагаемое поведение
             self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1}
@@ -854,7 +809,7 @@ class Check_psc24_10:
             assert self.power_supply.set_voltage(round(self.u_in_min - self.u_delta, 2))
             assert self.power_supply.check_voltage(round(self.u_in_min - self.u_delta, 2))
 
-            self.wait_time(10)
+            # self.wait_time(10)
 
             # предполагаемое поведение
             self.behaviour = {"pwr1": 0, "pwr2": 1, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 1, "error_pwr2": 0,
@@ -873,7 +828,7 @@ class Check_psc24_10:
             assert self.power_supply.set_voltage(round(self.u_nom, 2))
             assert self.power_supply.check_voltage(round(self.u_nom, 2))
 
-            self.wait_time(10)
+            # self.wait_time(10)
 
             # предполагаемое поведение
             self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 0, "error_pwr2": 0,
@@ -895,7 +850,7 @@ class Check_psc24_10:
             assert self.power_supply.set_voltage(round(self.u_in_max + self.u_delta, 2))
             assert self.power_supply.check_voltage(round(self.u_in_max + self.u_delta, 2))
 
-            self.wait_time(10)
+            # self.wait_time(10)
 
             # предполагаемое поведение
             self.behaviour = {"pwr1": 0, "pwr2": 1, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 1, "error_pwr2": 0,
@@ -914,7 +869,7 @@ class Check_psc24_10:
             assert self.power_supply.set_voltage(round(self.u_nom, 2))
             assert self.power_supply.check_voltage(round(self.u_nom, 2))
 
-            self.wait_time(10)
+            # self.wait_time(10)
 
             # предполагаемое поведение
             self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 0, "error_pwr2": 0,
@@ -923,9 +878,19 @@ class Check_psc24_10:
             # проверяем переход на IN1
             assert self.psc24_10.check_behaviour(self.behaviour)
 
+            assert self.power_supply.set_voltage(round(self.u_nom, 2))
+            assert self.power_supply.check_voltage(round(self.u_nom, 2))
+
+            # Конфигурируем ЛБП
+            assert self.power_supply.output("OFF")
+            assert self.power_supply.check_output("OFF")
+
+            self.wait_time(10)
+
             # отключаем IN1
             assert self.dout_102.command("KL30", "OFF")
             assert self.din_201.check_voltage("KL30", "OFF")
+
             # включаем IN2 ЛБП
             # отключаем IN2 БП
             assert self.dout_101.command(self.IN2, "OFF")
@@ -934,9 +899,14 @@ class Check_psc24_10:
             assert self.dout_102.command("KL31", "ON")
             assert self.din_201.check_voltage("KL31", "ON")
 
+            self.wait_time(10)
+
+            # Конфигурируем ЛБП
+            assert self.power_supply.output("ON")
+            assert self.power_supply.check_output("ON")
 
             # IN1=null IN2=ЛБП IN3=АКБ
-            self.wait_time(10)
+            # self.wait_time(10)
 
             # предполагаемое поведение
             self.behaviour = {"pwr1": 0, "pwr2": 1, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 1, "error_pwr2": 0,
@@ -960,7 +930,7 @@ class Check_psc24_10:
             assert self.power_supply.set_voltage(round(self.u_in_min - self.u_delta, 2))
             assert self.power_supply.check_voltage(round(self.u_in_min - self.u_delta, 2))
 
-            self.wait_time(10)
+            # self.wait_time(10)
 
             # предполагаемое поведение
             self.behaviour = {"pwr1": 0, "pwr2": 0, "btr": 1, "key1": 1, "key2": 1, "error_pwr1": 1, "error_pwr2": 1,
@@ -979,7 +949,7 @@ class Check_psc24_10:
             assert self.power_supply.set_voltage(round(self.u_nom, 2))
             assert self.power_supply.check_voltage(round(self.u_nom, 2))
 
-            self.wait_time(10)
+            # self.wait_time(10)
 
             # предполагаемое поведение
             self.behaviour = {"pwr1": 0, "pwr2": 1, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 1, "error_pwr2": 0,
@@ -1017,7 +987,7 @@ class Check_psc24_10:
             assert self.power_supply.set_voltage(round(self.u_nom, 2))
             assert self.power_supply.check_voltage(round(self.u_nom, 2))
 
-            self.wait_time(10)
+            # self.wait_time(10)
 
             # предполагаемое поведение
             self.behaviour = {"pwr1": 0, "pwr2": 1, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 1, "error_pwr2": 0,
@@ -1028,6 +998,11 @@ class Check_psc24_10:
             # Проверка АКБ и порогов по напряжению
             # IN1=null IN2=WM IN3=ЛБП
             # изменено для проверки АКБ (просто отключение)
+
+            assert self.power_supply.output("OFF")
+            assert self.power_supply.check_output("OFF")
+
+            self.wait_time(10)
 
             # отключаем ЛБП IN2
             assert self.dout_102.command("KL31", "OFF")
@@ -1044,11 +1019,14 @@ class Check_psc24_10:
             assert self.dout_103.command(self.BTR, "OFF")
             assert self.din_202.check_voltage(self.BTR, "OFF")
 
+            self.wait_time(5)
+
             # Включить ЛБП на IN3
             assert self.dout_103.command("KL33", "ON")
             assert self.din_202.check_voltage("KL33", "ON")
 
-
+            assert self.power_supply.output("ON")
+            assert self.power_supply.check_output("ON")
 
             # IN1=WM IN2=WM IN3=ЛБП
 
@@ -1181,13 +1159,18 @@ class Check_psc24_10:
                                  "Результат работы срабатывания по u_min: " + self.voltage_threesolds['ResIN3'][0],
                                  True)
 
-            # отключаем АКБ
-            assert self.dout_103.command(self.BTR, "ON")
-            assert self.din_202.check_voltage(self.BTR, "ON")
+            assert self.power_supply.output("OFF")
+            assert self.power_supply.check_output("OFF")
+
+            self.wait_time(5)
 
             # Выключить ЛБП на IN3
             assert self.dout_103.command("KL33", "OFF")
             assert self.din_202.check_voltage("KL33", "OFF")
+
+            # отключаем АКБ
+            assert self.dout_103.command(self.BTR, "ON")
+            assert self.din_202.check_voltage(self.BTR, "ON")
 
             self.wait_time(70)
 
@@ -1388,7 +1371,7 @@ class Check_psc24_10:
             assert self.dout_101.command(self.IN1, "OFF")
             assert self.din_201.check_voltage(self.IN1, "OFF")
 
-            # self.wait_time(5)
+            self.wait_time(5)
 
             # предполагаемое поведение
             self.behaviour = {"pwr1": 0, "pwr2": 0, "btr": 1, "key1": 1, "key2": 1, "error_pwr1": 1, "error_pwr2": 1,
@@ -1399,7 +1382,9 @@ class Check_psc24_10:
             # подключаем IN2
             assert self.dout_101.command(self.IN2, "ON")
             assert self.din_201.check_voltage(self.IN2, "ON")
+
             self.wait_time(5)
+
             # подключаем IN1
             assert self.dout_101.command(self.IN1, "ON")
             assert self.din_201.check_voltage(self.IN1, "ON")
@@ -1408,7 +1393,7 @@ class Check_psc24_10:
 
             # предполагаемое поведение
             self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 0, "error_pwr2": 0,
-                              "error_btr": 0, "error_out1":    0, "error_out2": 0}
+                            "error_out1":    0, "error_out2": 0}
 
             assert self.psc24_10.check_behaviour(self.behaviour)
 
@@ -1419,18 +1404,18 @@ class Check_psc24_10:
                 self.router.set_result()
             else:
                 self.control_log.add(self.name, "Нет связи с роутером", False)
-                self.switching_channels['Переключение каналов'][0] = "fail"
+                self.switching_channels['Переключение каналов'][0] = "bad"
                 assert False
 
             # подключаем коммутатор
             assert self.dout_102.command("KL26", "OFF")
             assert self.din_201.check_voltage("KL26", "OFF")
 
-            # подключаем коммутатор (для нагрузки)
+            # отключаем коммутатор (для нагрузки)
             assert self.dout_102.command("KL18", "OFF")
             assert self.din_201.check_voltage("KL18", "OFF")
 
-            # подключаем коммутатор (для нагрузки)
+            # отключаем коммутатор (для нагрузки)
             assert self.dout_102.command("KL19", "OFF")
             assert self.din_201.check_voltage("KL19", "OFF")
 
@@ -1438,7 +1423,7 @@ class Check_psc24_10:
             assert self.dout_102.command("KL20", "OFF")
             assert self.din_201.check_voltage("KL20", "OFF")
 
-            # подключаем коммутатор (для нагрузки)
+            # отключаем коммутатор (для нагрузки)
             assert self.dout_102.command("KL21", "OFF")
             assert self.din_201.check_voltage("KL21", "OFF")
 
@@ -1476,6 +1461,8 @@ class Check_psc24_10:
             assert self.din_202.check_voltage(self.BTR, "ON")
             ##########ONLY FOR TEST###############
 
+            timeout = self.psc24_10.timeout
+
             # предполагаемое поведение
             self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 0,
                               "error_pwr2": 0, "error_out1": 0, "error_out2": 0}
@@ -1511,26 +1498,42 @@ class Check_psc24_10:
                 assert self.dout_104.command("KM12", "ON")
                 assert self.din_202.check_voltage("KM12", "ON")
 
+            self.wait_time(15)
+
+            # поведение перегруза
+            self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 0, "key2": 1, "error_pwr1": 0,
+                              "error_pwr2": 0, "error_out1": 1, "error_out2": 0}
+
+            assert self.ammeter_out1.check_ti()
+            self.i_nom = self.ammeter_out1.get_ti()
+
+            if self.i_nom <= 0.0:
+                self.control_log.add(self.name, "Телеизмерения out1 не достоверны " + str(self.i_nom), True)
+                assert False
+
+            self.psc24_10.set_timeout(2)
             for load in self.switches_load:
+                self.control_log.add(self.name, "Ток out1 " + str(self.i_nom), True)
+                if self.psc24_10.check_behaviour(self.behaviour):
+                    self.control_log.add(self.name, "Out1 исправно ушел в защиту от перегрузки ", True)
+                    break
+                if self.i_nom > 9.5:
+                    self.control_log.add(self.name, "Устройство не уходит в защиту на out1 " + str(self.i_nom), False)
+                    assert False
                 assert self.dout_102.command(load, "ON")
                 assert self.din_201.check_voltage(load, "ON")
                 self.wait_time(2)
                 assert self.ammeter_out1.check_ti()
                 self.i_nom = self.ammeter_out1.get_ti()
-                self.control_log.add(self.name, "Ток out1 " + str(self.i_nom), True)
-                if self.i_nom > 9.5:
-                    self.control_log.add(self.name, "Устройство не уходит в защиту на out1 " + str(self.i_nom), False)
-                    assert False
-                if self.i_nom == 0.0 or self.i_nom == -0.0:
-                    break
 
-            self.wait_time(5)
-
-            # предполагаемое поведение
-            self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 0, "key2": 1, "error_pwr1": 0,
-                              "error_pwr2": 0, "error_out1": 1, "error_out2": 0}
-
-            assert self.psc24_10.check_behaviour(self.behaviour)
+            self.psc24_10.set_timeout(timeout)
+            # self.wait_time(5)
+            #
+            # # предполагаемое поведение
+            # self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 0, "key2": 1, "error_pwr1": 0,
+            #                   "error_pwr2": 0, "error_out1": 1, "error_out2": 0}
+            #
+            # assert self.psc24_10.check_behaviour(self.behaviour)
 
             # # отключаем нагрузку
             # assert self.dout_104.command("KM12", "OFF")
@@ -1585,7 +1588,6 @@ class Check_psc24_10:
             # assert self.dout_104.command("KM12", "ON")
             # assert self.din_202.check_voltage("KM12", "ON")
 
-            assert self.psc24_10.check_behaviour(self.behaviour)
 
             if self.config.get("device_name") == "psc24_10":
                 assert self.dout_104.command("KM13", "ON")
@@ -1594,27 +1596,50 @@ class Check_psc24_10:
                 assert self.dout_104.command("KM12", "ON")
                 assert self.din_202.check_voltage("KM12", "ON")
 
+            # for load in self.switches_load:
+            #     assert self.dout_102.command(load, "ON")
+            #     assert self.din_201.check_voltage(load, "ON")
+            #     self.wait_time(2)
+            #     assert self.ammeter_out2.check_ti()
+            #     self.i_nom = self.ammeter_out2.get_ti()
+            #     self.control_log.add(self.name, "Ток out2 " + str(self.i_nom), True)
+            #     if self.i_nom > 9.5:
+            #         self.control_log.add(self.name, "Устройство не уходит в защиту на out2 " + str(self.i_nom), False)
+            #         assert False
+            #     if self.i_nom == 0.0 or self.i_nom == -0.0:
+            #         break
+
+            self.wait_time(15)
+                # предполагаемое поведение
+            self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 0, "error_pwr1": 0,
+                              "error_pwr2": 0, "error_out1": 0, "error_out2": 1}
+
+            assert self.ammeter_out2.check_ti()
+            self.i_nom = self.ammeter_out2.get_ti()
+
+            if self.i_nom <= 0.0:
+                self.control_log.add(self.name, "Телеизмерения out2 не достоверны " + str(self.i_nom), True)
+                assert False
+
+            self.psc24_10.set_timeout(2)
             for load in self.switches_load:
+                self.control_log.add(self.name, "Ток out2 " + str(self.i_nom), True)
+                if self.psc24_10.check_behaviour(self.behaviour):
+                    self.control_log.add(self.name, "Out2 исправно ушел в защиту от перегрузки ", True)
+                    break
+                if self.i_nom > 10:
+                    self.control_log.add(self.name, "Устройство не уходит в защиту на out1 " + str(self.i_nom), False)
+                    assert False
                 assert self.dout_102.command(load, "ON")
                 assert self.din_201.check_voltage(load, "ON")
                 self.wait_time(2)
                 assert self.ammeter_out2.check_ti()
                 self.i_nom = self.ammeter_out2.get_ti()
-                self.control_log.add(self.name, "Ток out2 " + str(self.i_nom), True)
-                if self.i_nom > 9.5:
-                    self.control_log.add(self.name, "Устройство не уходит в защиту на out2 " + str(self.i_nom), False)
-                    assert False
-                if self.i_nom == 0.0 or self.i_nom == -0.0:
-                    break
 
-            self.wait_time(5)
+            self.psc24_10.set_timeout(timeout)
 
 
-            # предполагаемое поведение
-            self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 0, "error_pwr1": 0,
-                              "error_pwr2": 0, "error_out1": 0, "error_out2": 1}
-
-            assert self.psc24_10.check_behaviour(self.behaviour)
+            # assert self.psc24_10.check_behaviour(self.behaviour)
 
             # # отключаем нагрузку
             # assert self.dout_104.command("KM12", "OFF")
@@ -1658,6 +1683,8 @@ class Check_psc24_10:
             self.control_log.add(self.name, "Stage #8 Проверка режима перегрузка прошла успешно", True)
             return True
         except:
+            # возвращаем таймаут
+            self.psc24_10.set_timeout(timeout)
             # записываем уставки по току out1 = default; out2 = default
             assert self.eeprom.write_max_current_value(5, 5)
             self.control_log.add(self.name, "Error #8 Ошибка проверки режима перегрузка", False)
@@ -1829,9 +1856,10 @@ class Check_psc24_10:
             assert self.dout_102.off_enabled()
             assert self.dout_103.off_enabled()
             assert self.dout_104.off_enabled()
-            # assert self.power_supply.output("OFF")
-            # assert self.power_supply.check_output("OFF")
+            assert self.power_supply.output("OFF")
+            assert self.power_supply.check_output("OFF")
             self.clear_protocol_data()
+            self.wait_time(10)
             return True
         except:
             return False
@@ -1918,18 +1946,18 @@ class Check_psc24_10:
                     self.wait_time(2)
                     assert self.configurate_check()
                     self.wait_time(2)
-                    assert self.measurements_check()
-                    self.wait_time(2)
+                    # assert self.measurements_check()
+                    # self.wait_time(2)
                     assert self.check_voltage_thresholds()
                     self.wait_time(2)
-                    assert self.check_ten()
-                    self.wait_time(2)
-                    assert self.switch_channel()
-                    self.wait_time(2)
-                    assert self.overload_mode()
-                    self.wait_time(2)
-                    assert self.short_curciut_mode()
-                    self.wait_time(2)
+                    # assert self.check_ten()
+                    # self.wait_time(2)
+                    # assert self.switch_channel()
+                    # self.wait_time(2)
+                    # assert self.overload_mode()
+                    # self.wait_time(2)
+                    # assert self.short_curciut_mode()
+                    # self.wait_time(10)
 
                     assert protocol.create_protocol(protocol_time + "_tested_" + str(count_devices), self.control_log, self.check_number, self.serial_number, self.soft_version,
                                              self.voltage, self.current, self.current_difference, self.voltage_threesolds, self.switching_channels,

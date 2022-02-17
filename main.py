@@ -87,7 +87,7 @@ def test():
             # добавить сюда номер проверяемого устройства
         return jsonify({"message": control_log.get_log_data(), "result": control_log.get_log_result(), "flag": control_log.get_finish(),
                         "device_count": main_log.get_device_count(), "device_status": main_log.get_start(), "device_finish": main_log.get_finish(),
-                        "stage" : main_log.get_finish()})
+                        "serial_number" : main_log.get_serial_number(), "check_stage" : main_log.get_stage()})
 
     if request.method == 'GET':
         data = settings.load("settings.cfg")

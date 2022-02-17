@@ -1,3 +1,5 @@
+var i = 1; // счетчик
+
 function request(){
     $.ajax({
           url: 'test',
@@ -16,11 +18,21 @@ document.addEventListener('DOMContentLoaded', () => {
         var sumbit_type = document.querySelector('#test').disabled = true; // отключаю кнопку по началу проверки
         var log = document.querySelector('#log').value = "";
         // document.querySelector('#log').innerHTML = "Нажал!";
+        var doc = document;
+        var device_type = document.getElementsByClassName('device_type');
+        var quantity = document.getElementsByClassName('checked_dev');
+        // var serial_number = document.getElementsByClassName('serial_number');
+        var serial_number = document.getElementsByClassName('serial_number');
 
-        var colorArray = document.getElementsByClassName('checked_dev');
-        var serial_number = document.getElementsByClassName('serial_number1');
+        var configuration = document.getElementsByClassName('configuration');
+        var measurements = document.getElementsByClassName('measurements');
+        var functional = document.getElementsByClassName('functional');
+        var emergency = document.getElementsByClassName('emergency');
 
+        // alert(checked);
+        // alert(i);
         var color_flag = true;
+
         var standart_color = '#0000ff'
         // var device_color = new Array();
         // for (i = 0; i < 5; i++){
@@ -30,55 +42,120 @@ document.addEventListener('DOMContentLoaded', () => {
 //        document.querySelector('#result').innerHTML = text;
 
         request.onload = () => {
-                const data = JSON.parse(request.responseText);
+            const data = JSON.parse(request.responseText);
 //            let timerId = setInterval(() => loop(), 2000);
 //            let timerId = setTimeout(function tick() { alert('tick'); timerId = setTimeout(tick, 2000); }, 2000);
-                let delay = 400;
-                let timerId = setTimeout(
-                    function lala() {
-                        $.ajax({
+            let delay = 400;
+            let timerId = setTimeout(
+                function lala() {
+                    $.ajax({
                           url: 'test',
                           type: 'post',
                           success: function(data){
                           let res = '';
-                            $(document).ready(function() {
-                            $('#log').animate({
+                          $(document).ready(function() {
+                              $('#log').animate({
                                 scrollTop: $('#log').get(0).scrollHeight
                             }, 200);
-                        });
+                                });
 
 
-                            // alert("work!");
-                            // initialization_color.style.backgroundColor = '#76ff00';
-                            // var configuration_color = document.getElementsByClassName('configuration' + data.device_count);
-                            // var measurements_color = document.getElementsByClassName('measurements' + data.device_count);
-                            // var functional_color = document.getElementsByClassName('functional' + data.device_count);
-                            // var emergency_color = document.getElementsByClassName('emergency' + data.device_count);
-                            // var stand_errors_color = document.getElementsByClassName('stand_errors' + data.device_count);
-                            // table.serial_number1.style.backgroundColor = 'red';
-                            // table[1][1].value = "alalla"
-                            //   serial_number.value = "dsad"
-                            if (!data.device_finish){
-                                if (color_flag) {
-                                  colorArray[parseInt(data.device_count)].style.backgroundColor = '#07ff00';
-                                  color_flag = false;
-                                } else {
-                                  colorArray[parseInt(data.device_count)].style.backgroundColor = '#ffde00';
-                                  color_flag = true;
-                                }
-                            } else {
-                                if (data.device_status) {
-                                    colorArray[parseInt(data.device_count)].style.backgroundColor = '#76ff00';
-                                    // device_color.push('#76ff00');
-                                }
-                                else {
-                                    colorArray[parseInt(data.device_count)].style.backgroundColor = '#ff0000';
-                                    // device_color.push('#ff0000');
-                                }
-
-                            }
 
 
+            if (data.check_stage == "serial_number") {
+                quantity[parseInt(data.device_count)].style.backgroundColor = '#ced000';
+                device_type[parseInt(data.device_count)].style.backgroundColor = '#ced000';
+                serial_number[parseInt(data.device_count)].style.backgroundColor = '#ced000';
+                configuration[parseInt(data.device_count)].style.backgroundColor = '#ced000';
+                measurements[parseInt(data.device_count)].style.backgroundColor = '#ced000';
+                functional[parseInt(data.device_count)].style.backgroundColor = '#ced000';
+                emergency[parseInt(data.device_count)].style.backgroundColor = '#ced000';
+                serial_number[parseInt(data.device_count)].innerHTML = "В работе";
+            }
+
+            if (data.check_stage == "serial_number_pass") {
+                serial_number[parseInt(data.device_count)].innerHTML = data.serial_number;
+                serial_number[parseInt(data.device_count)].style.backgroundColor = '#009e28';
+            }
+            if (data.check_stage == "serial_number_fail") {
+                serial_number[parseInt(data.device_count)].innerHTML = "Не записан";
+                serial_number[parseInt(data.device_count)].style.backgroundColor = '#c10005';
+            }
+
+
+            if (data.check_stage == "configuration")
+                configuration[parseInt(data.device_count)].innerHTML = "В работе";
+            if (data.check_stage == "configuration_pass") {
+                configuration[parseInt(data.device_count)].innerHTML = "Соответствует";
+                configuration[parseInt(data.device_count)].style.backgroundColor = '#009e28';
+            }
+
+            if (data.check_stage == "configuration_fail") {
+                configuration[parseInt(data.device_count)].innerHTML = "Не соответствует";
+                configuration[parseInt(data.device_count)].style.backgroundColor = '#c10005';
+            }
+
+
+            if (data.check_stage == "measurements")
+                measurements[parseInt(data.device_count)].innerHTML = "В работе";
+            if (data.check_stage == "measurements_pass") {
+                measurements[parseInt(data.device_count)].innerHTML = "Соответствует";
+                measurements[parseInt(data.device_count)].style.backgroundColor = '#009e28';
+            }
+
+            if (data.check_stage == "measurements_fail") {
+                measurements[parseInt(data.device_count)].innerHTML = "Не соответствует";
+                measurements[parseInt(data.device_count)].style.backgroundColor = '#c10005';
+            }
+
+
+            if (data.check_stage == "functional")
+                functional[parseInt(data.device_count)].innerHTML = "В работе";
+            if (data.check_stage == "functional_pass") {
+                functional[parseInt(data.device_count)].innerHTML = "Соответствует";
+                functional[parseInt(data.device_count)].style.backgroundColor = '#009e28';
+            }
+
+            if (data.check_stage == "functional_fail") {
+                functional[parseInt(data.device_count)].innerHTML = "Не соответствует";
+                functional[parseInt(data.device_count)].style.backgroundColor = '#c10005';
+            }
+
+
+            if (data.check_stage == "emergency")
+                emergency[parseInt(data.device_count)].innerHTML = "В работе";
+            if (data.check_stage == "emergency_pass") {
+                emergency[parseInt(data.device_count)].innerHTML = "Соответствует";
+                emergency[parseInt(data.device_count)].style.backgroundColor = '#009e28';
+            }
+
+            if (data.check_stage == "emergency_fail") {
+                emergency[parseInt(data.device_count)].innerHTML = "Не соответствует";
+                emergency[parseInt(data.device_count)].style.backgroundColor = '#c10005';
+            }
+
+           //  if (!data.device_finish){
+           //      if (color_flag) {
+           //        quantity[parseInt(data.device_count)].style.backgroundColor = '#76ff00';
+           //        color_flag = false;
+           //      } else {
+           //        quantity[parseInt(data.device_count)].style.backgroundColor = '#ff0000';
+           //        color_flag = true;
+           //
+           //      }
+           //  } else {
+           //
+           //      if (data.device_status) {
+           //          quantity[parseInt(data.device_count)].style.backgroundColor = '#76ff00';
+           //
+           //      }
+           //      else {
+           //          quantity[parseInt(data.device_count)].style.backgroundColor = '#ff0000';
+           //
+           //      }
+           //
+           // }
+                              // обновление лога
                           for (let i = 0; i < data.message.length; i++){
                             if (data.result[i])
                                 res = res  + "<div>"+ data.message[i] + "</div>";

@@ -67,19 +67,20 @@
     <section class="about-us spad">
         <form id="form" class="form-group" action="/configuration" method="post">
                         <h4>Конфигурация</h4>
-                        <div class="room-selector">
-                            <p>Тип устройства:</p>
-                            <select id="device_name"  class="form-control">
-                                <option {{psc24_10}} value="psc24_10">PSC 24V-10A</option>
-                                <option {{psc24_40}} value="psc24_40">PSC 24V-40A</option>
-                                <option {{psc48_10}} value="psc48_10">PSC 48V-10A</option>
-                                <option {{psc48_40}} value="psc48_40">PSC 48V-40A</option>
-                            </select>
+                        <div class="room-selector p-2">
+                                <p>Тип устройства:</p>
+                                <select id="device_name"  class="form-control form-control-lg w-25">
+                                    <option {{psc24_10}} value="psc24_10">PSC 24V-10A</option>
+                                    <option {{psc24_40}} value="psc24_40">PSC 24V-40A</option>
+                                    <option {{psc48_10}} value="psc48_10">PSC 48V-10A</option>
+                                    <option {{psc48_40}} value="psc48_40">PSC 48V-40A</option>
+                                </select>
                         </div>
-                                                <div class="room-selector">
+
+
+                        <div class="room-selector p-2">
                             <p>Тип блоков питания</p>
-                            <select id="power_supply_type" class="form-control"></select>
-                        </div>
+                            <select id="power_supply_type" class="form-control form-control-lg w-25"></select>
                         <script>
                             var syncList1 = new syncList;
                             syncList1.dataList = {
@@ -102,49 +103,43 @@
                             syncList1.sync("device_name","power_supply_type");
 
                         </script>
-<!--                        <div class="room-selector">-->
-<!--                            <p>Тип блоков питания:</p>-->
-<!--                            <select id="power_supply_type"  class="form-control">-->
-<!--                                <option {{pw24_5}} value="pw24_5">Topaz PW 24V 5A</option>-->
-<!--                                <option {{wm24_10}} value="wm24_10">WeidMuller 24V 10A</option>-->
-<!--                                <option {{wm24_40}} value="wm24_40">WeidMuller 24V 40A</option>-->
-<!--                                <option {{wm48_20}} value="wm48_20">WeidMuller 48V 20A</option>-->
-<!--                                <option {{mw24_67}} value="mw24_67">MeanWell 24V 67A</option>-->
-<!--                                <option {{mw48_67}} value="mw48_67">MeanWell 48V 67A</option>-->
-<!--                            </select>-->
-<!--                        </div>-->
+                        </div>
 
-                <div class="room-selector">
-                    <label>Кол-во проверяемых устройств:</label>
-                    <select id="checked_list" class="checked_list" name="checked_list">
-                        <option {{checked_1}} >1</option>
-                        <option {{checked_2}} >2</option>
-                        <option {{checked_3}} >3</option>
-                        <option {{checked_4}} >4</option>
-                        <option {{checked_5}} >5</option>
-                    </select>
-                </div>
+                        <div class="room-selector p-2">
+                            <label>Кол-во проверяемых устройств:</label><br>
+                            <select id="checked_list" class="checked_list form-control-lg w-25" name="checked_list">
+                                <option {{checked_1}} >1</option>
+                                <option {{checked_2}} >2</option>
+                                <option {{checked_3}} >3</option>
+                                <option {{checked_4}} >4</option>
+                                <option {{checked_5}} >5</option>
+                            </select>
+                        <div>
+                        <div class="room-selector p-2">
+                            <label>Версия прошивки PSC</label><br>
+                            <input class="form-control-lg w-25" type="text" id="soft_version" value="{{soft_version}}"{{soft_version}}><br>
+                        </div>
+                        <div class="room-selector p-2">
+                            <label>Конфигурация ЛБП</label><br>
+                            <label class="col-sm-2 col-form-label">IP address</label><br>
+                            <input type="text" class="ip_address form-control-lg w-25" id="ip_adress" value="{{ip_adress}}"{{ip_adress}}><br>
+                            <label class="col-sm-2 col-form-label">Port</label><br>
+                            <input type="text" class="form-control-lg w-25" id="port" value="{{port}}"{{port}}><br>
 
-                <div class="room-selector">
-                    <label>Версия прошивки PSC</label><br>
-                    <input type="text" id="soft_version" value="{{soft_version}}"{{soft_version}}><br>
-                    <h6>Конфигурация ЛБП</h6>
-                    <label>IP address</label><br>
-                    <input type="text" class="ip_address" id="ip_adress" value="{{ip_adress}}"{{ip_adress}}><br>
-                    <label>Port</label><br>
-                    <input type="text" id="port" value="{{port}}"{{port}}><br>
-                    <label>com порт модулей управления</label><br>
-                    <input type="text" id="control_com" value="{{control_com}}"{{control_com}}><br>
-                    <label>com порт амперметров</label><br>
-                    <input type="text" id="ammeter_com" value="{{ammeter_com}}"{{ammeter_com}}><br>
-                    <label>com порт проверяемых устройств</label><br>
-                    <input type="text" id="device_com" value="{{device_com}}"{{device_com}}><br>
-                </div><br>
+                            <label>Настройки портов</label><br>
+                            <input type="text" class="form-control-lg w-25" id="control_com" value="{{control_com}}"{{control_com}}><br>
+                            <label>com порт амперметров</label><br>
+                            <input type="text" class="form-control-lg w-25" id="ammeter_com" value="{{ammeter_com}}"{{ammeter_com}}><br>
+                            <label>com порт проверяемых устройств</label><br>
+                            <input type="text" class="form-control-lg w-25" id="device_com" value="{{device_com}}"{{device_com}}><br>
+                        </div> <br>
 
-
-                    <input class="primary-btn" id="save" type="submit" value="Сохранить" name="save"/>
+                    <input class="btn btn-primary btn-lg" id="save" type="submit" value="Сохранить" name="save"/><br>
                     <br><br><div id="my-progressbar"></div>
+                </div>
+            </div>
         </form>
+
         <div class="container">
             <div class="row">
 
@@ -191,7 +186,6 @@ Copyright &copy;<script>document.write(new Date().getFullYear());</script> All r
         </div>
     </footer>
     <!-- Footer Section End -->
-
     <!-- Js Plugins -->
     <script src="{{ url_for('static', filename = 'js/jquery-3.3.1.min.js') }}"></script>
     <script src="{{ url_for('static', filename = 'js/bootstrap.min.js') }}"></script>

@@ -99,12 +99,19 @@ class Log:
     device_count = 0
     stage = ""
     serial_number = ""
+    total_error = ""
 
-    def set_serial_number(self, stage):
-        self.stage = stage
+    def set_total_error(self, message):
+        self.total_error = message
+
+    def get_total_error(self):
+        return self.total_error
+
+    def set_serial_number(self, serial_number):
+        self.serial_number = serial_number
 
     def get_serial_number(self):
-        return self.stage
+        return self.serial_number
 
     def set_stage(self, stage):
         self.stage = stage
@@ -114,7 +121,7 @@ class Log:
 
     def add(self, name, event, result):
         self.log = self.log + datetime.now().strftime('%H:%M:%S.%f')[:-4] + " " + name + ":" + " " + event + "\n"
-        self.log_data.append(datetime.now().strftime('%H:%M:%S.%f')[:-4] + " " +name + ":" + " " + event + "\n")
+        self.log_data.append(datetime.now().strftime('%H:%M:%S.%f')[:-4] + " " + name + ":" + " " + event + "\n")
         self.log_result.append(result)
 
     def reset_log(self):
@@ -336,11 +343,11 @@ class Check_psc24_10:
             return True
         return False
 
-    # подготовка Stage 1
+    # Инициализация Stage 1
     def prepare(self):
         # Инициализируем модули управления
         try:
-            self.control_log.add(self.name, "Stage 1: Инициализация модулей управления", True)
+            self.control_log.add(self.name, "Инициализация модулей управления", True)
             # модули DOUT
             modb_dout_101 = devices.Modb()
             assert modb_dout_101.getConnection("DOUT_101", self.control_com, 101, 115200, self.control_log)
@@ -403,12 +410,13 @@ class Check_psc24_10:
             assert self.din_202.check_voltage("SF7", "ON")
             return True
         except:
-            self.control_log.add(self.name, "Error #1: Ошибка инициализации модулей управления", False)
+            self.control_log.add(self.name, "Ошибка инициализации модулей управления", False)
             return False
 
     # первое включение проверка состояния Stage 2
     def first_start(self):
-        self.control_log.add(self.name, "Stage 2 Подготовка к первому запуску", True)
+        self.main_log.set_stage("serial_number")
+        self.control_log.add(self.name, "Подготовка к первому запуску", True)
         # подаём 3 канала с ЛБП
         try:
             # Подключаем входа
@@ -432,22 +440,39 @@ class Check_psc24_10:
 
             # предполагаемое поведение
             self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1}
-            # ждем включения устройства и передаем предполагаемое поведение
+            # ждем включения устройства и передаем предполагаемое поведение заменить на if для
+            # подробного описания ошибок
             assert self.psc24_10.check_behaviour(self.behaviour)
 
-            self.control_log.add(self.name, "Stage #2: Подготовка к первому запуска завершена", True)
+            # считываем серийный номер
+            assert self.eeprom.read_serial_number()
+            serial_number = str(self.eeprom.get_serial_number())
+            # self.serial_number['Серийный номер'][0] = serial_number
+            if serial_number != "4710000000":
+                self.serial_number['Серийный номер'][0] = serial_number
+                self.control_log.add(self.name, "Серийный номер: " + serial_number, True)
+                self.main_log.set_serial_number("serial_number")
+            else:
+                self.serial_number['Серийный номер'][0] = "4710000000"
+                self.control_log.add(self.name, "Серийный номер не записан", False)
+                self.main_log.set_serial_number("4710000000")
+
+            self.main_log.set_stage("serial_number_pass")
+            self.control_log.add(self.name, "Подготовка к первому запуска завершена", True)
             return True
         except:
-            self.control_log.add(self.name, "Error #2: Подготовка к первому запуску не прошла", False)
+            self.main_log.set_stage("serial_number_fail")
+            self.control_log.add(self.name, "Подготовка к первому запуску не прошла", False)
             return False
 
     #  считывание и проверка конфигурации Stage 3
     def configurate_check(self):
-        self.control_log.add(self.name, "Stage 3 Проверка и запись конфигурации", True)
+        self.main_log.set_stage("configuration")
+        self.control_log.add(self.name, "Проверка и запись конфигурации", True)
         try:
+            # считываем версию ПО
             assert self.eeprom.read_soft_version()
-            config = self.settings.load("settings.cfg")
-            soft_version = config.get("soft_version")
+            soft_version = self.config.get("soft_version")
             self.soft_version['Версия ПО'] = soft_version
             if self.eeprom.get_soft_version() == soft_version:
                 self.soft_version['Фактическая'] = [self.eeprom.get_soft_version()]
@@ -460,14 +485,6 @@ class Check_psc24_10:
                                      "Не актуальная версия прошивки: " + self.eeprom.get_soft_version() + " != " + soft_version,
                                      False)
                 assert False
-            # считываем серийный номер
-            assert self.eeprom.read_serial_number()
-            serial_number = str(self.eeprom.get_serial_number())
-            # self.serial_number['Серийный номер'][0] = serial_number
-            if serial_number != "4710000000":
-                self.serial_number['Серийный номер'][0] = serial_number
-            else:
-                assert False
 
             # считываем настройки электропитания
             assert self.eeprom.read_power_management()
@@ -475,23 +492,25 @@ class Check_psc24_10:
 
             self.out_i_1_temp = self.power_management.get("out_i_1")
             self.out_i_2_temp = self.power_management.get("out_i_2")
-            # записываем уставки по току out1 = 9.7; out2 = 0.2
+            # записываем уставки по току
             assert self.eeprom.write_max_current_value(5, 5)
 
             # предполагаемое поведение
             self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1}
             # проверяем состояние состояние
             assert self.psc24_10.check_behaviour(self.behaviour)
-
-            self.control_log.add(self.name, "Stage #3: Проверка и запись конфигурации завершено", True)
+            self.main_log.set_stage("configuration_pass")
+            self.control_log.add(self.name, "Проверка и запись конфигурации завершено", True)
             return True
         except:
-            self.control_log.add(self.name, "Error #3: Ошибка при проверке и записи конфигурации", False)
+            self.main_log.set_stage("configuration_fail")
+            self.control_log.add(self.name, "Ошибка при проверке и записи конфигурации", False)
             return False
 
     # проверка телеизмерения Stage 4
     def measurements_check(self):
-        self.control_log.add(self.name, "Stage 4 Проверка измерений", True)
+        self.main_log.set_stage("measurements")
+        self.control_log.add(self.name, "Проверка измерений", True)
         try:
             ##############  IN1  ##############
             # получаем номинальное напряжение канала на устройстве
@@ -758,17 +777,18 @@ class Check_psc24_10:
             # проверяем состояние состояние
             assert self.psc24_10.check_behaviour(self.behaviour)
 
+            self.main_log.set_stage("measurements_pass")
             self.control_log.add(self.name, "Stage #4: Проверка измерений завершена", True)
             return True
         except:
-            self.control_log.add(self.name, "Error #4: Ошибка при проверке измерений", False)
+            self.main_log.set_stage("measurements_fail")
+            self.control_log.add(self.name, "Ошибка при проверке измерений", False)
             return False
-        # если токовые каналы в параллель то проверить, что разница между ними
-        # не более 500mA
 
     # Проверка порогов по напряжению работаем здесь stage 5
     def check_voltage_thresholds(self):
-        self.control_log.add(self.name, "Stage 5 Проверка порогов по напряжению", True)
+        self.main_log.set_stage("functional")
+        self.control_log.add(self.name, "Проверка порогов по напряжению", True)
         try:
             assert self.power_supply.output("OFF")
             assert self.power_supply.check_output("OFF")
@@ -1193,15 +1213,16 @@ class Check_psc24_10:
             # проверяем поведение
             assert self.psc24_10.check_behaviour(self.behaviour)
 
-            self.control_log.add(self.name, "Stage #5: Проверка порогов по напряжению завершена", True)
+            self.control_log.add(self.name, "Проверка порогов по напряжению завершена", True)
             return True
         except:
-            self.control_log.add(self.name, "Error #5: Ошибка при проверке порогов по напряжению", False)
+            self.main_log.set_stage("functional_fail")
+            self.control_log.add(self.name, "Ошибка при проверке порогов по напряжению", False)
             return False
 
     # проверка ТЭН'а и обрыв связи с датчиком stage 6 (готово)
     def check_ten(self):
-        self.control_log.add(self.name, "Stage #6 Проверка работы ТЭН и обрыва связи с датчиком", True)
+        self.control_log.add(self.name, "Проверка работы ТЭН и обрыва связи с датчиком", True)
         try:
 
             # предполагаемое поведение
@@ -1309,28 +1330,14 @@ class Check_psc24_10:
             self.control_log.add(self.name, "Stage #6 Проверка работы ТЭН и обрыва связи с датчиком завершена", True)
             return True
         except:
-            self.control_log.add(self.name, "Error #6 Ошибка проверки работы ТЭН и обрыва связи с датчиком", False)
+            self.main_log.set_stage("functional_fail")
+            self.control_log.add(self.name, "Ошибка проверки работы ТЭН и обрыва связи с датчиком", False)
             return False
 
     # переключение каналов stage 7 (в работе добавить нагрузку и коммутатор)
     def switch_channel(self):
-        self.control_log.add(self.name, "Stage #7 Переключение каналов (Проверка провалов по напряжению)", True)
+        self.control_log.add(self.name, "Переключение каналов (Проверка провалов по напряжению)", True)
         try:
-            #
-            # ###########ONLY FOR TEST###############
-            # # подключаем IN1
-            # assert self.dout_101.command(self.IN1, "ON")
-            # assert self.din_201.check_voltage(self.IN1, "ON")
-            #
-            # # подключаем IN2
-            # assert self.dout_101.command(self.IN2, "ON")
-            # assert self.din_201.check_voltage(self.IN2, "ON")
-            #
-            # # подключаем АКБ
-            # assert self.dout_103.command(self.BTR, "ON")
-            # assert self.din_202.check_voltage(self.BTR, "ON")
-            # ###########ONLY FOR TEST###############
-
             # создать новый объект роутером
             self.router = devices.Router("192.168.1.1", "Роутер")
             # Включить IN1, IN2, IN3
@@ -1447,34 +1454,21 @@ class Check_psc24_10:
 
             assert self.psc24_10.check_behaviour(self.behaviour)
 
-            self.control_log.add(self.name, "Stage #7 Переключение каналов (Проверка провалов по напряжению пройдена)", True)
+            self.main_log.set_stage("functional_pass")
+            self.control_log.add(self.name, "Переключение каналов (Проверка провалов по напряжению пройдена)", True)
             return True
         except:
+            self.main_log.set_stage("functional_fail")
             self.switching_channels['Переключение каналов'][0] = "fail"
-            self.control_log.add(self.name, "Error #7 Переключение каналов (Проверка провалов по напряжению не пройдена)", False)
+            self.control_log.add(self.name, "Переключение каналов (Проверка провалов по напряжению не пройдена)", False)
             return False
 
     # аварийные режимы работы stage 8
     def overload_mode(self):
-        self.control_log.add(self.name, "Stage #8 Проверка режима перегрузка", True)
+        self.main_log.set_stage("emergency")
+        self.control_log.add(self.name, "Проверка режима перегрузка", True)
         try:
-
-            ##########ONLY FOR TEST###############
-            # подключаем IN1
-            assert self.dout_101.command(self.IN1, "ON")
-            assert self.din_201.check_voltage(self.IN1, "ON")
-
-            # подключаем IN2
-            assert self.dout_101.command(self.IN2, "ON")
-            assert self.din_201.check_voltage(self.IN2, "ON")
-
-            # подключаем АКБ
-            assert self.dout_103.command(self.BTR, "ON")
-            assert self.din_202.check_voltage(self.BTR, "ON")
-            ##########ONLY FOR TEST###############
-
             timeout = self.psc24_10.timeout
-
             # предполагаемое поведение
             self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 0,
                               "error_pwr2": 0, "error_out1": 0, "error_out2": 0}
@@ -1497,9 +1491,6 @@ class Check_psc24_10:
 
             # записываем уставки по току out1 = 9; out2 = 1
             assert self.eeprom.write_max_current_value(9, 1)
-
-            # assert self.dout_104.command("KM12", "ON")
-            # assert self.din_202.check_voltage("KM12", "ON")
 
             assert self.psc24_10.check_behaviour(self.behaviour)
 
@@ -1539,17 +1530,6 @@ class Check_psc24_10:
                 self.i_nom = self.ammeter_out1.get_ti()
 
             self.psc24_10.set_timeout(timeout)
-            # self.wait_time(5)
-            #
-            # # предполагаемое поведение
-            # self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 0, "key2": 1, "error_pwr1": 0,
-            #                   "error_pwr2": 0, "error_out1": 1, "error_out2": 0}
-            #
-            # assert self.psc24_10.check_behaviour(self.behaviour)
-
-            # # отключаем нагрузку
-            # assert self.dout_104.command("KM12", "OFF")
-            # assert self.din_202.check_voltage("KM12", "OFF")
 
             assert self.dout_104.command("KM12", "OFF")
             assert self.din_202.check_voltage("KM12", "OFF")
@@ -1597,29 +1577,12 @@ class Check_psc24_10:
 
             assert self.psc24_10.check_behaviour(self.behaviour)
 
-            # assert self.dout_104.command("KM12", "ON")
-            # assert self.din_202.check_voltage("KM12", "ON")
-
-
             if self.config.get("device_name") == "psc24_10":
                 assert self.dout_104.command("KM13", "ON")
                 assert self.din_202.check_voltage("KM13", "ON")
             if self.config.get("device_name") == "psc48_10":
                 assert self.dout_104.command("KM12", "ON")
                 assert self.din_202.check_voltage("KM12", "ON")
-
-            # for load in self.switches_load:
-            #     assert self.dout_102.command(load, "ON")
-            #     assert self.din_201.check_voltage(load, "ON")
-            #     self.wait_time(2)
-            #     assert self.ammeter_out2.check_ti()
-            #     self.i_nom = self.ammeter_out2.get_ti()
-            #     self.control_log.add(self.name, "Ток out2 " + str(self.i_nom), True)
-            #     if self.i_nom > 9.5:
-            #         self.control_log.add(self.name, "Устройство не уходит в защиту на out2 " + str(self.i_nom), False)
-            #         assert False
-            #     if self.i_nom == 0.0 or self.i_nom == -0.0:
-            #         break
 
             self.wait_time(15)
                 # предполагаемое поведение
@@ -1649,13 +1612,6 @@ class Check_psc24_10:
                 self.i_nom = self.ammeter_out2.get_ti()
 
             self.psc24_10.set_timeout(timeout)
-
-
-            # assert self.psc24_10.check_behaviour(self.behaviour)
-
-            # # отключаем нагрузку
-            # assert self.dout_104.command("KM12", "OFF")
-            # assert self.din_202.check_voltage("KM12", "OFF")
 
             assert self.dout_104.command("KM12", "OFF")
             assert self.din_202.check_voltage("KM12", "OFF")
@@ -1692,20 +1648,21 @@ class Check_psc24_10:
             assert self.psc24_10.check_behaviour(self.behaviour)
 
             self.emergency_modes['Результат'][1] = "ok"
-            self.control_log.add(self.name, "Stage #8 Проверка режима перегрузка прошла успешно", True)
+            self.control_log.add(self.name, "Проверка режима перегрузка прошла успешно", True)
             return True
         except:
             # возвращаем таймаут
             self.psc24_10.set_timeout(timeout)
             # записываем уставки по току out1 = default; out2 = default
             assert self.eeprom.write_max_current_value(5, 5)
-            self.control_log.add(self.name, "Error #8 Ошибка проверки режима перегрузка", False)
+            self.main_log.set_stage("emergency_fail")
+            self.control_log.add(self.name, "Ошибка проверки режима перегрузка", False)
             self.emergency_modes['Результат'][1] = "bad"
             return False
 
     # аварийные режимы работы stage 9
     def short_curciut_mode(self):
-        self.control_log.add(self.name, "Stage #9 Проверка режима короткого замыкания", True)
+        self.control_log.add(self.name, "Проверка режима короткого замыкания", True)
         try:
             # предполагаемое поведение
             self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 0, "error_pwr2": 0,
@@ -1854,10 +1811,12 @@ class Check_psc24_10:
             assert self.eeprom.write_max_current_value(self.out_i_1_temp, self.out_i_2_temp)
 
             self.emergency_modes['Результат'][0] = "ok"
-            self.control_log.add(self.name, "Stage #9 Проверка режима короткого замыкания прошла успешно", True)
+            self.main_log.set_stage("emergency_pass")
+            self.control_log.add(self.name, "Проверка режима короткого замыкания прошла успешно", True)
             return True
         except:
-            self.control_log.add(self.name, "Error #9 Ошибка проверки режима короткоткого замыкания", False)
+            self.main_log.set_stage("emergency_fail")
+            self.control_log.add(self.name, "Ошибка проверки режима короткоткого замыкания", False)
             self.emergency_modes['Результат'][0] = "bad"
             return False
 
@@ -1865,6 +1824,7 @@ class Check_psc24_10:
     def off_all_control(self):
         try:
             assert self.dout_101.off_enabled()
+            # добавить задержки
             assert self.dout_102.off_enabled()
             assert self.dout_103.off_enabled()
             assert self.dout_104.off_enabled()
@@ -1985,8 +1945,8 @@ class Check_psc24_10:
                     self.main_log.set_start(True)
                     self.main_log.set_finish(True)
                     i = i + 1
-                    self.wait_time(2)
-                    # количество хороших модулей
+                    self.wait_time(5)
+                    # # количество хороших модулей
                     ok = ok + 1
                 except AssertionError:
                     # количество плохих модулей
@@ -2012,7 +1972,7 @@ class Check_psc24_10:
                     i = i + 1
                     time.sleep(2)
             if flag:
-                self.control_log.add("Тестирование", "Тестирование завершено", False)
+                self.control_log.add("Тестирование", "Тестирование завершено", True)
                 # закончить опрос backend'a
                 self.control_log.set_finish(True)
                 # time.sleep(2)

@@ -86,10 +86,12 @@ def test():
             control_log.set_start(True)
             # добавить сюда номер проверяемого устройства
         return jsonify({"message": control_log.get_log_data(), "result": control_log.get_log_result(), "flag": control_log.get_finish(),
-                        "device_count": main_log.get_device_count(), "device_status": main_log.get_start(), "device_finish": main_log.get_finish()})
+                        "device_count": main_log.get_device_count(), "device_status": main_log.get_start(), "device_finish": main_log.get_finish(),
+                        "stage" : main_log.get_finish()})
 
     if request.method == 'GET':
         data = settings.load("settings.cfg")
+        device_name = ""
         print(data)
         devices = ""
         stages = []
@@ -97,8 +99,16 @@ def test():
         while i <= int(data.get('checked_list')):
             devices = devices + str(i)
             i = i + 1
+        if data['device_name'] == "psc24_10":
+            device_name = "PSC 24V 10A"
+        if data['device_name'] == "psc48_10":
+            device_name = "PSC 48V 10A"
+        if data['device_name'] == "psc24_40":
+            device_name = "PSC 24V 40A"
+        if data['device_name'] == "psc48_40":
+            device_name = "PSC 48V 40A"
 
-        return render_template('test.html', devices = devices, stages = stages)
+        return render_template('test.html', devices = devices, stages = stages, device_name = device_name)
 
 @app.route('/instruction')
 def instruction():
@@ -128,8 +138,6 @@ def configuration():
         return jsonify({"result": result})
 
     if request.method == 'GET':
-
-
         psc24_10 = "0"
         psc24_40 = "0"
         psc48_10 = "0"

@@ -97,6 +97,20 @@ class Log:
     start = True
     finish = False
     device_count = 0
+    stage = ""
+    serial_number = ""
+
+    def set_serial_number(self, stage):
+        self.stage = stage
+
+    def get_serial_number(self):
+        return self.stage
+
+    def set_stage(self, stage):
+        self.stage = stage
+
+    def get_stage(self):
+        return self.stage
 
     def add(self, name, event, result):
         self.log = self.log + datetime.now().strftime('%H:%M:%S.%f')[:-4] + " " + name + ":" + " " + event + "\n"
@@ -397,8 +411,6 @@ class Check_psc24_10:
         self.control_log.add(self.name, "Stage 2 Подготовка к первому запуску", True)
         # подаём 3 канала с ЛБП
         try:
-
-
             # Подключаем входа
             assert self.dout_102.command("KL30", "ON")
             assert self.din_201.check_voltage("KL30", "ON")

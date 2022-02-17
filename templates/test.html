@@ -65,41 +65,68 @@
     <section class="about-us spad">
         <div class="section-title">
 
-            <!-- Количество устройств и контроль -->
-            <div style="overflow: hidden;"> Номер устройства:
-                <div style="width: 1000%;">
-                    {% for device in devices %}
-                        <div id = "device_num{{device}}" class=primary-btn style = background-color:#0000ff;">{{device}}</div>
-                    {% endfor %}
-                </div>
-            </div>
-
-             <!-- ЭТАПЫ ПРОВЕРКИ -->
-               <div style="overflow: hidden;"> Этапы:
-                <div style="width: 1000%;">
-                    <div id ="{{stage}}"  class=primary-btn style = background-color:#0000ff;>{{stage}}</div>
-                </div>
-            </div>
-
-
-
-<!--            <div id="devices" style="width:auto;">-->
-<!--                Устройства:-->
-<!--                <li id="device1" {{device1}}>1</li>-->
-<!--                <li id="device2" {{device2}}>2</li>-->
-<!--                <div id="device3" {{device3}}>{{text_device3}}</div>-->
-<!--                <div id="device4" {{device4}}>{{text_device4}}</div>-->
-<!--                <div id="device5" {{device5}}>{{text_device5}}</div>-->
+<!--            &lt;!&ndash; Количество устройств и контроль &ndash;&gt;-->
+<!--            <div style="overflow: hidden;"> Номер устройства:-->
+<!--                <div style="width: 1000%;">-->
+<!--                    {% for device in devices %}-->
+<!--                        <div id = "device_num{{device}}" class=primary-btn style = background-color:#0000ff;">{{device}}</div>-->
+<!--                    {% endfor %}-->
+<!--                </div>-->
 <!--            </div>-->
 
-<!--            <div id="mode1" {{mode1}}>{{text_mode1}}</div>-->
-<!--            <div id="mode2" {{mode2}}>{{text_mode2}}</div>-->
-<!--            <div id="mode3" {{mode3}}>{{text_mode3}}</div>-->
-<!--            <div id="mode4" {{mode4}}>{{text_mode4}}</div>-->
-<!--            <div id="mode5" {{mode5}}>{{text_mode5}}</div>-->
-<!--            <div id="mode6" {{mode6}}>{{text_mode6}}</div>-->
+             <!-- ЭТАПЫ ПРОВЕРКИ -->
+<!--               <div style="overflow: hidden;"> Этапы:-->
+<!--                <div style="width: 1000%;">-->
+<!--                    <div id ="{{stage}}"  class=primary-btn style = background-color:#0000ff;>{{stage}}</div>-->
+<!--                </div>-->
+<!--            </div>-->
 
 
+            <table style="font-weight: bold" class="table">
+              <thead class="thead-dark">
+                <tr>
+                  <th scope="col">№</th>
+                  <th scope="col">Тип</th>
+                  <th scope="col">Серийный номер</th>
+                    <th scope="col">Инициализация</th>
+                  <th scope="col">Конфигурация</th>
+                    <th scope="col">Измерения</th>
+                    <th scope="col">Функционал</th>
+                    <th scope="col">Аварийные режимы</th>
+                    <th scope="col">Ошибки стенда</th>
+                </tr>
+              </thead>
+              <tbody>
+
+                {% for device in devices %}
+                    <tr>
+                        <th scope="row" class ="checked_dev" id = "device_num{{device}}" scope="row">{{device}}</th>
+                          <td> {{device_name}} </td>
+                          <td class="serial_number{{device}}">{{serial_number}}</td>
+                          <td class ="initialization{{device}}" style="background-color: yellow">{{initialization_result}}</td>
+                          <td class ="configuration{{device}}" style="background-color: yellow">{{configuration_result}}</td>
+                          <td class ="measurements{{device}}"  style="background-color: yellow">{{measurements_result}}</td>
+                          <td class ="functional{{device}}"  style="background-color: yellow">{{functional_result}}</td>
+                          <td class ="emergency{{device}}"  style="background-color: yellow">{{emergency_result}}</td>
+                          <td class ="stand_errors{{device}}"  style="background-color: green">{{stand_errors_result}}</td>
+                    </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+
+
+<!--                {% for device in devices %}-->
+<!--                    <tr>-->
+<!--                        <th class ="checked_dev" id = "device_num{{device}}" scope="row">{{device}}</th>-->
+<!--                          <td>PSC24V10A</td>-->
+<!--                          <td>4790001211</td>-->
+<!--                          <td class ="" style="background-color: green">Пройдено</td>-->
+<!--                          <td style="background-color: green">Пройдено</td>-->
+<!--                          <td style="background-color: red">Не пройдено</td>-->
+<!--                          <td style="background-color: yellow">Не проверено</td>-->
+<!--                          <td style="background-color: green">Нет</td>-->
+<!--                    </tr>-->
+<!--                {% endfor %}-->
 
 
             <span>Лог событий</span>

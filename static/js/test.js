@@ -15,8 +15,11 @@ document.addEventListener('DOMContentLoaded', () => {
         var request = new XMLHttpRequest();
         var sumbit_type = document.querySelector('#test').disabled = true; // отключаю кнопку по началу проверки
         var log = document.querySelector('#log').value = "";
-        document.querySelector('#log').innerHTML = "Нажал!";
-        var colorArray = document.getElementsByClassName('primary-btn');
+        // document.querySelector('#log').innerHTML = "Нажал!";
+
+        var colorArray = document.getElementsByClassName('checked_dev');
+        var serial_number = document.getElementsByClassName('serial_number1');
+
         var color_flag = true;
         var standart_color = '#0000ff'
         // var device_color = new Array();
@@ -44,6 +47,17 @@ document.addEventListener('DOMContentLoaded', () => {
                             }, 200);
                         });
 
+
+                            // alert("work!");
+                            // initialization_color.style.backgroundColor = '#76ff00';
+                            // var configuration_color = document.getElementsByClassName('configuration' + data.device_count);
+                            // var measurements_color = document.getElementsByClassName('measurements' + data.device_count);
+                            // var functional_color = document.getElementsByClassName('functional' + data.device_count);
+                            // var emergency_color = document.getElementsByClassName('emergency' + data.device_count);
+                            // var stand_errors_color = document.getElementsByClassName('stand_errors' + data.device_count);
+                            // table.serial_number1.style.backgroundColor = 'red';
+                            // table[1][1].value = "alalla"
+                            //   serial_number.value = "dsad"
                             if (!data.device_finish){
                                 if (color_flag) {
                                   colorArray[parseInt(data.device_count)].style.backgroundColor = '#07ff00';
@@ -64,10 +78,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
                             }
 
-                            // for (i = 0; i < device_color.length - 1; i++) {
-                            //     alert(i)
-                            //     colorArray[i].style.backgroundColor = device_color[i];
-                            // }
 
                           for (let i = 0; i < data.message.length; i++){
                             if (data.result[i])
@@ -77,6 +87,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             }
                               // выводим результат
                           document.querySelector('#log').innerHTML = res;
+
                           // если флаг True прекратить опрос backend'a
                             if (data.flag) {
                                 clearTimeout(lala);

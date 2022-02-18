@@ -388,7 +388,7 @@ class Check_psc24_10:
             # правильная инициализация modbus
             modb_psc24_10 = devices.Modb()
             assert modb_psc24_10.getConnection("PSC24_10", self.device_com, 1, 115200, self.control_log)
-            self.psc24_10 = devices.Psc_10(modb_psc24_10.getСonnectivity(), "PSC24_10", self.control_log, 60)
+            self.psc24_10 = devices.Psc_10(modb_psc24_10.getСonnectivity(), "PSC24_10", self.control_log, 120)
             # объект EEPROM
             self.eeprom = read_write_eeprom.ReadWriteEEprom("EEPROM", self.control_log, self.device_com, 115200, 30)
 
@@ -436,7 +436,7 @@ class Check_psc24_10:
             assert self.power_supply.set_voltage(self.power_supply_voltage)
             assert self.power_supply.check_voltage(self.power_supply_voltage)
 
-            self.wait_time(30)
+            # self.wait_time(30)
 
             # предполагаемое поведение
             self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1}
@@ -451,7 +451,7 @@ class Check_psc24_10:
             if serial_number != "4710000000":
                 self.serial_number['Серийный номер'][0] = serial_number
                 self.control_log.add(self.name, "Серийный номер: " + serial_number, True)
-                self.main_log.set_serial_number("serial_number")
+                self.main_log.set_serial_number(serial_number)
             else:
                 self.serial_number['Серийный номер'][0] = "4710000000"
                 self.control_log.add(self.name, "Серийный номер не записан", False)

@@ -80,6 +80,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (data.check_stage == "serial_number_fail") {
                 serial_number[parseInt(data.device_count)].innerHTML = "Не записан";
                 serial_number[parseInt(data.device_count)].style.backgroundColor = '#c10005';
+                quantity[parseInt(data.device_count)].style.backgroundColor = '#c10005';
+                device_type[parseInt(data.device_count)].style.backgroundColor = '#c10005';
             }
 
 
@@ -93,6 +95,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (data.check_stage == "configuration_fail") {
                 configuration[parseInt(data.device_count)].innerHTML = "Не соответствует";
                 configuration[parseInt(data.device_count)].style.backgroundColor = '#c10005';
+                quantity[parseInt(data.device_count)].style.backgroundColor = '#c10005';
+                device_type[parseInt(data.device_count)].style.backgroundColor = '#c10005';
             }
 
 
@@ -106,6 +110,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (data.check_stage == "measurements_fail") {
                 measurements[parseInt(data.device_count)].innerHTML = "Не соответствует";
                 measurements[parseInt(data.device_count)].style.backgroundColor = '#c10005';
+                quantity[parseInt(data.device_count)].style.backgroundColor = '#c10005';
+                device_type[parseInt(data.device_count)].style.backgroundColor = '#c10005';
             }
 
 
@@ -119,6 +125,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (data.check_stage == "functional_fail") {
                 functional[parseInt(data.device_count)].innerHTML = "Не соответствует";
                 functional[parseInt(data.device_count)].style.backgroundColor = '#c10005';
+                quantity[parseInt(data.device_count)].style.backgroundColor = '#c10005';
+                device_type[parseInt(data.device_count)].style.backgroundColor = '#c10005';
             }
 
 
@@ -127,11 +135,15 @@ document.addEventListener('DOMContentLoaded', () => {
             if (data.check_stage == "emergency_pass") {
                 emergency[parseInt(data.device_count)].innerHTML = "Соответствует";
                 emergency[parseInt(data.device_count)].style.backgroundColor = '#009e28';
+                quantity[parseInt(data.device_count)].style.backgroundColor = '#009e28';
+                device_type[parseInt(data.device_count)].style.backgroundColor = '#009e28';
             }
 
             if (data.check_stage == "emergency_fail") {
                 emergency[parseInt(data.device_count)].innerHTML = "Не соответствует";
                 emergency[parseInt(data.device_count)].style.backgroundColor = '#c10005';
+                quantity[parseInt(data.device_count)].style.backgroundColor = '#c10005';
+                device_type[parseInt(data.device_count)].style.backgroundColor = '#c10005';
             }
 
            //  if (!data.device_finish){

@@ -1338,6 +1338,26 @@ class Check_psc24_10:
     def switch_channel(self):
         self.control_log.add(self.name, "Переключение каналов (Проверка провалов по напряжению)", True)
         try:
+
+            ##### FOR TEST
+            # отключаем IN2
+            assert self.dout_101.command(self.IN2, "ON")
+            assert self.din_201.check_voltage(self.IN2, "ON")
+            # отключаем IN1
+            assert self.dout_101.command(self.IN1, "ON")
+            assert self.din_201.check_voltage(self.IN1, "ON")
+
+            assert self.dout_103.command(self.BTR, "ON")
+            assert self.din_202.check_voltage(self.BTR, "ON")
+            ##### FOR TEST
+
+            # предполагаемое поведение
+            self.behaviour = {"pwr1": 1, "pwr2": 0, "btr": 0, "key1": 1, "key2": 1, "error_pwr1": 0, "error_pwr2": 0,
+                              "error_out1": 0, "error_out2": 0}
+
+            # проверяем поведение
+            assert self.psc24_10.check_behaviour(self.behaviour)
+
             # создать новый объект роутером
             self.router = devices.Router("192.168.1.1", "Роутер")
             # Включить IN1, IN2, IN3
@@ -1371,7 +1391,7 @@ class Check_psc24_10:
             assert self.dout_102.command("KL21", "ON")
             assert self.din_201.check_voltage("KL21", "ON")
 
-            self.wait_time(15)
+            self.wait_time(70)
 
 
             self.router.start_check()
